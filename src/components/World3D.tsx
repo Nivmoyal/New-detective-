@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html, PerformanceMonitor } from '@react-three/drei';
+import { EffectComposer, N8AO, SMAA, ToneMapping } from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
 import * as THREE from 'three';
 import { Compass, Crosshair, DoorOpen, MessageSquare, Search, Video } from 'lucide-react';
 import type { CharacterLook, CharacterRef, FacilityHotspot, GameMap, MapHotspot } from '../types/investigation';
@@ -10,7 +12,8 @@ import MapScene, { TILE } from './three/MapScene';
 import { type MotionState } from './three/Humanoid';
 import Humanoid from './three/RiggedCharacter';
 
-const SPEED = 3.4; // tiles per second
+const WALK_MPS = 1.25; // metres per second
+const JOG_MPS = 2.9;
 const RADIUS = 0.26; // collision radius in tiles
 const NPC_RADIUS = 0.5;
 const INTERACT_RANGE = 1.5;
@@ -225,7 +228,8 @@ function Walker({ ped }: { ped: Pedestrian }) {
     const y = a.y + (b.y - a.y) * s.t;
     group.current.position.set(x * TILE, 0, y * TILE);
     group.current.rotation.y = Math.atan2(b.x - a.x, b.y - a.y);
-    motion.current.speed = Math.min(1, ped.speed / 1.4);
+    motion.current.mps = ped.speed * TILE;
+    motion.current.speed = Math.min(1, motion.current.mps / JOG_MPS);
   });
   return (
     <group ref={group}>
@@ -279,7 +283,8 @@ function Player({
   const arrow = useRef<THREE.Group>(null);
   const pos = useRef({ ...start });
   const heading = useRef(Math.PI);
-  const motion = useRef<MotionState>({ speed: 0 });
+  const motion = useRef<MotionState>({ speed: 0, mps: 0 });
+  const groundSpeed = useRef(0);
   const nearId = useRef<string | null>(null);
   const saveTimer = useRef(0);
   const camera = useThree((s) => s.camera);
@@ -335,10 +340,14 @@ function Player({
       }
     }
     const len = Math.min(1, Math.hypot(ix, iy));
+    // Gentle push or Shift walks; a full push jogs. Short tap-to-move trips walk.
+    const walking = len < 0.6 || inp.keys.has('shift') || (inp.target && Math.hypot(inp.target.x - p.x, inp.target.y - p.y) < 2.5);
+    const targetMps = len > 0.05 ? (walking ? WALK_MPS : JOG_MPS) : 0;
+    groundSpeed.current = THREE.MathUtils.lerp(groundSpeed.current, targetMps, Math.min(1, dt * (targetMps > groundSpeed.current ? 5 : 9)));
     if (len > 0.05) {
       const nx = ix / Math.hypot(ix, iy);
       const ny = iy / Math.hypot(ix, iy);
-      const step = SPEED * len * dt;
+      const step = (groundSpeed.current / TILE) * dt;
       let moved = false;
       if (!blocked(p.x + nx * step, p.y)) {
         p.x += nx * step;
@@ -354,7 +363,8 @@ function Player({
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       heading.current += diff * Math.min(1, dt * 12);
     }
-    motion.current.speed = THREE.MathUtils.lerp(motion.current.speed, len > 0.05 ? len : 0, Math.min(1, dt * 10));
+    motion.current.mps = len > 0.05 ? groundSpeed.current : 0;
+    motion.current.speed = Math.min(1, motion.current.mps / JOG_MPS);
 
     const world = toWorld(p.x, p.y);
     playerWorld.current.copy(world);
@@ -499,6 +509,7 @@ export default function World3D({
   pausedRef.current = paused;
   const playerWorld = useRef(toWorld((startPosition ?? map.spawn).x, (startPosition ?? map.spawn).y));
   const [nearby, setNearby] = useState<Interactable | null>(null);
+  const [fx, setFx] = useState(true);
   const nearbyRef = useRef<Interactable | null>(null);
   nearbyRef.current = nearby;
 
@@ -593,6 +604,7 @@ export default function World3D({
     const down = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || pausedRef.current) return;
       const k = e.key.toLowerCase();
+      if (k === 'shift') input.current.keys.add(k);
       if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
         e.preventDefault();
         input.current.keys.add(k);
@@ -644,6 +656,16 @@ export default function World3D({
         style={{ touchAction: 'none' }}
       >
         <MapScene map={map} />
+
+        {/* Ambient occlusion grounds people and furniture; it switches off on devices that can't keep up. */}
+        <PerformanceMonitor onDecline={() => setFx(false)} flipflops={2} onFallback={() => setFx(false)} />
+        {fx && (
+          <EffectComposer multisampling={0} enableNormalPass={false}>
+            <N8AO halfRes quality="performance" aoRadius={1.1} intensity={2.4} distanceFalloff={0.8} />
+            <SMAA />
+            <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+          </EffectComposer>
+        )}
 
         {/* invisible ground for tap-to-move */}
         <mesh

@@ -6,6 +6,8 @@ import type { CharacterLook } from '../../types/investigation';
 /** Shared motion channel: the controller writes, the rig reads every frame. */
 export interface MotionState {
   speed: number; // 0..1 normalized walking speed
+  /** Actual ground speed in metres per second (drives the rigged walk/jog playback rate). */
+  mps?: number;
 }
 
 export type Pose = 'stand' | 'sit';

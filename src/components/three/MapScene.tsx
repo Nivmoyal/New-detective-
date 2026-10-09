@@ -1,13 +1,14 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Environment, Html, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GameMap } from '../../types/investigation';
 import { WALKABLE_TILES } from '../../data/maps';
 import { textures } from './textures';
 
-export const TILE = 1.3;
-export const WALL_H = 2.7;
+import { CityDressing, Structure, TILE, WALL_H } from './CityScene';
+
+export { TILE, WALL_H };
 
 const hash = (x: number, y: number) => {
   const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
@@ -70,7 +71,7 @@ function floorMaterial(ch: string, ambient: GameMap['ambient']): THREE.MeshStand
 
 const floorGeo = new THREE.PlaneGeometry(TILE, TILE).rotateX(-Math.PI / 2);
 
-function Floors({ map }: { map: GameMap }) {
+function Floors({ map, only }: { map: GameMap; only?: string[] }) {
   const groups = useMemo(() => {
     const g = new Map<string, [number, number][]>();
     map.tiles.forEach((row, y) =>
@@ -86,9 +87,11 @@ function Floors({ map }: { map: GameMap }) {
 
   return (
     <>
-      {groups.map(([ch, cells]) => (
-        <FloorGroup key={ch} ch={ch} cells={cells} ambient={map.ambient} />
-      ))}
+      {groups
+        .filter(([ch]) => !only || only.includes(ch))
+        .map(([ch, cells]) => (
+          <FloorGroup key={ch} ch={ch} cells={cells} ambient={map.ambient} />
+        ))}
     </>
   );
 }
@@ -226,7 +229,7 @@ function Desk({ station }: { station: boolean }) {
   const w = TILE * 0.92;
   return (
     <group>
-      <Mesh material={station ? M.laminate : M.desk} position={[0, 0.74, 0]} scale={[w, 0.05, TILE * 0.62]} />
+      <Mesh material={M.desk} position={[0, 0.74, 0]} scale={[w, 0.05, TILE * 0.62]} />
       {[
         [-1, -1],
         [1, -1],
@@ -237,6 +240,10 @@ function Desk({ station }: { station: boolean }) {
       ))}
       {station && (
         <>
+          <group position={[0.05, 0, TILE * 0.5]} rotation={[0, 0.2, 0]}>
+            <OfficeChair />
+          </group>
+          <Mesh material={M.dark} position={[0, 0.775, 0.08]} scale={[0.42, 0.015, 0.14]} shadow={false} />
           <Mesh material={M.dark} position={[0, 0.98, -0.18]} scale={[0.5, 0.32, 0.03]} />
           <mesh geometry={box} material={M.screen} position={[0, 0.98, -0.163]} scale={[0.46, 0.28, 0.005]} />
           <Mesh material={M.dark} position={[0, 0.8, -0.18]} scale={[0.06, 0.08, 0.06]} shadow={false} />
@@ -284,9 +291,45 @@ function Stall({ length, seed }: { length: number; seed: number }) {
   );
 }
 
+// Side silhouette of a compact sedan (x = length, y = height), extruded across its width.
+const CAR_L = 3.3;
+const CAR_W = 1.55;
+function carShape(points: [number, number][]) {
+  const shape = new THREE.Shape();
+  points.forEach(([x, y], i) => (i ? shape.lineTo(x, y) : shape.moveTo(x, y)));
+  shape.closePath();
+  return shape;
+}
+const carBodyGeo = (() => {
+  const h = CAR_L / 2;
+  const g = new THREE.ExtrudeGeometry(
+    carShape([
+      [-h, 0.28], [-h, 0.72], [-h + 0.2, 0.86], [-h * 0.42, 0.9], [-h * 0.28, 1.3], [h * 0.18, 1.33], [h * 0.4, 0.92],
+      [h - 0.12, 0.84], [h, 0.66], [h, 0.28],
+    ]),
+    { depth: CAR_W - 0.12, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 3, curveSegments: 4 },
+  );
+  g.translate(0, 0, -(CAR_W - 0.12) / 2);
+  return g;
+})();
+const carGlassGeo = (() => {
+  const h = CAR_L / 2;
+  const g = new THREE.ExtrudeGeometry(
+    carShape([[-h * 0.4, 0.93], [-h * 0.27, 1.27], [h * 0.17, 1.3], [h * 0.37, 0.95]]),
+    { depth: CAR_W - 0.06, bevelEnabled: false },
+  );
+  g.translate(0, 0, -(CAR_W - 0.06) / 2);
+  return g;
+})();
+const wheelGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.2, 20).rotateX(Math.PI / 2);
+const rimGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.21, 12).rotateX(Math.PI / 2);
+const carGlass = new THREE.MeshPhysicalMaterial({ color: '#1b2430', roughness: 0.05, metalness: 0.2, clearcoat: 1, transparent: true, opacity: 0.88 });
+const rimMat = new THREE.MeshStandardMaterial({ color: '#b8bcc2', roughness: 0.25, metalness: 0.9 });
+
 function Car({ seed, police }: { seed: number; police: boolean }) {
-  const color = police ? '#e8ebef' : carColors[Math.floor(seed * carColors.length)];
-  const body = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.6 }), [color]);
+  const color = police ? '#f2f4f6' : carColors[Math.floor(seed * carColors.length)];
+  const body = useMemo(() => new THREE.MeshPhysicalMaterial({ color, roughness: 0.32, metalness: 0.45, clearcoat: 1, clearcoatRoughness: 0.08 }), [color]);
+  const stripe = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1d4ed8', roughness: 0.35 }), []);
   const bar = useRef<THREE.Group>(null);
   useFrame((state) => {
     if (!bar.current) return;
@@ -294,39 +337,60 @@ function Car({ seed, police }: { seed: number; police: boolean }) {
     (bar.current.children[0] as THREE.Mesh).visible = on;
     (bar.current.children[1] as THREE.Mesh).visible = !on;
   });
-  const L = TILE * 1.75;
+  const h = CAR_L / 2;
   return (
     <group rotation={[0, seed > 0.5 ? 0 : Math.PI, 0]}>
-      <Mesh material={body} position={[0, 0.5, 0]} scale={[L, 0.5, 0.95]} />
-      <Mesh material={body} position={[-0.1, 0.92, 0]} scale={[L * 0.52, 0.38, 0.86]} />
-      <Mesh material={M.glass} position={[-0.1, 0.93, 0]} scale={[L * 0.53, 0.3, 0.87]} shadow={false} />
+      <mesh geometry={carBodyGeo} material={body} castShadow receiveShadow />
+      <mesh geometry={carGlassGeo} material={carGlass} />
       {police && (
         <>
-          <Mesh material={new THREE.MeshStandardMaterial({ color: '#1d4ed8', roughness: 0.3 })} position={[0, 0.55, 0]} scale={[L * 1.002, 0.12, 0.96]} shadow={false} />
-          <group ref={bar} position={[-0.1, 1.15, 0]}>
-            <mesh geometry={box} position={[0, 0, 0.18]} scale={[0.22, 0.08, 0.3]}>
+          <mesh geometry={box} material={stripe} position={[0, 0.58, 0]} scale={[CAR_L * 0.98, 0.14, CAR_W + 0.005]} />
+          <group ref={bar} position={[-0.05, 1.38, 0]}>
+            <mesh geometry={box} position={[0, 0, 0.25]} scale={[0.25, 0.09, 0.45]}>
               <meshStandardMaterial color="#1e40af" emissive="#3b82f6" emissiveIntensity={4} />
             </mesh>
-            <mesh geometry={box} position={[0, 0, -0.18]} scale={[0.22, 0.08, 0.3]}>
+            <mesh geometry={box} position={[0, 0, -0.25]} scale={[0.25, 0.09, 0.45]}>
               <meshStandardMaterial color="#991b1b" emissive="#ef4444" emissiveIntensity={4} />
             </mesh>
           </group>
         </>
       )}
       {[
-        [-0.7, 0.48],
-        [0.7, 0.48],
-        [-0.7, -0.48],
-        [0.7, -0.48],
-      ].map(([x, z]) => (
-        <Mesh key={`${x}${z}`} geo={cyl} material={M.tire} position={[x, 0.3, z]} rotation={[Math.PI / 2, 0, 0]} scale={[0.3, 0.16, 0.3]} shadow={false} />
+        [-h * 0.62, 1],
+        [h * 0.62, 1],
+        [-h * 0.62, -1],
+        [h * 0.62, -1],
+      ].map(([x, side]) => (
+        <group key={`${x}${side}`} position={[x, 0.31, (side * (CAR_W - 0.1)) / 2]}>
+          <mesh geometry={wheelGeo} material={M.tire} castShadow />
+          <mesh geometry={rimGeo} material={rimMat} />
+        </group>
       ))}
-      <mesh geometry={box} position={[L / 2, 0.55, 0.3]} scale={[0.02, 0.08, 0.18]}>
-        <meshStandardMaterial color="#fff" emissive="#fff5d6" emissiveIntensity={1.5} />
-      </mesh>
-      <mesh geometry={box} position={[L / 2, 0.55, -0.3]} scale={[0.02, 0.08, 0.18]}>
-        <meshStandardMaterial color="#fff" emissive="#fff5d6" emissiveIntensity={1.5} />
-      </mesh>
+      {[0.48, -0.48].map((z) => (
+        <group key={z}>
+          <mesh geometry={box} position={[h + 0.03, 0.68, z]} scale={[0.04, 0.09, 0.28]}>
+            <meshStandardMaterial color="#fff" emissive="#fff5d6" emissiveIntensity={1.6} />
+          </mesh>
+          <mesh geometry={box} position={[-h - 0.03, 0.7, z]} scale={[0.04, 0.08, 0.26]}>
+            <meshStandardMaterial color="#7f1d1d" emissive="#dc2626" emissiveIntensity={1.2} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+const chairFabric = new THREE.MeshStandardMaterial({ color: '#1f2530', roughness: 0.9 });
+/** Swivel office chair; its back faces away from the desk. */
+function OfficeChair() {
+  return (
+    <group>
+      <Mesh material={chairFabric} position={[0, 0.47, 0]} scale={[0.46, 0.07, 0.44]} />
+      <Mesh material={chairFabric} position={[0, 0.82, 0.21]} scale={[0.44, 0.5, 0.06]} rotation={[-0.08, 0, 0]} />
+      <Mesh geo={cyl} material={M.metal} position={[0, 0.27, 0]} scale={[0.03, 0.38, 0.03]} shadow={false} />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Mesh key={i} material={M.dark} position={[Math.cos((i * Math.PI * 2) / 5) * 0.17, 0.05, Math.sin((i * Math.PI * 2) / 5) * 0.17]} rotation={[0, -(i * Math.PI * 2) / 5, 0]} scale={[0.34, 0.03, 0.04]} shadow={false} />
+      ))}
     </group>
   );
 }
@@ -508,6 +572,12 @@ function Lighting({ map }: { map: GameMap }) {
 
   return (
     <>
+      {/* Soft image-based light for PBR reflections (generated in the GPU, no files). */}
+      <Environment resolution={128} frames={1} environmentIntensity={map.ambient === 'station' ? 0.55 : 0.22}>
+        <Lightformer form="rect" intensity={map.ambient === 'station' ? 2.2 : 0.8} color={map.ambient === 'station' ? '#ffffff' : '#9fb4ff'} position={[0, 12, 0]} rotation-x={Math.PI / 2} scale={[40, 40, 1]} />
+        <Lightformer form="rect" intensity={map.ambient === 'station' ? 0.8 : 1.2} color={map.ambient === 'station' ? '#fff1e0' : '#ffb066'} position={[0, 3, 18]} scale={[40, 4, 1]} />
+        <Lightformer form="rect" intensity={0.4} color="#c8d4ff" position={[0, 3, -18]} rotation-y={Math.PI} scale={[40, 4, 1]} />
+      </Environment>
       {map.ambient === 'station' && (
         <>
           <color attach="background" args={['#0b0f15']} />
@@ -554,11 +624,24 @@ function Lighting({ map }: { map: GameMap }) {
 /* ------------------------------------------------------------------ */
 
 export default function MapScene({ map }: { map: GameMap }) {
+  const carpetMat = useMemo(() => floorMaterial('=', map.ambient), [map.ambient]);
+  const grassMat = useMemo(() => floorMaterial('G', map.ambient), [map.ambient]);
   return (
     <>
       <Lighting map={map} />
-      <Floors map={map} />
-      <Walls map={map} />
+      {/* Realistic PBR structure; the simple geometry stands in while textures and models stream. */}
+      <Suspense
+        fallback={
+          <>
+            <Floors map={map} />
+            <Walls map={map} />
+          </>
+        }
+      >
+        <Structure map={map} carpet={carpetMat} grass={grassMat} />
+        <Floors map={map} only={['F']} />
+        <CityDressing map={map} />
+      </Suspense>
       <Props map={map} />
       {map.labels.map((l, i) => (
         <Html key={i} position={[l.x * TILE, WALL_H + 0.35, l.y * TILE]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>

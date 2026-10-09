@@ -90,10 +90,49 @@ function cutToHead(doc) {
   }
 }
 
-async function build(src, out, { tint, drop = [], size = 512, head = false } = {}) {
+/**
+ * Region codes for the full base body (T-pose, metres), written as the custom vertex attribute _REGION.
+ * The game builds fitted clothing layers from these regions. Thresholds are fractions of height and arm span.
+ */
+export const REGION = { head: 0, torso: 1, upperArm: 2, foreArm: 3, hand: 4, hips: 5, thigh: 6, shin: 7, foot: 8 };
+
+function labelRegions(doc) {
+  for (const mesh of doc.getRoot().listMeshes()) {
+    for (const prim of mesh.listPrimitives()) {
+      if (!/Superhero/i.test(prim.getMaterial()?.getName() ?? '')) continue;
+      const pos = prim.getAttribute('POSITION');
+      const H = pos.getMax([])[1];
+      const A = pos.getMax([])[0];
+      const out = new Float32Array(pos.getCount());
+      const v = [];
+      for (let i = 0; i < pos.getCount(); i++) {
+        pos.getElement(i, v);
+        const [x, y] = v;
+        const ax = Math.abs(x);
+        let r;
+        if (ax >= 0.775 * A) r = REGION.hand;
+        else if (ax >= 0.54 * A) r = REGION.foreArm;
+        else if (ax >= 0.23 * A && y > 0.68 * H) r = REGION.upperArm;
+        else if (y >= H - 0.285) r = REGION.head;
+        else if (y >= 0.565 * H) r = REGION.torso;
+        else if (y >= 0.5 * H) r = REGION.hips;
+        else if (y >= 0.28 * H) r = REGION.thigh;
+        else if (y >= 0.062 * H) r = REGION.shin;
+        else r = REGION.foot;
+        out[i] = r;
+      }
+      prim.setAttribute('_REGION', doc.createAccessor().setType('SCALAR').setArray(out).setBuffer(pos.getBuffer()));
+      // Engine-specific mask channels and extra UV sets are not used by the game.
+      for (const sem of prim.listSemantics()) if (/^(COLOR_\d|TEXCOORD_[1-9])$/.test(sem)) prim.setAttribute(sem, null);
+    }
+  }
+}
+
+async function build(src, out, { tint, drop = [], size = 512, head = false, regions = false } = {}) {
   const doc = await io.read(join(SRC, src));
   if (drop.length) dropMeshes(doc, drop);
   if (head) cutToHead(doc);
+  if (regions) labelRegions(doc);
   for (const a of doc.getRoot().listAnimations()) a.dispose();
   stripExtraMaps(doc);
   if (tint) await makeTintable(doc, tint);
@@ -146,15 +185,9 @@ async function buildAnimations(src, out, keep) {
 const HAIR = /Hair|Eyebrow/i;
 const CLOTH = /Peasant|Ranger/i;
 
-// Heads (the full body is kept; the game hides everything below the neck)
-await build('base/Superhero_Male_FullBody.gltf', 'head_male.glb', { size: 1024, head: true });
-await build('base/Superhero_Female_FullBody.gltf', 'head_female.glb', { size: 1024, head: true });
-
-// Outfits on the regular-proportion skeleton (hoods, pauldrons and bracers removed for a modern look)
-await build('outfits/Male_Peasant.gltf', 'outfit_male_shirt.glb', { tint: CLOTH });
-await build('outfits/Female_Peasant.gltf', 'outfit_female_shirt.glb', { tint: CLOTH });
-await build('outfits/Male_Ranger.gltf', 'outfit_male_jacket.glb', { tint: CLOTH, drop: ['Hood', 'Pauldron', 'Bracer'] });
-await build('outfits/Female_Ranger.gltf', 'outfit_female_jacket.glb', { tint: CLOTH, drop: ['Hood', 'Pauldron', 'Bracer'] });
+// Full realistic bodies; the game dresses them in fitted clothing generated from the labelled regions.
+await build('base/Superhero_Male_FullBody.gltf', 'body_male.glb', { size: 1024, regions: true });
+await build('base/Superhero_Female_FullBody.gltf', 'body_female.glb', { size: 1024, regions: true });
 
 // Hair
 for (const [src, out] of [
@@ -181,14 +214,14 @@ await buildAnimations('gaits.glb', 'anims_base.glb', [
 ]);
 await buildAnimations('animations.glb', 'anims_extra.glb', ['Idle_FoldArms_Loop', 'Idle_No_Loop', 'Yes', 'Idle_TalkingPhone_Loop']);
 
-for (const f of ['base-license.txt', 'outfits-license.txt', 'animations-license.txt']) copyFileSync(join(SRC, f), join(OUT, f));
+for (const f of ['base-license.txt', 'animations-license.txt']) copyFileSync(join(SRC, f), join(OUT, f));
 writeFileSync(
   join(OUT, 'CREDITS.txt'),
   `3D characters, outfits, hair and animations by Quaternius (https://quaternius.com), CC0 1.0.
-Packs: Universal Base Characters (Standard), Modular Character Outfits - Fantasy (Standard),
+Packs: Universal Base Characters (Standard),
 Universal Animation Library (Standard), Universal Animation Library 2 (Standard).
 Source copy: https://github.com/OpenAgentsInc/openagents/tree/main/assets/verse/characters/quaternius
 Optimized for this game by scripts/build-characters.mjs (textures resized to WebP, unused maps removed,
-clothing and hair converted to tintable greyscale, hoods/pauldrons/bracers removed).
+hair converted to tintable greyscale, body regions labelled for the game's generated clothing).
 `,
 );

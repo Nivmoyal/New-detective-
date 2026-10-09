@@ -1,11 +1,11 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import type { CharacterLook, HairStyle, Outfit } from '../../types/investigation';
+import type { CharacterLook, HairStyle } from '../../types/investigation';
 import Humanoid, { type MotionState, type Mood, type Pose } from './Humanoid';
-import { WebGLTFLoader } from './webGltfLoader';
+import { dress, wardrobe } from './clothing';
+import { assetUrl, preloadModels, useModels } from './loaders';
 
 /*
   Realistic rigged characters built from the Quaternius CC0 packs (see public/models/characters/CREDITS.txt).
@@ -13,26 +13,7 @@ import { WebGLTFLoader } from './webGltfLoader';
   eyebrows and beard are re-bound to it by bone name. Animations come from the Universal Animation Library.
 */
 
-const BASE = `${import.meta.env.BASE_URL}models/characters/`;
-// Hosts with a strict Content-Security-Policy get the "web-safe" models from scripts/make-web-models.mjs:
-// plain glTF JSON (no WebAssembly meshopt decoder) with served file types.
-const MODEL_EXT = (import.meta.env.VITE_MODEL_EXT as string | undefined) ?? '.glb';
-const WEB_SAFE = MODEL_EXT !== '.glb';
-
-type Model = { scene: THREE.Object3D; animations: THREE.AnimationClip[] };
-
-/** Loads one or more character files (suspends) with the loader that matches the build. */
-function useModels(urls: string[]): Model[] {
-  // WEB_SAFE is fixed per build, so the hook order never changes.
-  if (WEB_SAFE) return useLoader(WebGLTFLoader, urls) as unknown as Model[];
-  return useGLTF(urls, false, true) as unknown as Model[];
-}
-
-function preload(urls: string[]) {
-  if (WEB_SAFE) urls.forEach((u) => useLoader.preload(WebGLTFLoader, u));
-  else urls.forEach((u) => useGLTF.preload(u, false, true));
-}
-const url = (f: string) => `${BASE}${f.replace(/\.glb$/, MODEL_EXT)}`;
+const url = (f: string) => assetUrl(`models/characters/${f}`);
 
 const ANIMS_BASE = url('anims_base.glb');
 const ANIMS_EXTRA = url('anims_extra.glb');
@@ -55,14 +36,10 @@ function hairFile(style: HairStyle, female: boolean): string | null {
   }
 }
 
-function outfitKind(outfit: Outfit): 'jacket' | 'shirt' {
-  return outfit === 'blazer' || outfit === 'suit' || outfit === 'leather' || outfit === 'hoodie' || outfit === 'vest' ? 'jacket' : 'shirt';
-}
-
 export function characterFiles(look: CharacterLook): string[] {
   const female = look.body === 'female';
   const g = female ? 'female' : 'male';
-  const files = [`head_${g}.glb`, `outfit_${g}_${outfitKind(look.outfit)}.glb`, `eyebrows_${g}.glb`];
+  const files = [`body_${g}.glb`, `eyebrows_${g}.glb`];
   const hair = hairFile(look.hairStyle, female);
   if (hair) files.push(hair);
   if (look.beard && !female) files.push('hair_beard.glb');
@@ -75,8 +52,6 @@ export function characterFiles(look: CharacterLook): string[] {
 
 // Approximate skin colour baked into the source textures (sRGB). Skin tone = target / reference.
 const SKIN_REFERENCE = new THREE.Color('#d9a988');
-const SHOE = '#24201d';
-const BELT = '#2b2119';
 
 function skinTint(hex: string) {
   const c = new THREE.Color(hex);
@@ -84,11 +59,6 @@ function skinTint(hex: string) {
   c.g = Math.min(1.7, c.g / SKIN_REFERENCE.g);
   c.b = Math.min(1.7, c.b / SKIN_REFERENCE.b);
   return c;
-}
-
-function outfitColors(look: CharacterLook) {
-  const top = look.outfit === 'labcoat' ? '#eef1f4' : look.topColor;
-  return { top, pants: look.pantsColor };
 }
 
 /* ------------------------------------------------------------------ */
@@ -116,43 +86,34 @@ function restPose(root: THREE.Object3D): Map<string, RestPose> {
 }
 
 function assemble(look: CharacterLook, scenes: THREE.Object3D[]): Built {
-  const [headScene, outfitScene, ...extras] = scenes;
-  const root = cloneSkinned(outfitScene);
+  const [bodyScene, ...extras] = scenes;
+  const root = cloneSkinned(bodyScene);
   root.updateMatrixWorld(true);
   const rest = restPose(root);
 
   let master: THREE.SkinnedMesh | null = null;
   root.traverse((o) => {
-    if (!master && (o as THREE.SkinnedMesh).isSkinnedMesh) master = o as THREE.SkinnedMesh;
+    const m = o as THREE.SkinnedMesh;
+    if (m.isSkinnedMesh && /Superhero/i.test((m.material as THREE.Material).name)) master = m;
   });
-  if (!master) throw new Error('outfit without skinned mesh');
+  if (!master) throw new Error('body without skinned mesh');
   const masterMesh: THREE.SkinnedMesh = master;
   const bones = new Map(masterMesh.skeleton.bones.map((b) => [b.name, b]));
   const meshParent = masterMesh.parent ?? root;
 
-  const colors = outfitColors(look);
   const skin = skinTint(look.skin);
   const hair = new THREE.Color(look.hairColor);
 
   const tint = (mesh: THREE.Mesh) => {
+    if (/^garment_/.test(mesh.name)) return;
     const src = mesh.material as THREE.MeshStandardMaterial;
     const m = src.clone();
     const name = src.name;
-    const meshName = mesh.name;
     if (/Hair/i.test(name)) m.color.copy(hair);
-    else if (/Eyes/i.test(name)) {
-      // leave eyes untouched
-    } else if (/Regular|Superhero/i.test(name)) {
-      m.color.copy(skin);
-    } else if (/Peasant|Ranger/i.test(name)) {
-      if (/Feet|Boots/i.test(meshName)) m.color.set(SHOE);
-      else if (/Belt/i.test(meshName)) m.color.set(BELT);
-      else if (/Legs/i.test(meshName)) m.color.set(colors.pants);
-      else m.color.set(colors.top);
-    }
+    else if (/Superhero|Regular/i.test(name)) m.color.copy(skin);
     // COLOR_0 holds masks for the original engine shaders; multiplying by it darkens everything.
     m.vertexColors = false;
-    m.roughness = Math.max(m.roughness, /Hair/i.test(name) ? 0.6 : 0.7);
+    m.roughness = Math.max(m.roughness, /Hair/i.test(name) ? 0.6 : 0.62);
     mesh.material = m;
     mesh.castShadow = true;
     mesh.frustumCulled = false;
@@ -161,6 +122,9 @@ function assemble(look: CharacterLook, scenes: THREE.Object3D[]): Built {
   root.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) tint(o as THREE.Mesh);
   });
+
+  // Modern fitted clothing generated from the body itself.
+  dress(masterMesh, wardrobe(look));
 
   const attach = (scene: THREE.Object3D) => {
     const part = cloneSkinned(scene);
@@ -177,7 +141,6 @@ function assemble(look: CharacterLook, scenes: THREE.Object3D[]): Built {
     }
   };
 
-  attach(headScene);
   extras.forEach((s) => attach(s));
 
   // Accessories in model space, parented to the head bone so they follow it.
@@ -217,7 +180,7 @@ function assemble(look: CharacterLook, scenes: THREE.Object3D[]): Built {
     }
   }
 
-  return { root, head, rest, key: `${look.body}-${outfitKind(look.outfit)}` };
+  return { root, head, rest, key: look.body };
 }
 
 /* ------------------------------------------------------------------ */
@@ -225,6 +188,10 @@ function assemble(look: CharacterLook, scenes: THREE.Object3D[]): Built {
 /* ------------------------------------------------------------------ */
 
 const LOWER = /^(root|pelvis|thigh_|calf_|foot_|ball_)/;
+
+// Ground speed (m/s) of the animation clips at playback rate 1, measured from foot travel.
+const WALK_MPS = 1.0;
+const JOG_MPS = 2.5;
 
 const retargetCache = new Map<string, THREE.AnimationClip>();
 
@@ -336,8 +303,10 @@ function Rigged({ look, motion, talking = false, pose = 'stand', mood = 'neutral
     current.current = next;
   };
 
+  const scale = look.height ?? 1;
+
   useFrame((_, dt) => {
-    const speed = motion ? motion.current.speed : 0;
+    const mps = motion ? motion.current.mps ?? motion.current.speed * 2.9 : 0;
     if (pose === 'sit') {
       if (mood === 'defiant') play([actions.sitLower, actions.foldUpper], 'sit-defiant');
       else if (mood === 'tense' && !talking) play([actions.sitLower, actions.no], 'sit-tense');
@@ -345,12 +314,13 @@ function Rigged({ look, motion, talking = false, pose = 'stand', mood = 'neutral
       else play([actions.sit], 'sit');
       const rate = 1 + fidget * 0.6;
       current.current.forEach((a) => (a.timeScale = rate));
-    } else if (speed > 0.6) {
-      play([actions.jog], 'jog', 0.2);
-      actions.jog.timeScale = 0.75 + speed * 0.35;
-    } else if (speed > 0.06) {
-      play([actions.walk], 'walk', 0.2);
-      actions.walk.timeScale = 0.7 + speed * 0.8;
+    } else if (mps > 1.9) {
+      // Playback rate follows the real ground speed so the feet plant instead of sliding.
+      play([actions.jog], 'jog', 0.25);
+      actions.jog.timeScale = THREE.MathUtils.clamp(mps / (JOG_MPS * scale), 0.75, 1.35);
+    } else if (mps > 0.12) {
+      play([actions.walk], 'walk', 0.25);
+      actions.walk.timeScale = THREE.MathUtils.clamp(mps / (WALK_MPS * scale), 0.6, 1.5);
     } else {
       play([talking ? actions.talk : actions.idle], talking ? 'talk' : 'idle', 0.35);
     }
@@ -361,7 +331,6 @@ function Rigged({ look, motion, talking = false, pose = 'stand', mood = 'neutral
     }
   });
 
-  const scale = look.height ?? 1;
   return <primitive object={built.root} scale={scale} />;
 }
 
@@ -395,8 +364,8 @@ export default function Character(props: Props & { castShadow?: boolean }) {
 }
 
 // Warm the cache with the shared files.
-preload([
+preloadModels([
   ANIMS_BASE,
   ANIMS_EXTRA,
-  ...['head_male.glb', 'head_female.glb', 'outfit_male_jacket.glb', 'outfit_male_shirt.glb', 'outfit_female_shirt.glb', 'eyebrows_male.glb', 'eyebrows_female.glb'].map(url),
+  ...['body_male.glb', 'body_female.glb', 'eyebrows_male.glb', 'eyebrows_female.glb'].map(url),
 ]);

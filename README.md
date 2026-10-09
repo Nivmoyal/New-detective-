@@ -17,8 +17,10 @@ text, reassembled in the browser by `src/components/three/webGltfLoader.ts`:
 
 ```bash
 VITE_MODEL_EXT=.json npx vite build --base ./
-node scripts/make-web-models.mjs dist/models/characters dist/models/web
-rm dist/models/characters/*.glb && mv dist/models/web/* dist/models/characters/
+for d in characters city; do
+  node scripts/make-web-models.mjs dist/models/$d dist/models/web_$d
+  rm dist/models/$d/*.glb && mv dist/models/web_$d/* dist/models/$d/ && rmdir dist/models/web_$d
+done
 ```
 
 ## Running
@@ -105,3 +107,14 @@ https://github.com/OpenAgentsInc/openagents/tree/main/assets/verse/characters/qu
 the base body down to head and neck, removes fantasy accessories (hoods, pauldrons, bracers), converts
 clothing and hair to tintable greyscale, resizes textures to WebP, drops unused maps, strips redundant
 animation tracks, and applies meshopt compression.
+
+## Clothing and environment
+
+People wear fitted modern clothing generated at load time from the realistic base body
+(`src/components/three/clothing.ts`): the build labels body regions, and each garment is a smoothed,
+offset shell of those regions on the same skeleton, so clothes fit, animate and never show holes.
+
+Streets, sidewalks, floors, walls, facades and street props use Quaternius' **Downtown City MegaKit**
+(Standard, CC0): `npm run build:environment -- "<megakit>/Exports/glTF (Godot)"` writes
+`public/models/city/city_kit.glb` and the PBR textures in `public/textures/`.
+`lookbook.html` (dev server only) shows the outfits side by side for inspection.
