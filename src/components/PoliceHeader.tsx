@@ -23,6 +23,7 @@ function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: stri
 
 export default function PoliceHeader({ profile, activeCaseTitle, onReset }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const reliabilityTone =
     profile.reliability >= 70 ? 'text-emerald-400' : profile.reliability >= 40 ? 'text-evidence-light' : 'text-alert';
 
@@ -71,16 +72,31 @@ export default function PoliceHeader({ profile, activeCaseTitle, onReset }: Prop
           <div className="mb-2 text-xs text-steel">
             התקדמות נשמרת אוטומטית במכשיר. איפוס יתחיל את המשמרת הראשונה מחדש.
           </div>
-          <button
-            className="btn-danger w-full"
-            onClick={() => {
-              if (window.confirm('לאפס את כל ההתקדמות ולהתחיל מהיום הראשון בתחנה?')) onReset();
-              setMenuOpen(false);
-            }}
-          >
-            <RotateCcw className="h-4 w-4" />
-            איפוס משחק
-          </button>
+          {confirming ? (
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-red-200">לאפס את כל ההתקדמות ולהתחיל מהיום הראשון בתחנה?</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className="btn-danger"
+                  onClick={() => {
+                    onReset();
+                    setConfirming(false);
+                    setMenuOpen(false);
+                  }}
+                >
+                  כן, לאפס
+                </button>
+                <button className="btn-ghost" onClick={() => setConfirming(false)}>
+                  ביטול
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn-danger w-full" onClick={() => setConfirming(true)}>
+              <RotateCcw className="h-4 w-4" />
+              איפוס משחק
+            </button>
+          )}
         </div>
       )}
     </header>

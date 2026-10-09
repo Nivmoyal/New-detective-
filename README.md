@@ -8,6 +8,16 @@ and break the suspect in a cautioned interrogation.
 Built with React 18, Vite, TypeScript, Tailwind CSS and a real-time 3D engine (Three.js through React Three Fiber).
 Icons are `lucide-react` SVGs only; there are no emoji anywhere.
 
+## Playing
+
+A playable build is published at https://claude.ai/artifact/VY8XK9i6MHoyF8VaYWeTL8 (private until shared).
+That host does not serve `.glb`, so its build uses the same models as embedded glTF JSON:
+
+```bash
+VITE_MODEL_EXT=.json npx vite build --base ./
+python3 scripts/glb-to-json.py dist/models/characters && rm dist/models/characters/*.glb
+```
+
 ## Running
 
 ```bash

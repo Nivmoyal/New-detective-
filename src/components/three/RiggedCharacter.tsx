@@ -13,7 +13,9 @@ import Humanoid, { type MotionState, type Mood, type Pose } from './Humanoid';
 */
 
 const BASE = `${import.meta.env.BASE_URL}models/characters/`;
-const url = (f: string) => `${BASE}${f}`;
+// Hosts that cannot serve .glb get the same models as embedded glTF JSON (see scripts/glb-to-json.py).
+const MODEL_EXT = (import.meta.env.VITE_MODEL_EXT as string | undefined) ?? '.glb';
+const url = (f: string) => `${BASE}${f.replace(/\.glb$/, MODEL_EXT)}`;
 
 const ANIMS_BASE = url('anims_base.glb');
 const ANIMS_EXTRA = url('anims_extra.glb');
