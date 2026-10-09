@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  background: #0c1014;
+}
+
+body {
+  margin: 0;
+  font-family: Heebo, Rubik, Arial, sans-serif;
+  color: #e2e8f0;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-noir-border bg-noir-panel;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn bg-police text-white hover:bg-police-light;
+  }
+  .btn-gold {
+    @apply btn bg-evidence text-noir-bg hover:bg-evidence-light;
+  }
+  .btn-danger {
+    @apply btn bg-alert text-white hover:bg-red-500;
+  }
+  .btn-ghost {
+    @apply btn border border-noir-border bg-noir-deep text-slate-200 hover:border-police-light;
+  }
+  .label-tag {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold;
+  }
+}
+
+.cork-texture {
+  background-color: #2f2216;
+  background-image:
+    radial-gradient(rgba(0, 0, 0, 0.35) 1px, transparent 1.5px),
+    radial-gradient(rgba(255, 210, 160, 0.06) 1px, transparent 1.5px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 5px;
+}
+
+.noir-vignette {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 6px;
+}
+
+.dpad-btn {
+  @apply flex h-12 w-12 items-center justify-center rounded-xl border border-noir-border bg-noir-panel/85 text-slate-200 backdrop-blur active:bg-police active:text-white;
+  touch-action: none;
+}
