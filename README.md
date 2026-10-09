@@ -11,11 +11,14 @@ Icons are `lucide-react` SVGs only; there are no emoji anywhere.
 ## Playing
 
 A playable build is published at https://claude.ai/artifact/VY8XK9i6MHoyF8VaYWeTL8 (private until shared).
-That host does not serve `.glb`, so its build uses the same models as embedded glTF JSON:
+That host enforces a strict Content-Security-Policy (no WebAssembly, no `data:` fetches) and serves only common
+file types, so its build uses "web-safe" models: plain glTF JSON, `.webp` textures and the binary buffer as base64
+text, reassembled in the browser by `src/components/three/webGltfLoader.ts`:
 
 ```bash
 VITE_MODEL_EXT=.json npx vite build --base ./
-python3 scripts/glb-to-json.py dist/models/characters && rm dist/models/characters/*.glb
+node scripts/make-web-models.mjs dist/models/characters dist/models/web
+rm dist/models/characters/*.glb && mv dist/models/web/* dist/models/characters/
 ```
 
 ## Running

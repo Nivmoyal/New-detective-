@@ -36,14 +36,14 @@ function Gauge({ label, value, tone, icon }: { label: string; value: number; ton
   const danger = tone === 'red' && value >= 80;
   return (
     <div className="flex-1">
-      <div className="mb-1 flex items-center justify-between text-xs">
+      <div className="mb-0.5 flex items-center justify-between text-[11px]">
         <span className="flex items-center gap-1 font-bold text-slate-300">
           {icon}
           {label}
         </span>
         <span className={`font-mono font-bold ${danger ? 'animate-siren text-alert' : 'text-slate-100'}`}>{value}%</span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full border border-noir-border bg-noir-deep">
+      <div className="h-2 overflow-hidden rounded-full border border-noir-border bg-noir-deep">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             tone === 'red'
@@ -89,8 +89,8 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
 
   return (
     <div className="flex h-full flex-col">
-      {/* Suspect panel */}
-      <div className="relative h-44 shrink-0 sm:h-56">
+      {/* Suspect: compact 3D scene with the latest line as a speech bubble */}
+      <div className="relative h-36 shrink-0 overflow-hidden sm:h-48">
         {suspect.look && (
           <InterrogationScene
             suspect={suspect.look}
@@ -101,35 +101,31 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
             className="absolute inset-0"
           />
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-noir-panel to-transparent" />
-      </div>
-      <div className="relative border-b border-noir-border bg-noir-panel p-3 pt-1">
-        <div className="relative flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-alert">
-              <Lock className="h-3.5 w-3.5" /> חקירה באזהרה · עצור
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent px-3 pb-6 pt-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-red-300">
+              <Lock className="h-3 w-3" /> חקירה באזהרה
             </div>
-            <div className="truncate font-display text-lg font-bold">{suspect.name}</div>
-            <div className="truncate text-xs text-steel">
-              {suspect.age} · {suspect.occupation}
-            </div>
+            <div className="truncate font-display text-base font-bold leading-tight">{suspect.name}</div>
           </div>
-          <div className="text-left text-[11px] leading-tight text-steel">
+          <div className="shrink-0 text-left text-[10px] leading-tight text-slate-300">
             <div>
               תור {Math.min(session.turn, MAX_TURNS)}/{MAX_TURNS}
             </div>
-            <div className={session.mistakes > 0 ? 'text-alert' : ''}>
+            <div className={session.mistakes > 0 ? 'text-red-300' : ''}>
               טעויות {session.mistakes}/{MAX_MISTAKES}
             </div>
           </div>
         </div>
-        <div className="relative mt-3 flex gap-3">
-          <Gauge label="מד לחץ נפשי" value={session.tension} tone="red" icon={<Activity className="h-3.5 w-3.5" />} />
-          <Gauge label="שיתוף פעולה" value={session.cooperation} tone="blue" icon={<Users className="h-3.5 w-3.5" />} />
+      </div>
+      <div className="shrink-0 space-y-1.5 border-b border-noir-border bg-noir-panel px-3 py-2">
+        <div className="flex gap-3">
+          <Gauge label="לחץ נפשי" value={session.tension} tone="red" icon={<Activity className="h-3 w-3" />} />
+          <Gauge label="שיתוף פעולה" value={session.cooperation} tone="blue" icon={<Users className="h-3 w-3" />} />
         </div>
-        <div className="relative mt-2">
-          <div className="mb-0.5 text-[10px] text-steel">סדקים בגרסה</div>
-          <div className="flex gap-1">
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-[10px] text-steel">סדקים בגרסה</span>
+          <div className="flex flex-1 gap-1">
             {Array.from({ length: profile.breakThreshold }).map((_, i) => (
               <span key={i} className={`h-1.5 flex-1 rounded-full ${i < session.progress ? 'bg-evidence-light' : 'bg-noir-border'}`} />
             ))}
@@ -139,7 +135,7 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
       </div>
 
       {/* Transcript */}
-      <div ref={logRef} className="flex-1 space-y-2 overflow-y-auto p-3 scrollbar-thin">
+      <div ref={logRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-noir-deep/40 p-3 scrollbar-thin">
         {session.log.map((entry, i) => {
           if (entry.speaker === 'system') {
             return (
@@ -169,7 +165,7 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
       </div>
 
       {/* Actions */}
-      <div className="border-t border-noir-border bg-noir-panel p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 border-t border-noir-border bg-noir-panel p-2">
         {done ? (
           <div className="space-y-2">
             <div
@@ -187,25 +183,23 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {TACTICS.map((t) => (
                 <button
                   key={t.id}
+                  title={t.description}
                   onClick={() => (t.id === 'evidence' ? setPickerOpen(true) : onTactic(t.id))}
-                  className="flex items-start gap-2 rounded-lg border border-noir-border bg-noir-deep p-2.5 text-right transition hover:border-police-light active:scale-[0.98]"
+                  className="flex flex-col items-center gap-1 rounded-lg border border-noir-border bg-noir-deep px-1 py-2 text-center transition hover:border-police-light active:scale-[0.97]"
                 >
                   <span className={t.id === 'pressure' || t.id === 'confront' ? 'text-alert' : t.id === 'trust' ? 'text-police-light' : 'text-evidence-light'}>
                     {TACTIC_ICON[t.id]}
                   </span>
-                  <span>
-                    <span className="block text-sm font-bold">{t.label}</span>
-                    <span className="line-clamp-2 block text-[10px] leading-snug text-steel">{t.description}</span>
-                  </span>
+                  <span className="text-[11px] font-bold leading-tight">{t.label}</span>
                 </button>
               ))}
             </div>
-            <button className="mt-2 w-full text-center text-xs text-steel underline" onClick={onEnd}>
-              הפסקת החקירה (ניתן לחזור מאוחר יותר)
+            <button className="mt-1.5 w-full text-center text-[11px] text-steel underline" onClick={onEnd}>
+              הפסקת החקירה
             </button>
           </>
         )}

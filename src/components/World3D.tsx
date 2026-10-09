@@ -643,7 +643,7 @@ export default function World3D({
         gl={{ antialias: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         style={{ touchAction: 'none' }}
       >
-        <MapScene map={map} focus={playerWorld} />
+        <MapScene map={map} />
 
         {/* invisible ground for tap-to-move */}
         <mesh

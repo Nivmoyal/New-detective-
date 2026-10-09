@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -131,14 +131,16 @@ function FloorGroup({ ch, cells, ambient }: { ch: string; cells: [number, number
 
 const wallGeo = new THREE.BoxGeometry(TILE, WALL_H, TILE).translate(0, WALL_H / 2, 0);
 
-function Walls({ map, focus }: { map: GameMap; focus: MutableRefObject<THREE.Vector3> }) {
+/** Height of walls on the camera side of a room: a static dollhouse cutaway, so nothing moves while walking. */
+const CUTAWAY = 0.16;
+
+function Walls({ map }: { map: GameMap }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const cells = useMemo(() => {
     const out: [number, number][] = [];
     map.tiles.forEach((row, y) => [...row].forEach((ch, x) => ch === '#' && out.push([x, y])));
     return out;
   }, [map]);
-  const heights = useMemo(() => new Float32Array(cells.length).fill(1), [cells]);
   const material = useMemo(() => {
     const color = map.ambient === 'station' ? '#d9dade' : map.ambient === 'club' ? '#4a4252' : '#b7a993';
     return new THREE.MeshStandardMaterial({ map: textures.plaster(), color, roughness: 0.9 });
@@ -146,36 +148,24 @@ function Walls({ map, focus }: { map: GameMap; focus: MutableRefObject<THREE.Vec
 
   useLayoutEffect(() => {
     const c = new THREE.Color();
+    const m = new THREE.Matrix4();
     cells.forEach(([x, y], i) => {
+      // A wall with open space to its north faces the camera and would hide that space: keep it low.
+      const north = map.tiles[y - 1]?.[x];
+      const low = north !== undefined && north !== '#';
+      m.compose(
+        new THREE.Vector3((x + 0.5) * TILE, 0, (y + 0.5) * TILE),
+        new THREE.Quaternion(),
+        new THREE.Vector3(1, low ? CUTAWAY : 1, 1),
+      );
+      ref.current!.setMatrixAt(i, m);
       const v = 0.85 + hash(x, y) * 0.15;
       c.setRGB(v, v, v);
       ref.current!.setColorAt(i, c);
     });
+    ref.current!.instanceMatrix.needsUpdate = true;
     if (ref.current!.instanceColor) ref.current!.instanceColor.needsUpdate = true;
-  }, [cells]);
-
-  const m = useMemo(() => new THREE.Matrix4(), []);
-  const s = useMemo(() => new THREE.Vector3(), []);
-  const p = useMemo(() => new THREE.Vector3(), []);
-  const q = useMemo(() => new THREE.Quaternion(), []);
-
-  useFrame((_, dt) => {
-    if (!ref.current) return;
-    const f = focus.current;
-    cells.forEach(([x, y], i) => {
-      const wx = (x + 0.5) * TILE;
-      const wz = (y + 0.5) * TILE;
-      // Walls between the player and the camera (south of the player) drop to a low cutaway.
-      const between = wz > f.z - TILE * 0.2 && wz - f.z < TILE * 5 && Math.abs(wx - f.x) < TILE * 7;
-      const target = between ? 0.12 : 1;
-      heights[i] += (target - heights[i]) * Math.min(1, dt * 8);
-      p.set(wx, 0, wz);
-      s.set(1, heights[i], 1);
-      m.compose(p, q, s);
-      ref.current!.setMatrixAt(i, m);
-    });
-    ref.current.instanceMatrix.needsUpdate = true;
-  });
+  }, [cells, map]);
 
   return <instancedMesh ref={ref} args={[wallGeo, material, cells.length]} castShadow receiveShadow frustumCulled={false} />;
 }
@@ -563,12 +553,12 @@ function Lighting({ map }: { map: GameMap }) {
 
 /* ------------------------------------------------------------------ */
 
-export default function MapScene({ map, focus }: { map: GameMap; focus: MutableRefObject<THREE.Vector3> }) {
+export default function MapScene({ map }: { map: GameMap }) {
   return (
     <>
       <Lighting map={map} />
       <Floors map={map} />
-      <Walls map={map} focus={focus} />
+      <Walls map={map} />
       <Props map={map} />
       {map.labels.map((l, i) => (
         <Html key={i} position={[l.x * TILE, WALL_H + 0.35, l.y * TILE]} center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>

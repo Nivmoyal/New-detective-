@@ -164,7 +164,10 @@ export default function App() {
 
   return (
     <div dir="rtl" className="flex h-full flex-col overflow-hidden bg-noir-bg font-sans text-slate-100">
-      <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} onReset={() => dispatch({ type: 'RESET' })} />
+      {/* The interrogation needs the whole screen for the transcript. */}
+      {state.view !== 'interrogation' && (
+        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} onReset={() => dispatch({ type: 'RESET' })} />
+      )}
 
       <main className="relative min-h-0 flex-1">
         {state.view === 'map' && (

@@ -1,10 +1,11 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { CharacterLook, HairStyle, Outfit } from '../../types/investigation';
 import Humanoid, { type MotionState, type Mood, type Pose } from './Humanoid';
+import { WebGLTFLoader } from './webGltfLoader';
 
 /*
   Realistic rigged characters built from the Quaternius CC0 packs (see public/models/characters/CREDITS.txt).
@@ -13,8 +14,24 @@ import Humanoid, { type MotionState, type Mood, type Pose } from './Humanoid';
 */
 
 const BASE = `${import.meta.env.BASE_URL}models/characters/`;
-// Hosts that cannot serve .glb get the same models as embedded glTF JSON (see scripts/glb-to-json.py).
+// Hosts with a strict Content-Security-Policy get the "web-safe" models from scripts/make-web-models.mjs:
+// plain glTF JSON (no WebAssembly meshopt decoder) with served file types.
 const MODEL_EXT = (import.meta.env.VITE_MODEL_EXT as string | undefined) ?? '.glb';
+const WEB_SAFE = MODEL_EXT !== '.glb';
+
+type Model = { scene: THREE.Object3D; animations: THREE.AnimationClip[] };
+
+/** Loads one or more character files (suspends) with the loader that matches the build. */
+function useModels(urls: string[]): Model[] {
+  // WEB_SAFE is fixed per build, so the hook order never changes.
+  if (WEB_SAFE) return useLoader(WebGLTFLoader, urls) as unknown as Model[];
+  return useGLTF(urls, false, true) as unknown as Model[];
+}
+
+function preload(urls: string[]) {
+  if (WEB_SAFE) urls.forEach((u) => useLoader.preload(WebGLTFLoader, u));
+  else urls.forEach((u) => useGLTF.preload(u, false, true));
+}
 const url = (f: string) => `${BASE}${f.replace(/\.glb$/, MODEL_EXT)}`;
 
 const ANIMS_BASE = url('anims_base.glb');
@@ -265,11 +282,12 @@ interface Props {
 
 function Rigged({ look, motion, talking = false, pose = 'stand', mood = 'neutral', fidget = 0, seed = 0 }: Props) {
   const files = useMemo(() => characterFiles(look), [look]);
-  const parts = useGLTF(files, false, true) as unknown as { scene: THREE.Object3D }[];
-  const animsBase = useGLTF(ANIMS_BASE, false, true);
-  const animsExtra = useGLTF(ANIMS_EXTRA, false, true);
+  const [animsBase, animsExtra, ...parts] = useModels([ANIMS_BASE, ANIMS_EXTRA, ...files]);
 
-  const built = useMemo(() => assemble(look, parts.map((p) => p.scene)), [look, parts]);
+  // `parts` is a fresh array each render; key the rig on the loaded scenes themselves.
+  const partsKey = parts.map((p) => p.scene.uuid).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const built = useMemo(() => assemble(look, parts.map((p) => p.scene)), [look, partsKey]);
   const mixer = useMemo(() => new THREE.AnimationMixer(built.root), [built]);
 
   const actions = useMemo(() => {
@@ -377,8 +395,8 @@ export default function Character(props: Props & { castShadow?: boolean }) {
 }
 
 // Warm the cache with the shared files.
-useGLTF.preload(ANIMS_BASE, false, true);
-useGLTF.preload(ANIMS_EXTRA, false, true);
-for (const f of ['head_male.glb', 'head_female.glb', 'outfit_male_jacket.glb', 'outfit_male_shirt.glb', 'outfit_female_shirt.glb', 'eyebrows_male.glb', 'eyebrows_female.glb']) {
-  useGLTF.preload(url(f), false, true);
-}
+preload([
+  ANIMS_BASE,
+  ANIMS_EXTRA,
+  ...['head_male.glb', 'head_female.glb', 'outfit_male_jacket.glb', 'outfit_male_shirt.glb', 'outfit_female_shirt.glb', 'eyebrows_male.glb', 'eyebrows_female.glb'].map(url),
+]);
