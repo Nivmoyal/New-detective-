@@ -3,10 +3,36 @@
 export type Specialization = 'criminal' | 'intel' | 'forensic';
 export type AddressForm = 'male' | 'female';
 
+export type HairStyle = 'short' | 'buzz' | 'long' | 'ponytail' | 'curly' | 'bald' | 'bun';
+export type Outfit = 'blazer' | 'suit' | 'leather' | 'hoodie' | 'uniform' | 'labcoat' | 'tshirt' | 'apron' | 'vest';
+
+/** Visual description of a 3D character. */
+export interface CharacterLook {
+  body: 'male' | 'female';
+  skin: string;
+  hairStyle: HairStyle;
+  hairColor: string;
+  outfit: Outfit;
+  topColor: string;
+  pantsColor: string;
+  height?: number;
+  beard?: boolean;
+  glasses?: boolean;
+  cap?: boolean;
+}
+
+/** A character the detective can talk to. */
+export interface CharacterRef {
+  name: string;
+  role: string;
+  look: CharacterLook;
+}
+
 export interface DetectiveProfile {
   name: string;
   specialization: Specialization;
   addressForm: AddressForm;
+  look: CharacterLook;
   rankIndex: number;
   solvedCases: string[];
   /** Reliability / credibility with the command staff (0-100). */
@@ -69,6 +95,7 @@ export interface Suspect {
   age: number;
   occupation: string;
   description: string;
+  look?: CharacterLook;
   interrogation?: InterrogationProfile;
 }
 
@@ -89,6 +116,10 @@ export interface MapHotspot {
   title: string;
   dialogue: DialogueLine[];
   evidenceIds: string[];
+  /** Person standing at the hotspot (witnesses, camera owners). */
+  character?: CharacterRef;
+  /** Direction the character faces, in radians (0 = towards the camera). */
+  facing?: number;
   /** Evidence ids that must be collected before this hotspot appears. */
   requires?: string[];
 }
@@ -187,13 +218,6 @@ export interface MapLabel {
   text: string;
 }
 
-export interface MapNpc {
-  x: number;
-  y: number;
-  color: string;
-  facing: number;
-}
-
 export interface GameMap {
   id: string;
   name: string;
@@ -203,7 +227,6 @@ export interface GameMap {
   spawn: { x: number; y: number };
   labels: MapLabel[];
   facilities: FacilityHotspot[];
-  npcs: MapNpc[];
   ambient: 'station' | 'street' | 'club';
 }
 

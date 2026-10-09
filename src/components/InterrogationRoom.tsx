@@ -6,16 +6,18 @@ import {
   MessageSquare,
   ShieldAlert,
   Siren,
-  UserCheck,
   Users,
   X,
   Zap,
 } from 'lucide-react';
-import type { CaseFile, CaseProgress, InterrogationState, TacticId } from '../types/investigation';
+import type { CaseFile, CaseProgress, CharacterLook, InterrogationState, TacticId } from '../types/investigation';
+import InterrogationScene from './three/InterrogationScene';
+import type { Mood } from './three/Humanoid';
 import { collectedClues, isPendingLab, SOURCE_LABELS } from '../services/caseEngine';
 import { MAX_MISTAKES, MAX_TURNS, TACTICS } from '../services/interrogationEngine';
 
 interface Props {
+  detectiveLook: CharacterLook;
   caseFile: CaseFile;
   progress: CaseProgress;
   session: InterrogationState;
@@ -55,7 +57,7 @@ function Gauge({ label, value, tone, icon }: { label: string; value: number; ton
   );
 }
 
-export default function InterrogationRoom({ caseFile, progress, session, onTactic, onEnd }: Props) {
+export default function InterrogationRoom({ detectiveLook, caseFile, progress, session, onTactic, onEnd }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const suspect = caseFile.suspects.find((s) => s.id === session.suspectId)!;
@@ -64,19 +66,45 @@ export default function InterrogationRoom({ caseFile, progress, session, onTacti
   const done = session.status !== 'active';
   const breakPct = Math.min(100, Math.round((session.progress / profile.breakThreshold) * 100));
 
+  const [suspectTalking, setSuspectTalking] = useState(false);
+  const mood: Mood =
+    session.status === 'confessed'
+      ? 'broken'
+      : session.status !== 'active'
+        ? 'defiant'
+        : session.tension >= 70
+          ? 'tense'
+          : session.cooperation < 20
+            ? 'defiant'
+            : 'neutral';
+
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
-  }, [session.log.length]);
+    const last = session.log[session.log.length - 1];
+    if (last?.speaker !== 'suspect') return;
+    setSuspectTalking(true);
+    const t = window.setTimeout(() => setSuspectTalking(false), 2600);
+    return () => window.clearTimeout(t);
+  }, [session.log]);
 
   return (
     <div className="flex h-full flex-col">
       {/* Suspect panel */}
-      <div className="relative border-b border-noir-border bg-gradient-to-b from-[#16120c] to-noir-panel p-3">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-24 w-48 rounded-full bg-amber-300/10 blur-2xl" />
+      <div className="relative h-44 shrink-0 sm:h-56">
+        {suspect.look && (
+          <InterrogationScene
+            suspect={suspect.look}
+            detective={detectiveLook}
+            tension={session.tension}
+            mood={mood}
+            talking={suspectTalking}
+            className="absolute inset-0"
+          />
+        )}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-noir-panel to-transparent" />
+      </div>
+      <div className="relative border-b border-noir-border bg-noir-panel p-3 pt-1">
         <div className="relative flex items-center gap-3">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border-2 border-noir-border bg-noir-deep">
-            <UserCheck className="h-9 w-9 text-steel" />
-          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-alert">
               <Lock className="h-3.5 w-3.5" /> חקירה באזהרה · עצור

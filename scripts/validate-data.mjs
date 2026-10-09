@@ -2,6 +2,7 @@
 // Run with: node --experimental-strip-types scripts/validate-data.mjs
 import { readFileSync } from 'node:fs';
 import { MAPS, WALKABLE_TILES } from '../src/data/maps.ts';
+import { CHAT_NPCS, PEDESTRIANS } from '../src/data/characters.ts';
 
 const errors = [];
 const tile = (m, x, y) => (m.tiles[Math.floor(y)] ?? '')[Math.floor(x)] ?? '#';
@@ -29,6 +30,20 @@ for (const m of Object.values(MAPS)) {
   };
   check('spawn', m.spawn.x, m.spawn.y);
   m.facilities.forEach((f) => check(f.id, f.x, f.y));
+}
+
+for (const n of CHAT_NPCS) {
+  if (!reach[n.mapId]?.has(`${Math.floor(n.x)},${Math.floor(n.y)}`)) errors.push(`chat npc ${n.id} not reachable`);
+}
+for (const p of PEDESTRIANS) {
+  const m = MAPS[p.mapId];
+  for (let i = 0; i < p.path.length; i++) {
+    const a = p.path[i], b = p.path[(i + 1) % p.path.length];
+    for (let t = 0; t <= 1; t += 0.02) {
+      const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
+      if (!WALKABLE_TILES.has(tile(m, x, y))) { errors.push(`pedestrian on ${p.mapId} crosses '${tile(m, x, y)}' at ${x.toFixed(1)},${y.toFixed(1)}`); break; }
+    }
+  }
 }
 
 const data = JSON.parse(readFileSync(new URL('../src/data/cases/cases.json', import.meta.url), 'utf8'));

@@ -1,10 +1,11 @@
 // Headless playthrough of every case through the real game reducer.
 import { gameReducer, initialState, type GameState, type GameAction } from '../src/state/gameReducer';
 import { getCase, evaluateDeduction, validateLink } from '../src/services/caseEngine';
+import { defaultPlayerLook } from '../src/data/characters';
 
 let s: GameState = initialState();
 const d = (a: GameAction) => (s = gameReducer(s, a));
-d({ type: 'CREATE_PROFILE', name: 'בודק', specialization: 'intel', addressForm: 'female' });
+d({ type: 'CREATE_PROFILE', name: 'בודק', specialization: 'intel', addressForm: 'female', look: defaultPlayerLook('female') });
 d({ type: 'ARRIVAL_COMMANDER_DONE' });
 for (let n = 0; n < 3; n++) {
   d({ type: 'TAKE_CASE' });
@@ -48,7 +49,7 @@ for (let n = 0; n < 3; n++) {
 console.log('rank', s.profile!.rankIndex, 'solved', s.profile!.solvedCases.length, 'intel', s.profile!.intelPoints, 'rel', s.profile!.reliability);
 // Failure path: pure pressure should drive a suspect to demand a lawyer.
 let f = initialState();
-f = gameReducer(f, { type: 'CREATE_PROFILE', name: 'x', specialization: 'intel', addressForm: 'male' });
+f = gameReducer(f, { type: 'CREATE_PROFILE', name: 'x', specialization: 'intel', addressForm: 'male', look: defaultPlayerLook('male') });
 f = gameReducer(f, { type: 'TAKE_CASE' });
 f = { ...f, progress: { ...f.progress, [f.activeCaseId!]: { ...f.progress[f.activeCaseId!], warrantSuspectId: 's-roni' } } };
 f = gameReducer(f, { type: 'START_INTERROGATION' });

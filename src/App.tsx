@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { Compass, Crosshair, Folder, Lock, ShieldAlert } from 'lucide-react';
-import type { FacilityHotspot, MapHotspot, View } from './types/investigation';
+import type { CharacterRef, FacilityHotspot, MapHotspot, View } from './types/investigation';
 import { MAPS, STATION_MAP_ID } from './data/maps';
 import {
   getCase,
@@ -12,7 +12,9 @@ import {
 import { activeProgress, allCasesSolved, gameReducer, loadState, saveState } from './state/gameReducer';
 import PoliceHeader from './components/PoliceHeader';
 import RookieArrivalModal from './components/RookieArrivalModal';
-import TopDownCanvasMap from './components/TopDownCanvasMap';
+import World3D from './components/World3D';
+import ChatDialog from './components/ChatDialog';
+import { INTERROGATION_OFFICER, type ChatNpc } from './data/characters';
 import EvidenceBoard from './components/EvidenceBoard';
 import InterrogationRoom from './components/InterrogationRoom';
 import StationHub from './components/StationHub';
@@ -36,7 +38,8 @@ type ModalState =
   | { type: 'evidenceRoom' }
   | { type: 'travel' }
   | { type: 'hotspot'; hotspot: MapHotspot }
-  | { type: 'notice'; title: string; text: string }
+  | { type: 'chat'; npc: ChatNpc }
+  | { type: 'notice'; title: string; text: string; character?: CharacterRef }
   | null;
 
 export default function App() {
@@ -81,7 +84,8 @@ export default function App() {
       setModal({
         type: 'notice',
         title: 'חדר החקירות נעול',
-        text: `אין צו מעצר בתוקף. ${g('חבר', 'חברי')} שלוש ראיות מאומתות לחשוד אחד בלוח הראיות כדי שהמפקדת תחתום על צו.`,
+        text: `אין לי עצור בשבילך. בלי צו מעצר אני לא מכניס אף אחד לחדר. ${g('חבר', 'חברי')} שלוש ראיות מאומתות לחשוד אחד בלוח הראיות, והמפקדת תחתום על צו.`,
+        character: INTERROGATION_OFFICER,
       });
   };
 
@@ -127,6 +131,7 @@ export default function App() {
   );
 
   const handleHotspot = useCallback((h: MapHotspot) => setModal({ type: 'hotspot', hotspot: h }), []);
+  const handleChat = useCallback((npc: ChatNpc) => setModal({ type: 'chat', npc }), []);
 
   /* ---------------- Onboarding: character creation ---------------- */
   if (!profile) {
@@ -135,8 +140,8 @@ export default function App() {
         <RookieArrivalModal
           mode="profile"
           profile={null}
-          onCreateProfile={(name, specialization, addressForm) =>
-            dispatch({ type: 'CREATE_PROFILE', name, specialization, addressForm })
+          onCreateProfile={(name, specialization, addressForm, look) =>
+            dispatch({ type: 'CREATE_PROFILE', name, specialization, addressForm, look })
           }
         />
       </div>
@@ -163,9 +168,10 @@ export default function App() {
 
       <main className="relative min-h-0 flex-1">
         {state.view === 'map' && (
-          <TopDownCanvasMap
+          <World3D
             key={map.id}
             map={map}
+            playerLook={profile.look}
             hotspots={hotspots}
             visitedHotspotIds={progress?.visitedHotspots ?? []}
             startPosition={state.positions[map.id]}
@@ -173,6 +179,7 @@ export default function App() {
             paused={modal !== null}
             onFacility={handleFacility}
             onHotspot={handleHotspot}
+            onChat={handleChat}
             onPositionChange={savePosition}
           />
         )}
@@ -209,6 +216,7 @@ export default function App() {
         {state.view === 'interrogation' &&
           (state.interrogation && caseFile && progress ? (
             <InterrogationRoom
+              detectiveLook={profile.look}
               caseFile={caseFile}
               progress={progress}
               session={state.interrogation}
@@ -332,7 +340,10 @@ export default function App() {
           onClose={() => setModal(null)}
         />
       )}
-      {modal?.type === 'notice' && <NoticeModal title={modal.title} text={modal.text} onClose={() => setModal(null)} />}
+      {modal?.type === 'notice' && (
+        <NoticeModal title={modal.title} text={modal.text} character={modal.character} onClose={() => setModal(null)} />
+      )}
+      {modal?.type === 'chat' && <ChatDialog npc={modal.npc} onClose={() => setModal(null)} />}
 
       {promotionCase && state.progress[promotionCase.id] && (
         <CaseClosedModal

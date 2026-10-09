@@ -1,5 +1,6 @@
 import type {
   AddressForm,
+  CharacterLook,
   ArrivalStep,
   CaseProgress,
   DetectiveProfile,
@@ -10,6 +11,7 @@ import type {
   View,
 } from '../types/investigation';
 import { MAPS, STATION_MAP_ID } from '../data/maps';
+import { defaultPlayerLook } from '../data/characters';
 import {
   caseScore,
   emptyProgress,
@@ -39,7 +41,7 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: 'CREATE_PROFILE'; name: string; specialization: Specialization; addressForm: AddressForm }
+  | { type: 'CREATE_PROFILE'; name: string; specialization: Specialization; addressForm: AddressForm; look: CharacterLook }
   | { type: 'ARRIVAL_COMMANDER_DONE' }
   | { type: 'TAKE_CASE' }
   | { type: 'SET_VIEW'; view: View }
@@ -80,7 +82,12 @@ export function loadState(): GameState {
     if (!raw) return initialState();
     const parsed = JSON.parse(raw) as GameState;
     if (parsed.version !== 1 || !MAPS[parsed.currentMapId]) return initialState();
-    return { ...initialState(), ...parsed };
+    const state = { ...initialState(), ...parsed };
+    // Saves from before the 3D update have no appearance yet.
+    if (state.profile && !state.profile.look) {
+      state.profile = { ...state.profile, look: defaultPlayerLook(state.profile.addressForm) };
+    }
+    return state;
   } catch {
     return initialState();
   }
@@ -124,6 +131,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           name: action.name.trim(),
           specialization: action.specialization,
           addressForm: action.addressForm,
+          look: action.look,
           rankIndex: 0,
           solvedCases: [],
           reliability: 60,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CheckSquare, ChevronLeft, FileText, MessageSquare, Search, Video } from 'lucide-react';
 import type { CaseFile, CaseProgress, MapHotspot } from '../types/investigation';
 import { CATEGORY_LABELS, getClue, SOURCE_LABELS } from '../services/caseEngine';
+import CharacterBanner from './CharacterBanner';
 
 interface Props {
   hotspot: MapHotspot;
@@ -35,7 +36,9 @@ export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center">
-      <div className="panel max-h-[88vh] w-full max-w-lg animate-fadeUp overflow-y-auto p-4 shadow-2xl scrollbar-thin">
+      <div className="panel max-h-[90vh] w-full max-w-lg animate-fadeUp overflow-y-auto shadow-2xl scrollbar-thin">
+        {hotspot.character && <CharacterBanner character={hotspot.character} talking={!finished} tone="gold" />}
+        <div className="p-4">
         <div className="mb-3 flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-evidence/15 text-evidence-light">{meta.icon}</span>
           <div>
@@ -88,6 +91,7 @@ export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, 
               חזרה לסיור
             </button>
           )}
+        </div>
         </div>
       </div>
     </div>

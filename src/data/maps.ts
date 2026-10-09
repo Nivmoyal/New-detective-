@@ -37,7 +37,7 @@ export const MAPS: Record<string, GameMap> = {
       '#......#...TTTT...#BB.BB.#',
       '#......#..........#......#',
       '###########DDDD###########',
-      '#________________________#',
+      '#____L______________L____#',
       '#,,,,,,,,,,,,,,,,,,,,,,,,#',
       '#,,C,,,,C,,,,,,,,,,C,,,C,#',
       '#,,,,,,,,,,,,,,,,,,,,,,,,#',
@@ -61,12 +61,6 @@ export const MAPS: Record<string, GameMap> = {
       { id: 'f-interrogation', x: 3.5, y: 12.5, action: 'interrogation', label: 'חדר חקירות באזהרה' },
       { id: 'f-evidence', x: 21.5, y: 11.5, action: 'evidenceRoom', label: 'חדר ראיות' },
       { id: 'f-exit', x: 12.5, y: 15.5, action: 'exit', label: 'ניידת - יציאה לשטח' },
-    ],
-    npcs: [
-      { x: 4.5, y: 2.5, color: '#f59e0b', facing: Math.PI / 2 },
-      { x: 9.5, y: 3.5, color: '#64748b', facing: 0 },
-      { x: 21.5, y: 2.5, color: '#e2e8f0', facing: Math.PI / 2 },
-      { x: 12.5, y: 13.3, color: '#3b82f6', facing: -Math.PI / 2 },
     ],
   },
 
@@ -106,11 +100,6 @@ export const MAPS: Record<string, GameMap> = {
       { x: 4, y: 17.4, text: 'סמטה אחורית' },
     ],
     facilities: [{ id: 'f-exit-lev', x: 22.5, y: 13.5, action: 'exit', label: 'ניידת' }],
-    npcs: [
-      { x: 6.5, y: 3.4, color: '#a16207', facing: Math.PI / 2 },
-      { x: 15.5, y: 9.5, color: '#94a3b8', facing: Math.PI },
-      { x: 20.5, y: 12.4, color: '#b45309', facing: 0 },
-    ],
   },
 
   neveShaanan: {
@@ -153,11 +142,6 @@ export const MAPS: Record<string, GameMap> = {
       { x: 12, y: 9.6, text: 'רחוב נווה שאנן' },
     ],
     facilities: [{ id: 'f-exit-ns', x: 22.5, y: 17.5, action: 'exit', label: 'ניידת' }],
-    npcs: [
-      { x: 3.5, y: 6.5, color: '#a3a3a3', facing: 0 },
-      { x: 9.5, y: 13.5, color: '#94a3b8', facing: Math.PI },
-      { x: 20.5, y: 9.5, color: '#78350f', facing: Math.PI / 2 },
-    ],
   },
 
   oldCbs: {
@@ -197,10 +181,6 @@ export const MAPS: Record<string, GameMap> = {
       { x: 22.5, y: 11.2, text: 'עמדת שומר' },
     ],
     facilities: [{ id: 'f-exit-cbs', x: 3.5, y: 17.5, action: 'exit', label: 'ניידת' }],
-    npcs: [
-      { x: 22.5, y: 13.5, color: '#64748b', facing: Math.PI },
-      { x: 5.5, y: 13.5, color: '#7c2d12', facing: 0 },
-    ],
   },
 
   florentin: {
@@ -241,11 +221,6 @@ export const MAPS: Record<string, GameMap> = {
       { x: 22, y: 14.2, text: 'מחסן' },
     ],
     facilities: [{ id: 'f-exit-fl', x: 23.5, y: 4.5, action: 'exit', label: 'ניידת' }],
-    npcs: [
-      { x: 3.5, y: 10.4, color: '#be185d', facing: Math.PI / 2 },
-      { x: 18.5, y: 4.4, color: '#1e293b', facing: Math.PI / 2 },
-      { x: 15.5, y: 8.5, color: '#7c3aed', facing: 0 },
-    ],
   },
 
   shapira: {
@@ -288,10 +263,6 @@ export const MAPS: Record<string, GameMap> = {
       { x: 13, y: 17.6, text: 'גינה ציבורית' },
     ],
     facilities: [{ id: 'f-exit-sh', x: 23.5, y: 9.5, action: 'exit', label: 'ניידת' }],
-    npcs: [
-      { x: 8.5, y: 3.5, color: '#a8a29e', facing: Math.PI },
-      { x: 20.5, y: 9.5, color: '#475569', facing: Math.PI / 2 },
-    ],
   },
 };
 

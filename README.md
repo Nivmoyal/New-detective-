@@ -5,7 +5,8 @@ You play a rookie detective on their first day: report to the station commander,
 off your desk, explore crime scenes top-down, send evidence to the forensic lab, pin it on the corkboard,
 and break the suspect in a cautioned interrogation.
 
-Built with React 18, Vite, TypeScript and Tailwind CSS. Icons are `lucide-react` SVGs only; there are no emoji anywhere.
+Built with React 18, Vite, TypeScript, Tailwind CSS and a real-time 3D engine (Three.js through React Three Fiber).
+Icons are `lucide-react` SVGs only; there are no emoji anywhere.
 
 ## Running
 
@@ -19,11 +20,14 @@ npm run test:sim       # headless playthrough of all three cases through the rea
 
 ## Gameplay loop
 
-1. **Arrival (onboarding).** Create a detective (name, form of address, specialization), walk into the station,
-   get briefed by סנ״צ אורנה ברק, then take the first case from your desk in משרד החוקרים.
-2. **Top-down exploration.** Canvas map with D-pad, WASD/arrow keys, or tap-to-move. Gold markers are case hotspots
-   (evidence collection, witnesses, security cameras); blue markers are station facilities. A dashed blue line
-   points to the next sensible stop on the station map.
+1. **Arrival (onboarding).** Type your name and design your detective in a live 3D character creator (body,
+   skin tone, hairstyle, hair colour, outfit, colours, glasses, beard), pick a specialization, walk into the
+   station, get briefed by סנ״צ אורנה ברק, then take the first case from your desk in משרד החוקרים.
+2. **3D exploration.** A lit 3D world with a following camera, a walking animated detective, and walls that cut away
+   when they block the view. Move with the on-screen joystick, WASD/arrow keys, or tap-to-move. Walk up to people and
+   talk to them: the station commander, the forensic lab chief, the team lead, the evidence clerk, the desk sergeant,
+   the patrol driver, and every witness in the case. Gold markers are case items, blue markers are station staff, and
+   a blue light beacon marks the next sensible stop.
 3. **Forensic lab.** Physical items stay "ממתין למז״פ" until analyzed and can't be pinned before that.
 4. **Evidence board.** Tap a suspect, then evidence (or the reverse). The deduction engine checks every link:
    red string = implicates, blue = an alibi that clears. Wrong links cost reliability. Three validated red links to
@@ -46,10 +50,16 @@ src/
   data/maps.ts                    tile maps: station + five South TLV locations
   services/caseEngine.ts          case loading, evidence, link validation, deduction, objectives
   services/interrogationEngine.ts interrogation tactics and outcome rules
+  data/characters.ts              station staff, chat characters, pedestrians, creator palettes
   state/gameReducer.ts            game state, actions, localStorage persistence
   components/
     RookieArrivalModal.tsx        character creation + first-day commander/desk dialogue
-    TopDownCanvasMap.tsx          canvas renderer, movement, lighting, hotspots
+    World3D.tsx                   3D world: player controller, follow camera, characters, joystick
+    three/Humanoid.tsx            procedural, customizable 3D human with walk/talk/sit animation
+    three/MapScene.tsx            builds streets, offices, stalls, cars and lighting from the tile maps
+    three/CharacterPortrait.tsx   live 3D portraits for conversations and the creator
+    three/InterrogationScene.tsx  3D interrogation room; the suspect's body language follows the gauges
+    CharacterBanner.tsx, ChatDialog.tsx  conversation UI
     EvidenceBoard.tsx             corkboard with string links and the warrant panel
     InterrogationRoom.tsx         gauges, transcript, tactics
     PoliceHeader.tsx              rank, solved cases, reliability, intel points

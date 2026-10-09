@@ -15,7 +15,9 @@ import {
   UserCheck,
   X,
 } from 'lucide-react';
-import type { CaseFile, CaseProgress, DetectiveProfile } from '../types/investigation';
+import type { CaseFile, CaseProgress, CharacterRef, DetectiveProfile } from '../types/investigation';
+import { COMMANDER, EVIDENCE_CLERK, LAB_TECH, PATROL_DRIVER } from '../data/characters';
+import CharacterBanner from './CharacterBanner';
 import { MAPS, SCENE_MAP_IDS, STATION_MAP_ID } from '../data/maps';
 import {
   CATEGORY_LABELS,
@@ -35,6 +37,7 @@ export function Modal({
   onClose,
   children,
   tone = 'police',
+  character,
 }: {
   title: string;
   subtitle?: string;
@@ -42,6 +45,8 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   tone?: 'police' | 'gold' | 'red';
+  /** When set, the header shows the live 3D portrait of the person you are talking to. */
+  character?: CharacterRef;
 }) {
   const toneCls =
     tone === 'gold' ? 'bg-evidence/15 text-evidence-light' : tone === 'red' ? 'bg-alert/15 text-red-300' : 'bg-police/15 text-police-light';
@@ -51,7 +56,15 @@ export function Modal({
         className="panel flex max-h-[88vh] w-full max-w-lg animate-fadeUp flex-col overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-noir-border p-3">
+        {character && (
+          <div className="relative shrink-0">
+            <CharacterBanner character={character} tone={tone} />
+            <button onClick={onClose} aria-label="סגירה" className="absolute left-3 top-3 rounded-full bg-black/50 p-1.5 text-slate-200">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+        <div className={`flex items-center gap-2 border-b border-noir-border p-3 ${character ? 'hidden' : ''}`}>
           <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${toneCls}`}>{icon}</span>
           <div className="min-w-0 flex-1">
             <div className="truncate font-display text-base font-bold">{title}</div>
@@ -83,7 +96,7 @@ export function LabModal({
   const pending = caseFile && progress ? pendingLabClues(caseFile, progress) : [];
   const analyzed = caseFile && progress ? collectedClues(caseFile, progress).filter((c) => progress.analyzed.includes(c.id)) : [];
   return (
-    <Modal title='מעבדת מז״פ' subtitle="מחלק זיהוי פלילי, מרחב יפתח" icon={<Fingerprint className="h-5 w-5" />} onClose={onClose}>
+    <Modal title='מעבדת מז״פ' subtitle="מחלק זיהוי פלילי, מרחב יפתח" icon={<Fingerprint className="h-5 w-5" />} onClose={onClose} character={LAB_TECH}>
       <div className="mb-3 rounded-lg border border-noir-border bg-noir-deep/70 p-3 text-sm text-slate-300">
         <span className="font-bold text-sky-300">ד״ר מאיה שטרן: </span>
         {pending.length > 0
@@ -133,9 +146,12 @@ export function EvidenceRoomModal({
 }) {
   const clues = caseFile && progress ? collectedClues(caseFile, progress) : [];
   return (
-    <Modal title="חדר ראיות" subtitle={caseFile ? caseFile.shortTitle : 'אין תיק פעיל'} icon={<Folder className="h-5 w-5" />} onClose={onClose} tone="gold">
+    <Modal title="חדר ראיות" subtitle={caseFile ? caseFile.shortTitle : 'אין תיק פעיל'} icon={<Folder className="h-5 w-5" />} onClose={onClose} tone="gold" character={EVIDENCE_CLERK}>
+      <p className="mb-3 text-sm text-slate-300">
+        {clues.length === 0 ? 'עוד לא הבאתם לי כלום. כל מה שתאספו בשטח - מגיע אליי, מתויג ונעול.' : 'הכל מתויג ונעול. הנה מה שיש לכם בתיק עד עכשיו:'}
+      </p>
       {clues.length === 0 ? (
-        <div className="py-6 text-center text-sm text-steel">המדפים ריקים. הראיות שתאספו בשטח יתועדו כאן.</div>
+        <div className="py-4 text-center text-xs text-steel">המדפים ריקים.</div>
       ) : (
         <div className="space-y-2">
           {clues.map((c) => (
@@ -168,7 +184,8 @@ export function TravelModal({
 }) {
   const ids = [STATION_MAP_ID, ...SCENE_MAP_IDS];
   return (
-    <Modal title="ניידת סיור" subtitle="בחירת יעד במרחב יפתח" icon={<Compass className="h-5 w-5" />} onClose={onClose}>
+    <Modal title="ניידת סיור" subtitle="בחירת יעד במרחב יפתח" icon={<Compass className="h-5 w-5" />} onClose={onClose} character={PATROL_DRIVER}>
+      <p className="mb-3 text-sm text-slate-300">הניידת מונעת. לאן נוסעים?</p>
       <div className="space-y-2">
         {ids.map((id) => {
           const m = MAPS[id];
@@ -219,7 +236,7 @@ export function CommanderModal({
   const used = progress?.hintsUsed ?? 0;
   const g = (m: string, f: string) => (profile.addressForm === 'female' ? f : m);
   return (
-    <Modal title='סנ״צ אורנה ברק' subtitle="מפקדת תחנת שרפשטיין" icon={<UserCheck className="h-5 w-5" />} onClose={onClose}>
+    <Modal title='סנ״צ אורנה ברק' subtitle="מפקדת תחנת שרפשטיין" icon={<UserCheck className="h-5 w-5" />} onClose={onClose} character={COMMANDER}>
       {!caseFile ? (
         <p className="text-sm leading-relaxed text-slate-300">
           {`אין לך תיק פעיל כרגע. התיק הבא כבר מחכה על השולחן שלך במשרד החוקרים. ${g('לך', 'לכי')} לקחת אותו.`}
@@ -324,9 +341,19 @@ export function CaseClosedModal({
 
 /* ------------------------------------------------------------------ */
 
-export function NoticeModal({ title, text, onClose }: { title: string; text: string; onClose: () => void }) {
+export function NoticeModal({
+  title,
+  text,
+  character,
+  onClose,
+}: {
+  title: string;
+  text: string;
+  character?: CharacterRef;
+  onClose: () => void;
+}) {
   return (
-    <Modal title={title} icon={<Lock className="h-5 w-5" />} onClose={onClose} tone="red">
+    <Modal title={title} icon={<Lock className="h-5 w-5" />} onClose={onClose} tone="red" character={character}>
       <p className="text-sm leading-relaxed text-slate-300">{text}</p>
       <button className="btn-ghost mt-4 w-full" onClick={onClose}>
         הבנתי
