@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { CharacterLook } from '../../types/investigation';
-import Humanoid, { type MotionState } from './Humanoid';
+import { type MotionState } from './Humanoid';
+import Humanoid from './RiggedCharacter';
 
 interface Props {
   look: CharacterLook;

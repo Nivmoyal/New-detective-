@@ -2,7 +2,8 @@ import { useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { CharacterLook } from '../../types/investigation';
-import Humanoid, { type Mood } from './Humanoid';
+import { type Mood } from './Humanoid';
+import Humanoid from './RiggedCharacter';
 import { textures } from './textures';
 
 interface Props {

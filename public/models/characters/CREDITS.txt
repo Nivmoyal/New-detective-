@@ -1,0 +1,6 @@
+3D characters, outfits, hair and animations by Quaternius (https://quaternius.com), CC0 1.0.
+Packs: Universal Base Characters (Standard), Modular Character Outfits - Fantasy (Standard),
+Universal Animation Library (Standard), Universal Animation Library 2 (Standard).
+Source copy: https://github.com/OpenAgentsInc/openagents/tree/main/assets/verse/characters/quaternius
+Optimized for this game by scripts/build-characters.mjs (textures resized to WebP, unused maps removed,
+clothing and hair converted to tintable greyscale, hoods/pauldrons/bracers removed).

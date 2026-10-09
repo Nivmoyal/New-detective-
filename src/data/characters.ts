@@ -12,10 +12,8 @@ export const PANTS_COLORS = ['#17191d', '#2d3440', '#3b3a36', '#24324a', '#4b403
 export const HAIR_STYLE_OPTIONS: { id: HairStyle; label: string }[] = [
   { id: 'short', label: 'קצר' },
   { id: 'buzz', label: 'קוצים' },
-  { id: 'curly', label: 'מתולתל' },
   { id: 'long', label: 'ארוך' },
-  { id: 'ponytail', label: 'קוקו' },
-  { id: 'bun', label: 'פקעת' },
+  { id: 'bun', label: 'פקעות' },
   { id: 'bald', label: 'קרחת' },
 ];
 
@@ -30,7 +28,7 @@ export function defaultPlayerLook(body: 'male' | 'female' = 'male'): CharacterLo
   return {
     body,
     skin: SKIN_TONES[1],
-    hairStyle: body === 'male' ? 'short' : 'ponytail',
+    hairStyle: body === 'male' ? 'short' : 'long',
     hairColor: HAIR_COLORS[0],
     outfit: 'leather',
     topColor: TOP_COLORS[2],

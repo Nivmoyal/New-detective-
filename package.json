@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "validate:data": "node --experimental-strip-types --no-warnings scripts/validate-data.mjs",
-    "test:sim": "esbuild scripts/simulate.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/sim.mjs --log-level=warning && node node_modules/.cache/sim.mjs"
+    "test:sim": "esbuild scripts/simulate.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/sim.mjs --log-level=warning && node node_modules/.cache/sim.mjs",
+    "build:characters": "node scripts/build-characters.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
@@ -20,12 +21,17 @@
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "meshoptimizer": "^0.22.0",
     "postcss": "^8.4.49",
+    "sharp": "^0.33.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"

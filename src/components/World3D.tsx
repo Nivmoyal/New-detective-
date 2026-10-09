@@ -7,7 +7,8 @@ import type { CharacterLook, CharacterRef, FacilityHotspot, GameMap, MapHotspot 
 import { WALKABLE_TILES, tileAt } from '../data/maps';
 import { CHAT_NPCS, FACILITY_CHARACTERS, PEDESTRIANS, type ChatNpc, type Pedestrian } from '../data/characters';
 import MapScene, { TILE } from './three/MapScene';
-import Humanoid, { type MotionState } from './three/Humanoid';
+import { type MotionState } from './three/Humanoid';
+import Humanoid from './three/RiggedCharacter';
 
 const SPEED = 3.4; // tiles per second
 const RADIUS = 0.26; // collision radius in tiles
