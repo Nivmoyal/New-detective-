@@ -2,6 +2,7 @@
 import type { CharacterLook } from '../types/investigation';
 import { PixelBuffer, mix, shade } from './color';
 import { paletteFor } from './sprites';
+import { upscaleCanvas } from './upscale';
 
 export const PORTRAIT_SIZE = 40;
 
@@ -530,6 +531,18 @@ function paintCap(p: PixelBuffer, back: boolean) {
 }
 
 const portraitCache = new Map<string, HTMLCanvasElement>();
+const hdCache = new Map<string, HTMLCanvasElement>();
+
+/** Smoothed 4x portrait (160x160) for conversation banners. */
+export function portraitCanvasHD(look: CharacterLook, pose: PortraitPose = {}): HTMLCanvasElement {
+  const key = JSON.stringify([look, pose.expression ?? 'neutral', !!pose.mouthOpen, !!pose.blink, !!pose.back]);
+  let c = hdCache.get(key);
+  if (!c) {
+    c = upscaleCanvas(portraitCanvas(look, pose), 2);
+    hdCache.set(key, c);
+  }
+  return c;
+}
 
 export function portraitCanvas(look: CharacterLook, pose: PortraitPose = {}): HTMLCanvasElement {
   const key = JSON.stringify([look, pose.expression ?? 'neutral', !!pose.mouthOpen, !!pose.blink, !!pose.back]);

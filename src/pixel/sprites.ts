@@ -2,6 +2,7 @@
 // painted pixel by pixel from a CharacterLook, with a dark outline.
 import type { CharacterLook } from '../types/investigation';
 import { PixelBuffer, mix, shade } from './color';
+import { upscaleCanvas } from './upscale';
 
 export const FRAME_W = 18;
 export const FRAME_H = 27;
@@ -719,6 +720,19 @@ export function characterSheet(look: CharacterLook): HTMLCanvasElement {
   if (!c) {
     c = paintSheet(look).toCanvas();
     sheetCache.set(key, c);
+  }
+  return c;
+}
+
+const hdSheetCache = new Map<string, HTMLCanvasElement>();
+
+/** Smoothed 4x sprite sheet for large previews. */
+export function characterSheetHD(look: CharacterLook): HTMLCanvasElement {
+  const key = lookKey(look);
+  let c = hdSheetCache.get(key);
+  if (!c) {
+    c = upscaleCanvas(characterSheet(look), 2);
+    hdSheetCache.set(key, c);
   }
   return c;
 }

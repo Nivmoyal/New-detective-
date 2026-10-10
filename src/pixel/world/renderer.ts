@@ -237,11 +237,15 @@ export class WorldRenderer {
     for (const d of list) d.draw(ctx);
     ctx.restore();
 
-    this.applyLighting(ctx, camX, camY, vw, vh, t, openBuilding);
-    if (map.rain) this.drawRain(ctx, vw, vh, t);
   }
 
-  private applyLighting(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null) {
+  /** Night lighting and rain, drawn on top of the (possibly upscaled) frame. k = upscale factor. */
+  renderEffects(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null, k = 1) {
+    this.applyLighting(ctx, camX * k, camY * k, vw * k, vh * k, t, openBuilding, T * k);
+    if (this.map.rain) this.drawRain(ctx, vw * k, vh * k, k);
+  }
+
+  private applyLighting(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null, TS: number) {
     const map = this.map;
     if (this.dark.width !== vw || this.dark.height !== vh) {
       this.dark.width = vw;
@@ -255,16 +259,16 @@ export class WorldRenderer {
     d.globalCompositeOperation = 'destination-out';
     const visible = map.lights.filter((l) => {
       if (l.building && l.building !== openBuilding) return false;
-      const lx = l.x * T - camX;
-      const ly = l.y * T - camY;
-      const rr = l.r * T;
+      const lx = l.x * TS - camX;
+      const ly = l.y * TS - camY;
+      const rr = l.r * TS;
       return lx > -rr && lx < vw + rr && ly > -rr && ly < vh + rr;
     });
     for (const l of visible) {
       const f = l.flicker ? 0.8 + 0.2 * Math.sin(t * 17 + l.x * 3) * Math.sin(t * 5.3 + l.y) : 1;
-      const rr = l.r * T * 2;
+      const rr = l.r * TS * 2;
       d.globalAlpha = Math.min(1, l.power * f);
-      d.drawImage(this.light, l.x * T - camX - rr / 2, l.y * T - camY - rr / 2, rr, rr);
+      d.drawImage(this.light, l.x * TS - camX - rr / 2, l.y * TS - camY - rr / 2, rr, rr);
     }
     d.globalAlpha = 1;
     d.globalCompositeOperation = 'source-over';
@@ -273,28 +277,29 @@ export class WorldRenderer {
     ctx.globalCompositeOperation = 'lighter';
     for (const l of visible) {
       if (l.building) continue;
-      const rr = l.r * T * 1.6;
+      const rr = l.r * TS * 1.6;
       ctx.globalAlpha = 0.16 * l.power;
-      ctx.drawImage(glowSprite(l.color), l.x * T - camX - rr / 2, l.y * T - camY - rr / 2, rr, rr);
+      ctx.drawImage(glowSprite(l.color), l.x * TS - camX - rr / 2, l.y * TS - camY - rr / 2, rr, rr);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  private drawRain(ctx: Ctx, vw: number, vh: number, t: number) {
-    const want = Math.floor((vw * vh) / 900);
+  private drawRain(ctx: Ctx, vw: number, vh: number, k: number) {
+    const want = Math.floor((vw * vh) / (900 * k * k));
     while (this.rain.length < want) this.rain.push({ x: Math.random() * vw, y: Math.random() * vh, s: 0.7 + Math.random() * 0.6 });
-    ctx.fillStyle = 'rgba(170,190,220,0.35)';
+    if (this.rain.length > want) this.rain.length = want;
+    ctx.fillStyle = 'rgba(170,190,220,0.32)';
+    const w = Math.max(1, Math.round(k / 2));
     for (const p of this.rain) {
-      p.y += 5 * p.s;
-      p.x -= 1.2 * p.s;
+      p.y += 5 * p.s * k;
+      p.x -= 1.2 * p.s * k;
       if (p.y > vh) {
-        p.y = -6;
-        p.x = Math.random() * (vw + 20);
+        p.y = -6 * k;
+        p.x = Math.random() * (vw + 20 * k);
       }
       if (p.x < 0) p.x += vw;
-      ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 4);
+      ctx.fillRect(Math.round(p.x), Math.round(p.y), w, 4 * k);
     }
-    void t;
   }
 }

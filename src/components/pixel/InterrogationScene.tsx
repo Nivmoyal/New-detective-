@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { CharacterLook } from '../../types/investigation';
-import { portraitCanvas, type Expression } from '../../pixel/portrait';
+import { portraitCanvasHD, type Expression } from '../../pixel/portrait';
+import { FrameUpscaler } from '../../pixel/upscale';
 
 interface Props {
   suspect: CharacterLook;
@@ -23,7 +24,12 @@ export default function InterrogationScene({ suspect, detective, expression, tal
 
   useEffect(() => {
     const c = ref.current!;
-    const ctx = c.getContext('2d')!;
+    const out = c.getContext('2d')!;
+    const buffer = document.createElement('canvas');
+    buffer.width = W;
+    buffer.height = H;
+    const ctx = buffer.getContext('2d', { willReadFrequently: true })!;
+    const upscaler = new FrameUpscaler();
     let raf = 0;
     let mouth = false;
     let mouthAt = 0;
@@ -60,42 +66,54 @@ export default function InterrogationScene({ suspect, detective, expression, tal
       r(0, 62, W, H - 62, '#2b2a2a');
       for (let x = 0; x < W; x += 16) r(x, 62, 1, H - 62, '#232222');
 
-      // Suspect, seated behind the table.
-      const shake = L.tension >= 80 ? Math.round(Math.sin(t * 40) * 0.6) : 0;
-      ctx.drawImage(portraitCanvas(L.suspect, { expression: L.expression, mouthOpen: L.talking && mouth, blink }), 46 + shake, 14, 80, 80);
+      // Smooth the pixels, then add soft light and shadow at full resolution.
+      upscaler.run(ctx, W, H);
+      out.drawImage(upscaler.out, 0, 0);
+      const k = upscaler.factor;
+      out.save();
+      out.scale(k, k);
+      const o = (x: number, y: number, w: number, h: number, col: string) => {
+        out.fillStyle = col;
+        out.fillRect(x, y, w, h);
+      };
+      out.imageSmoothingEnabled = true;
+      out.imageSmoothingQuality = 'high';
+      // Suspect, seated behind the table (smoothed high-resolution portrait).
+      const shake = L.tension >= 80 ? Math.sin(t * 40) * 0.6 : 0;
+      out.drawImage(portraitCanvasHD(L.suspect, { expression: L.expression, mouthOpen: L.talking && mouth, blink }), 46 + shake, 14, 80, 80);
       // Table.
-      r(14, 70, 150, 6, '#7b828c');
-      r(14, 70, 150, 1, '#a3aab3');
-      r(14, 76, 150, 20, '#555b63');
-      r(60, 72, 22, 3, '#e7e2d6');
-      r(62, 73, 14, 1, '#7f1d1d');
-      r(110, 71, 6, 4, '#111827');
+      o(14, 70, 150, 6, '#7b828c');
+      o(14, 70, 150, 1, '#a3aab3');
+      o(14, 76, 150, 20, '#555b63');
+      o(60, 72, 22, 3, '#e7e2d6');
+      o(62, 73, 14, 1, '#7f1d1d');
+      o(110, 71, 6, 4, '#111827');
       // Detective, seen from behind in the foreground.
-      ctx.drawImage(portraitCanvas(L.detective, { back: true }), 140, 26, 80, 80);
-
-      // Swinging lamp and its cone of light.
+      out.drawImage(portraitCanvasHD(L.detective, { back: true }), 140, 26, 80, 80);
+      // Swinging lamp.
       const swing = Math.sin(t * 1.3) * 6;
       const lx = 86 + swing;
-      r(86, 0, 1, 10, '#111');
-      r(lx - 8, 10, 16, 5, '#3f4650');
-      r(lx - 3, 15, 6, 2, '#fde68a');
-      const g = ctx.createRadialGradient(lx, 16, 2, lx, 70, 70);
-      g.addColorStop(0, 'rgba(255,236,170,0.32)');
-      g.addColorStop(1, 'rgba(255,236,170,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(lx - 6, 16);
-      ctx.lineTo(lx + 6, 16);
-      ctx.lineTo(lx + 70, H);
-      ctx.lineTo(lx - 70, H);
-      ctx.closePath();
-      ctx.fill();
+      o(86, 0, 1, 10, '#111');
+      o(lx - 8, 10, 16, 5, '#3f4650');
+      o(lx - 3, 15, 6, 2, '#fde68a');
+      const g2 = out.createRadialGradient(lx, 16, 2, lx, 70, 70);
+      g2.addColorStop(0, 'rgba(255,236,170,0.32)');
+      g2.addColorStop(1, 'rgba(255,236,170,0)');
+      out.fillStyle = g2;
+      out.beginPath();
+      out.moveTo(lx - 6, 16);
+      out.lineTo(lx + 6, 16);
+      out.lineTo(lx + 70, H);
+      out.lineTo(lx - 70, H);
+      out.closePath();
+      out.fill();
       // Darkness at the edges.
-      const v = ctx.createRadialGradient(W / 2, H / 2, 30, W / 2, H / 2, 120);
+      const v = out.createRadialGradient(W / 2, H / 2, 30, W / 2, H / 2, 120);
       v.addColorStop(0, 'rgba(0,0,0,0)');
       v.addColorStop(1, `rgba(0,0,0,${0.55 + L.tension / 400})`);
-      ctx.fillStyle = v;
-      ctx.fillRect(0, 0, W, H);
+      out.fillStyle = v;
+      out.fillRect(0, 0, W, H);
+      out.restore();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -105,10 +123,10 @@ export default function InterrogationScene({ suspect, detective, expression, tal
   return (
     <canvas
       ref={ref}
-      width={W}
-      height={H}
+      width={W * 4}
+      height={H * 4}
       className={className}
-      style={{ imageRendering: 'pixelated', objectFit: 'cover', width: '100%', height: '100%' }}
+      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
     />
   );
 }

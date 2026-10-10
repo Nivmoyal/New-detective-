@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CharacterLook } from '../../types/investigation';
-import { FRAME_H, FRAME_W, characterSheet, type Dir } from '../../pixel/sprites';
+import { FRAME_H, FRAME_W, characterSheetHD, type Dir } from '../../pixel/sprites';
 
 interface Props {
   look: CharacterLook;
@@ -25,16 +25,17 @@ export default function SpritePreview({ look, walking = true, scale, dir }: Prop
       const t = now / 1000;
       const d = dir ?? order[Math.floor(t / 1.6) % 4];
       const frame = walking ? Math.floor(t * 7) % 4 : 0;
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.clearRect(0, 0, c.width, c.height);
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.fillRect(4 * scale, (FRAME_H - 2) * scale, (FRAME_W - 8) * scale, 2 * scale);
-      ctx.drawImage(characterSheet(lookRef.current), frame * FRAME_W, d * FRAME_H, FRAME_W, FRAME_H, 0, 0, FRAME_W * scale, FRAME_H * scale);
+      ctx.drawImage(characterSheetHD(lookRef.current), frame * FRAME_W * 4, d * FRAME_H * 4, FRAME_W * 4, FRAME_H * 4, 0, 0, FRAME_W * scale, FRAME_H * scale);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [walking, scale, dir]);
 
-  return <canvas ref={ref} width={FRAME_W * scale} height={FRAME_H * scale} style={{ imageRendering: 'pixelated' }} />;
+  return <canvas ref={ref} width={FRAME_W * scale} height={FRAME_H * scale} />;
 }

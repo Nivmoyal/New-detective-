@@ -4,6 +4,7 @@ import type { CharacterLook, CharacterRef, MapHotspot } from '../types/investiga
 import type { ChatNpc } from '../data/characters';
 import { FACILITY_CHARACTERS } from '../data/characters';
 import { WorldRenderer, type Drawable } from '../pixel/world/renderer';
+import { FrameUpscaler } from '../pixel/upscale';
 import { T, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
 import { drawEvidenceItem, examineCount, examineVariant, propDef, propName } from '../pixel/world/props';
 import { ARRIVAL_THOUGHTS, OVERHEARD, idleThoughts, repeatExamine, wallThoughts, type G } from '../pixel/world/humor';
@@ -121,7 +122,9 @@ export default function PixelWorld({
     const display = canvas.getContext('2d')!;
     const renderer = new WorldRenderer(map);
     const buffer = document.createElement('canvas');
-    const bctx = buffer.getContext('2d')!;
+    const bctx = buffer.getContext('2d', { willReadFrequently: true })!;
+    const upscaler = new FrameUpscaler();
+    let upscaleCost = 0;
     let scale = 4;
     let dpr = 1;
     let vw = 0;
@@ -135,7 +138,7 @@ export default function PixelWorld({
       canvas.height = Math.round(ch * dpr);
       canvas.style.width = `${cw}px`;
       canvas.style.height = `${ch}px`;
-      scale = Math.max(2, Math.round((Math.min(cw, ch * 1.25) * dpr) / 200));
+      scale = Math.max(2, Math.round((Math.min(cw, ch * 1.25) * dpr) / 220));
       vw = Math.ceil(canvas.width / scale);
       vh = Math.ceil(canvas.height / scale);
       buffer.width = vw;
@@ -654,8 +657,15 @@ export default function PixelWorld({
       }
       renderer.render(bctx, camX, camY, vw, vh, t, ents, openId);
 
-      display.imageSmoothingEnabled = false;
-      display.drawImage(buffer, 0, 0, vw * scale, vh * scale);
+      // Smooth the pixel edges, then light the scene at the higher resolution.
+      const t0 = performance.now();
+      const hctx = upscaler.run(bctx, vw, vh);
+      upscaleCost = upscaleCost * 0.95 + (performance.now() - t0) * 0.05;
+      if (upscaleCost > 9 && upscaler.passes > 1) upscaler.passes = 1;
+      renderer.renderEffects(hctx, camX, camY, vw, vh, t, openId, upscaler.factor);
+      display.imageSmoothingEnabled = true;
+      display.imageSmoothingQuality = 'high';
+      display.drawImage(upscaler.out, 0, 0, vw * scale, vh * scale);
 
       /* Crisp text layer */
       const S = scale;
@@ -770,7 +780,7 @@ export default function PixelWorld({
 
   return (
     <div ref={wrapRef} className="relative h-full w-full select-none overflow-hidden bg-[#07090c]" style={{ touchAction: 'none' }}>
-      <canvas ref={canvasRef} className="absolute inset-0 block" style={{ imageRendering: 'pixelated' }} />
+      <canvas ref={canvasRef} className="absolute inset-0 block" />
       <div className="crt-overlay pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute right-2 top-2 rounded-md border border-noir-border bg-noir-bg/80 px-2.5 py-1 backdrop-blur">
         <div className="font-display text-sm font-bold leading-tight text-slate-100">{map.name}</div>

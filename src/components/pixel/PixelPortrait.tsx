@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CharacterLook } from '../../types/investigation';
-import { PORTRAIT_SIZE, portraitCanvas, type Expression } from '../../pixel/portrait';
+import { PORTRAIT_SIZE, portraitCanvasHD, type Expression } from '../../pixel/portrait';
+
+const HD = PORTRAIT_SIZE * 4;
 
 interface Props {
   look: CharacterLook;
@@ -44,18 +46,17 @@ export default function PixelPortrait({ look, expression = 'neutral', talking = 
     const c = ref.current;
     if (!c) return;
     const ctx = c.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, PORTRAIT_SIZE, PORTRAIT_SIZE);
-    ctx.drawImage(portraitCanvas(look, { expression, mouthOpen: mouth, blink, back }), 0, 0);
+    ctx.clearRect(0, 0, HD, HD);
+    ctx.drawImage(portraitCanvasHD(look, { expression, mouthOpen: mouth, blink, back }), 0, 0);
   }, [look, expression, mouth, blink, back]);
 
   return (
     <canvas
       ref={ref}
-      width={PORTRAIT_SIZE}
-      height={PORTRAIT_SIZE}
+      width={HD}
+      height={HD}
       className={className}
-      style={{ width: size, height: size, imageRendering: 'pixelated' }}
+      style={{ width: size, height: size }}
     />
   );
 }
