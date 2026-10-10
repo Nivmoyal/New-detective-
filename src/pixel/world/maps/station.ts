@@ -156,6 +156,7 @@ export function buildStation() {
   b.prop('plant', 29, 15);
   b.prop('plant', 17, 15);
   b.anchor('st-lobby-bench', 19.5, 20.5, DIR_LEFT);
+  b.anchor('st-archive', 16.5, 8.6, DIR_DOWN);
   b.npc({ id: 'npc-sergeant', x: 22.5, y: 16.5, dir: DIR_DOWN, name: DESK_SERGEANT.name, role: DESK_SERGEANT.role, look: DESK_SERGEANT.look, lines: [
     'בוקר. הקפה במטבחון, המעלית לא עובדת, ומישהו שוב החנה על המקום של המפקדת.',
     'שמעתי שקיבלת תיקים כבר ביום הראשון. המפקדת לא עושה את זה לכל אחד.',

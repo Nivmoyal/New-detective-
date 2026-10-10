@@ -7,7 +7,7 @@ import { emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, 
 import {
   WARRANT_DENIAL_PENALTY,
   activeProgress,
-  allCasesSolved,
+  storyComplete,
   gameReducer,
   knownCaseIds,
   loadState,
@@ -366,7 +366,7 @@ export default function App() {
           profile={profile}
           caseFile={promotionCase}
           progress={state.progress[promotionCase.id]}
-          allSolved={allCasesSolved(state)}
+          allSolved={storyComplete(state) && !promotionCase.generated}
           newCases={loadCases().filter((c) => (c.unlockAfter ?? 0) > 0 && c.unlockAfter === profile.solvedCases.length)}
           onClose={() => dispatch({ type: 'DISMISS_PROMOTION' })}
         />

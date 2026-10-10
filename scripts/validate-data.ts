@@ -4,7 +4,8 @@ import casesData from '../src/data/cases/cases.json';
 import { MAPS } from '../src/data/maps';
 import { FACILITY_CHARACTERS } from '../src/data/characters';
 import { INCIDENTS } from '../src/data/incidents';
-import type { CasesFile } from '../src/types/investigation';
+import { generateCase } from '../src/services/caseGenerator';
+import type { CaseFile, CasesFile } from '../src/types/investigation';
 import type { PixelMap } from '../src/pixel/world/types';
 
 const errors: string[] = [];
@@ -113,7 +114,19 @@ const emoji = /\p{Extended_Pictographic}/u;
 if (emoji.test(JSON.stringify(INCIDENTS))) errors.push('incidents contain emoji');
 if (emoji.test(JSON.stringify(data))) errors.push('cases.json contains emoji');
 const usedAnchors = new Set<string>();
-for (const c of data.cases) {
+// The generator cycles through its sites and templates; 60 cases cover every combination several times.
+const GENERATED = 60;
+const generated: CaseFile[] = [];
+for (let n = 1; n <= GENERATED; n++) generated.push(generateCase(n));
+for (const c of generated) {
+  const text = JSON.stringify(c);
+  if (emoji.test(text)) errors.push(`${c.id}: emoji in generated text`);
+  const leftover = text.match(/\{[^{}"]*\}/);
+  if (leftover) errors.push(`${c.id}: unresolved placeholder ${leftover[0]}`);
+  if (generateCase(c.id === 'gen-1' ? 1 : Number(c.id.slice(4))).culpritId !== c.culpritId) errors.push(`${c.id}: generator is not deterministic`);
+  if (new Set(c.suspects.map((s) => s.name)).size !== c.suspects.length) errors.push(`${c.id}: two suspects share a name`);
+}
+for (const c of [...data.cases, ...generated]) {
   const sus = new Set(c.suspects.map((s) => s.id));
   const clues = new Map(c.clues.map((e) => [e.id, e]));
   if (!sus.has(c.culpritId)) errors.push(`${c.id}: culprit missing`);
@@ -171,10 +184,36 @@ for (const c of data.cases) {
   pending.forEach((h) => errors.push(`${c.id}/${h.id}: requirements never satisfiable`));
 }
 
+// Generated-case places must not stand on top of anyone else in the world.
+for (const m of Object.values(MAPS)) {
+  const gen = Object.entries(m.anchors).filter(([k]) => k.startsWith('gen-') || k === 'st-archive');
+  const others = Object.entries(m.anchors).filter(([k]) => !gen.some(([g]) => g === k));
+  const people = [
+    ...m.npcs.filter((n) => !n.path).map((n) => ({ name: n.name, x: n.x, y: n.y })),
+    ...INCIDENTS.filter((i) => i.mapId === m.id).map((i) => ({ name: `incident ${i.id}`, x: i.x, y: i.y })),
+    ...others.map(([k, a]) => ({ name: `anchor ${k}`, x: a.x, y: a.y })),
+    ...gen.map(([k, a]) => ({ name: `anchor ${k}`, x: a.x, y: a.y })),
+  ];
+  for (const [k, a] of gen) {
+    for (const o of people) if (o.name !== `anchor ${k}` && Math.hypot(o.x - a.x, o.y - a.y) < 1) errors.push(`${m.id}: ${k} overlaps ${o.name}`);
+    for (const n of m.npcs)
+      if (n.path)
+        for (let i = 0; i < n.path.length; i++) {
+          const p = n.path[i];
+          const q = n.path[(i + 1) % n.path.length];
+          for (let t = 0; t <= 1; t += 0.02)
+            if (Math.hypot(p.x + (q.x - p.x) * t - a.x, p.y + (q.y - p.y) * t - a.y) < 0.7) {
+              errors.push(`${m.id}: walker ${n.name} walks through ${k}`);
+              t = 2;
+            }
+        }
+  }
+}
+
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);
 }
 const props = Object.values(MAPS).reduce((n, m) => n + m.props.length, 0);
 const npcs = Object.values(MAPS).reduce((n, m) => n + m.npcs.length, 0);
-console.log(`OK: ${Object.keys(MAPS).length} maps (${props} objects, ${npcs} background characters), ${data.cases.length} cases, ${usedAnchors.size} case locations validated.`);
+console.log(`OK: ${Object.keys(MAPS).length} maps (${props} objects, ${npcs} background characters), ${data.cases.length} story cases + ${GENERATED} generated, ${usedAnchors.size} case locations validated.`);

@@ -24,6 +24,8 @@ import {
   isCaseUnlocked,
   isHotspotAvailable,
   loadCases,
+  storyCases,
+  syncCaseHorizon,
   pendingLabClues,
   rankForSolvedCount,
 } from '../services/caseEngine';
@@ -105,6 +107,7 @@ export function loadState(): GameState {
       if (parsed.version !== 2) return initialState();
       const state = { ...initialState(), ...parsed };
       if (!MAPS[state.currentMapId]) state.currentMapId = STATION_MAP_ID;
+      syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
       return state;
     }
     // Older saves: keep the detective and the case work, restart on the new maps.
@@ -183,6 +186,7 @@ function firstOpenCase(state: GameState, exclude?: string): string | null {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
   switch (action.type) {
     case 'CREATE_PROFILE':
       return {
@@ -353,6 +357,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const score = caseScore(progress, session.mistakes);
       const solvedState = updateCase(state, caseId, () => ({ solved: true, score }));
       const solvedCases = [...state.profile.solvedCases.filter((id) => id !== caseId), caseId];
+      syncCaseHorizon(solvedCases.length);
       const next = withProfile(solvedState, (p) => ({
         solvedCases,
         rankIndex: rankForSolvedCount(solvedCases.length),
@@ -379,6 +384,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, promotionCaseId: null };
 
     case 'RESET':
+      syncCaseHorizon(0);
       return initialState();
 
     default:
@@ -386,8 +392,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-export function allCasesSolved(state: GameState): boolean {
-  return !!state.profile && loadCases().every((c) => state.profile!.solvedCases.includes(c.id));
+/** Every hand-written story case is closed (generated cases keep coming after that). */
+export function storyComplete(state: GameState): boolean {
+  return !!state.profile && storyCases().every((c) => state.profile!.solvedCases.includes(c.id));
 }
 
 export type { ArrivalStep };

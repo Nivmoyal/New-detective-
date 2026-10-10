@@ -82,6 +82,17 @@ export function buildOldCbs() {
   b.building({ id: 'cbs-booth', x: 46, y: 21, w: 6, h: 5, wall: WallStyle.White, floor: FloorStyle.Lino, doors: [2], sign: { text: 'ביטחון', color: '#1e3a8a', x: 3, w: 2 } });
   b.prop('cctvBox', 49, 26, { name: 'עמדת המצלמות של החניון', examine: 'שש מצלמות על מסך אחד. אחת מהן מכוונת לרמפה לקומות הנטושות.' });
   b.anchor('cbs-guard', 47.5, 26.7, DIR_DOWN);
+  // Places reserved for generated cases (see services/caseGenerator.ts).
+  b.anchor('gen-cbs-a-scene', 20.5, 4.5, DIR_DOWN);
+  b.anchor('gen-cbs-a-w1', 28.5, 8.5, DIR_DOWN);
+  b.anchor('gen-cbs-a-w2', 36.5, 4.5, DIR_DOWN);
+  b.anchor('gen-cbs-a-cam', 44.5, 9.5, DIR_DOWN);
+  b.anchor('gen-cbs-a-alibi', 12.5, 15.5, DIR_DOWN);
+  b.anchor('gen-cbs-b-scene', 36.5, 26.5, DIR_DOWN);
+  b.anchor('gen-cbs-b-w1', 20.5, 23.5, DIR_DOWN);
+  b.anchor('gen-cbs-b-w2', 21.5, 31.5, DIR_DOWN);
+  b.anchor('gen-cbs-b-cam', 48.5, 33.5, DIR_DOWN);
+  b.anchor('gen-cbs-b-alibi', 3.5, 22.5, DIR_DOWN);
   b.prop('carV', 43, 23);
   b.prop('carV', 43, 29, { color: '#1d1f23' });
   b.prop('van', 46, 31, { color: '#1e3a8a', name: 'טנדר כחול חונה', examine: 'טנדר כחול מאובק. הלוחית שייכת לחברת השכרה.' });

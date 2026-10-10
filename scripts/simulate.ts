@@ -27,7 +27,12 @@ d({ type: 'ARRIVAL_COMMANDER_DONE' });
 d({ type: 'OPEN_CASE_FILES' });
 if (Object.keys(s.progress).length !== loadCases().filter((c) => !c.unlockAfter).length) fail('not every open case was opened');
 
-for (const c of loadCases()) {
+// Play far beyond the story: generated cases keep landing on the desk.
+const TARGET = 25;
+const nextCase = () => loadCases().find((c) => !s.profile!.solvedCases.includes(c.id) && (c.unlockAfter ?? 0) <= s.profile!.solvedCases.length);
+for (let c = nextCase(); c && s.profile!.solvedCases.length < TARGET; c = nextCase()) {
+  const open = loadCases().filter((x) => !s.profile!.solvedCases.includes(x.id) && (x.unlockAfter ?? 0) <= s.profile!.solvedCases.length);
+  if (open.length < 2) fail(`only ${open.length} open cases after ${s.profile!.solvedCases.length} solved`);
   if ((c.unlockAfter ?? 0) > s.profile!.solvedCases.length) fail(`${c.id}: still locked after ${s.profile!.solvedCases.length} solved`);
   d({ type: 'FOCUS_CASE', caseId: c.id });
   // A premature warrant request is refused and costs reliability.
@@ -72,7 +77,8 @@ for (const c of loadCases()) {
   d({ type: 'DISMISS_PROMOTION' });
 }
 console.log('rank', s.profile!.rankIndex, 'solved', s.profile!.solvedCases.length, 'intel', s.profile!.intelPoints, 'rel', s.profile!.reliability);
-if (s.profile!.solvedCases.length !== loadCases().length) fail('not all cases solved');
+if (s.profile!.solvedCases.length !== TARGET) fail(`solved ${s.profile!.solvedCases.length}, expected ${TARGET}`);
+if (s.profile!.rankIndex !== 6) fail('rank did not keep climbing past the story cases');
 
 // Failure path: pure pressure should drive a suspect to demand a lawyer.
 let f = initialState();
@@ -83,4 +89,25 @@ f = { ...f, progress: { ...f.progress, 'case-levinsky': { ...f.progress['case-le
 f = gameReducer(f, { type: 'START_INTERROGATION' });
 for (let i = 0; i < 10 && f.interrogation!.status === 'active'; i++) f = gameReducer(f, { type: 'INTERROGATION_ACTION', tactic: 'pressure' });
 console.log('pressure-only outcome:', f.interrogation!.status);
-void getCase;
+
+// Variety: a long interrogation never repeats a line, whatever the detective tries.
+{
+  const variety = [...loadCases().filter((c) => !c.generated), ...Array.from({ length: 12 }, (_, i) => getCase(`gen-${i + 1}`))];
+  for (const c of variety) {
+    let v = initialState();
+    v = gameReducer(v, { type: 'CREATE_PROFILE', name: 'x', specialization: 'intel', addressForm: 'male', look: defaultPlayerLook('male') });
+    v = { ...v, arrivalStep: 'done', activeCaseId: c.id, progress: { [c.id]: { ...emptyProgress(), collected: c.clues.map((x) => x.id), analyzed: c.clues.map((x) => x.id), warrantSuspectId: c.culpritId } } };
+    v = gameReducer(v, { type: 'START_INTERROGATION', caseId: c.id });
+    // Gentle pacing so the session lasts as long as possible.
+    const order: GameAction[] = [];
+    for (const e of c.clues.filter((x) => !x.implicates.includes(c.culpritId) && !x.clears.includes(c.culpritId)))
+      order.push({ type: 'INTERROGATION_ACTION', tactic: 'evidence', evidenceId: e.id });
+    for (let i = 0; i < 12; i++) order.splice(i * 2, 0, { type: 'INTERROGATION_ACTION', tactic: i % 2 ? 'trust' : 'pressure' });
+    for (const a of order) if (v.interrogation?.status === 'active') v = gameReducer(v, a);
+    const spoken = v.interrogation!.log.filter((l) => l.speaker !== 'system').map((l) => l.text);
+    if (spoken.some((t) => !t.trim() || /[{}]/.test(t))) fail(`${c.id}: empty or unresolved interrogation line`);
+    const dupes = spoken.filter((t, i) => spoken.indexOf(t) !== i);
+    if (dupes.length) fail(`${c.id}: repeated lines in interrogation: ${dupes.join(' | ')}`);
+    console.log(`${c.id}: ${spoken.length} lines, no repeats (${v.interrogation!.status})`);
+  }
+}

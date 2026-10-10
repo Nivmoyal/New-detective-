@@ -1,4 +1,5 @@
 import casesData from '../data/cases/cases.json';
+import { generateCase } from './caseGenerator';
 import type {
   BoardLink,
   CaseFile,
@@ -15,13 +16,18 @@ import type {
 /** Number of validated links to a single suspect required for a warrant. */
 export const WARRANT_THRESHOLD = 3;
 
-export const RANKS = ['מפקח משנה', 'מפקח', 'פקד', 'רפ״ד'] as const;
+export const RANKS = ['מפקח משנה', 'מפקח', 'פקד', 'רפ״ד', 'סנ״צ', 'נצ״מ', 'תנ״צ'] as const;
 export const RANK_TITLES = [
   'חוקר זוטר',
   'חוקר תיקים',
   'ראש צוות חקירות',
   'ראש מחלק פשעים',
+  'ראש לשכת חקירות',
+  'מפקד מרחב',
+  'ראש אגף חקירות',
 ] as const;
+/** Solved cases needed for each rank. Past the story cases promotions slow down. */
+export const RANK_THRESHOLDS = [0, 1, 2, 3, 6, 10, 15] as const;
 
 export const SPECIALIZATIONS: Record<Specialization, { label: string; perk: string }> = {
   criminal: {
@@ -54,11 +60,36 @@ export const SOURCE_LABELS: Record<Clue['source'], string> = {
 
 const data = casesData as CasesFile;
 
-export function loadCases(): CaseFile[] {
+/*
+ * Endless cases: after the story cases the desk keeps filling up with
+ * generated ones. Generated case n lands after n + 2 solved cases, so there
+ * are always a few open files. The horizon is how many generated cases the
+ * detective has reached so far; loadCases() lists exactly those.
+ */
+let generatedHorizon = 0;
+
+export function generatedCountFor(solvedCount: number): number {
+  return Math.max(0, solvedCount - 2);
+}
+
+/** Keep the case list in step with the detective's progress. */
+export function syncCaseHorizon(solvedCount: number) {
+  generatedHorizon = generatedCountFor(solvedCount);
+}
+
+export function storyCases(): CaseFile[] {
   return [...data.cases].sort((a, b) => a.order - b.order);
 }
 
+export function loadCases(): CaseFile[] {
+  const generated: CaseFile[] = [];
+  for (let n = 1; n <= generatedHorizon; n++) generated.push(generateCase(n));
+  return [...storyCases(), ...generated];
+}
+
 export function getCase(caseId: string): CaseFile {
+  const gen = /^gen-(\d+)$/.exec(caseId);
+  if (gen) return generateCase(Number(gen[1]));
   const found = data.cases.find((c) => c.id === caseId);
   if (!found) throw new Error(`Unknown case: ${caseId}`);
   return found;
@@ -92,7 +123,11 @@ export function isCaseUnlocked(caseFile: CaseFile, solvedCount: number): boolean
 }
 
 export function rankForSolvedCount(solvedCount: number): number {
-  return Math.min(RANKS.length - 1, solvedCount);
+  let rank = 0;
+  RANK_THRESHOLDS.forEach((need, i) => {
+    if (solvedCount >= need) rank = i;
+  });
+  return rank;
 }
 
 export function rankLabel(profile: DetectiveProfile): string {

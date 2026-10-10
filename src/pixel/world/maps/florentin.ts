@@ -115,6 +115,17 @@ export function buildFlorentin() {
   b.prop('car', 40, 29, { color: '#f5f5f4', name: 'מונית', examine: 'מונית עם שלט צהוב על הגג. המונה כבוי.' });
   b.prop('car', 43, 29, { color: '#f5f5f4', name: 'מונית', examine: 'מונית ריקה. בתא הכפפות - מפה מקופלת של גוש דן.' });
   b.anchor('fl-taxi', 46.5, 31.6, DIR_UP);
+  // Places reserved for generated cases (see services/caseGenerator.ts).
+  b.anchor('gen-fl-a-scene', 8.5, 40.5, DIR_DOWN);
+  b.anchor('gen-fl-a-w1', 2.5, 34.5, DIR_DOWN);
+  b.anchor('gen-fl-a-w2', 26.5, 40.5, DIR_DOWN);
+  b.anchor('gen-fl-a-cam', 44.5, 37.5, DIR_DOWN);
+  b.anchor('gen-fl-a-alibi', 55.5, 40.5, DIR_DOWN);
+  b.anchor('gen-fl-b-scene', 50.5, 12.5, DIR_DOWN);
+  b.anchor('gen-fl-b-w1', 43.5, 11.5, DIR_DOWN);
+  b.anchor('gen-fl-b-w2', 37.5, 16.5, DIR_DOWN);
+  b.anchor('gen-fl-b-cam', 11.5, 27.6, DIR_DOWN);
+  b.anchor('gen-fl-b-alibi', 6.5, 4.5, DIR_DOWN);
   b.label(44, 32.6, 'תחנת מוניות');
   [6, 20, 33, 52].forEach((x) => b.prop('lamp', x, 27));
   [12, 28, 48].forEach((x) => b.prop('lamp', x, 32));

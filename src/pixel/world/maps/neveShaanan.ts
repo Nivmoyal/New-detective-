@@ -89,6 +89,17 @@ export function buildNeveShaanan() {
   b.prop('dumpster', 23, 22, { name: 'הפח של רחוב החנויות' });
   b.anchor('ns-sim-bin', 25.5, 22.6, DIR_LEFT);
   b.anchor('ns-shelter-guard', 48.5, 18.7, DIR_DOWN);
+  // Places reserved for generated cases (see services/caseGenerator.ts).
+  b.anchor('gen-ns-a-scene', 52.5, 35.5, DIR_DOWN);
+  b.anchor('gen-ns-a-w1', 57.5, 32.5, DIR_DOWN);
+  b.anchor('gen-ns-a-w2', 47.5, 28.5, DIR_DOWN);
+  b.anchor('gen-ns-a-cam', 27.5, 37.6, DIR_DOWN);
+  b.anchor('gen-ns-a-alibi', 4.5, 40.5, DIR_DOWN);
+  b.anchor('gen-ns-b-scene', 14.5, 28.5, DIR_DOWN);
+  b.anchor('gen-ns-b-w1', 6.5, 25.5, DIR_DOWN);
+  b.anchor('gen-ns-b-w2', 15.5, 39.5, DIR_DOWN);
+  b.anchor('gen-ns-b-cam', 39.5, 20.5, DIR_DOWN);
+  b.anchor('gen-ns-b-alibi', 52.5, 33.5, DIR_DOWN);
   b.label(28, 20.5, 'מדרחוב נווה שאנן');
   b.npc({ x: 43.5, y: 20.5, dir: DIR_DOWN, name: 'סלומון', role: 'מוכר בגדים', look: look('male', '#6b4430', 'curly', '#16120f', 'leather', '#2b2b2e'), lines: VENDOR_LINES });
   b.npc({ x: 5.5, y: 19.5, dir: DIR_RIGHT, name: 'עובר אורח', role: 'מבקש מקלט', look: look('male', '#6b4430', 'short', '#16120f', 'hoodie', '#5e1f26'), lines: STREET_LINES, path: [{ x: 1.5, y: 19.5 }, { x: 58.5, y: 19.5 }], speed: 1 });

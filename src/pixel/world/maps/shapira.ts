@@ -80,6 +80,17 @@ export function buildShapira() {
     b.prop('sign', x, 26, { w: 2, text: `מחסן ${i + 1}`, color: '#334155', name: `מחסן ${i + 1}` });
   }
   b.anchor('sh-storage4', 26.5, 28.5, DIR_UP);
+  // Places reserved for generated cases (see services/caseGenerator.ts).
+  b.anchor('gen-sh-a-scene', 12.5, 30.5, DIR_DOWN);
+  b.anchor('gen-sh-a-w1', 19.5, 29.5, DIR_DOWN);
+  b.anchor('gen-sh-a-w2', 42.5, 30.5, DIR_DOWN);
+  b.anchor('gen-sh-a-cam', 54.5, 27.5, DIR_DOWN);
+  b.anchor('gen-sh-a-alibi', 2.5, 24.5, DIR_DOWN);
+  b.anchor('gen-sh-b-scene', 20.5, 36.5, DIR_DOWN);
+  b.anchor('gen-sh-b-w1', 9.5, 39.5, DIR_DOWN);
+  b.anchor('gen-sh-b-w2', 52.5, 34.5, DIR_DOWN);
+  b.anchor('gen-sh-b-cam', 25.5, 14.6, DIR_DOWN);
+  b.anchor('gen-sh-b-alibi', 40.5, 37.5, DIR_DOWN);
   b.prop('van', 34, 29, { color: '#e2e8f0', name: 'טנדר', examine: 'טנדר לבן עם ארגזי קרטון מאחור. על הדלת מדבקה של חברת הנהלת חשבונות.' });
   b.prop('barrel', 3, 29);
   b.prop('trash', 15, 29);

@@ -131,6 +131,8 @@ export interface CaseFile {
   order: number;
   /** The case lands on the desk only after this many solved cases. */
   unlockAfter?: number;
+  /** Built by the case generator rather than written by hand. */
+  generated?: boolean;
   title: string;
   shortTitle: string;
   crimeType: string;
@@ -201,6 +203,11 @@ export interface InterrogationState {
   turn: number;
   trustStreak: number;
   bonuses: string[];
+  /** Every line already spoken, so nobody repeats themselves. */
+  said?: string[];
+  lastTactic?: TacticId;
+  /** How many times in a row the same tactic was used. */
+  tacticStreak?: number;
   status: InterrogationStatus;
   log: InterrogationLogEntry[];
 }

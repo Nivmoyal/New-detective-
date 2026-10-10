@@ -140,6 +140,17 @@ export function buildLevinsky() {
   b.prop('cafeTable', 14, 33);
   b.light(14, 29, 3.2, '#ffcf70', 0.7);
   b.anchor('lev-falafel', 15.5, 29.6, DIR_LEFT);
+  // Places reserved for generated cases (see services/caseGenerator.ts).
+  b.anchor('gen-lev-a-scene', 47.5, 30.5, DIR_DOWN);
+  b.anchor('gen-lev-a-w1', 56.5, 34.5, DIR_DOWN);
+  b.anchor('gen-lev-a-w2', 44.5, 35.5, DIR_DOWN);
+  b.anchor('gen-lev-a-cam', 30.5, 37.6, DIR_DOWN);
+  b.anchor('gen-lev-a-alibi', 5.5, 36.5, DIR_DOWN);
+  b.anchor('gen-lev-b-scene', 4.5, 5.5, DIR_DOWN);
+  b.anchor('gen-lev-b-w1', 11.5, 4.6, DIR_DOWN);
+  b.anchor('gen-lev-b-w2', 18.5, 5.5, DIR_DOWN);
+  b.anchor('gen-lev-b-cam', 28.5, 18.6, DIR_DOWN);
+  b.anchor('gen-lev-b-alibi', 60.5, 31.5, DIR_DOWN);
   b.label(5, 30.4, 'גינת לוינסקי');
   b.npc({ x: 5.5, y: 32.5, dir: DIR_LEFT, name: 'סבא יצחק', role: 'יושב על הספסל כל יום', look: look('male', '#e5b48f', 'bald', '#bdb6ad', 'blazer', '#4a3426', '#3b3a36', { glasses: true }), lines: [
     'שישים שנה אני על הספסל הזה. ראיתי את השוק כשהיה בו רק שלושה דוכנים.',

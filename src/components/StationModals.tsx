@@ -24,6 +24,7 @@ import { MAPS, SCENE_MAP_IDS, STATION_MAP_ID } from '../data/maps';
 import {
   CATEGORY_LABELS,
   RANKS,
+  rankForSolvedCount,
   RANK_TITLES,
   SOURCE_LABELS,
   clueDisplayText,
@@ -303,7 +304,7 @@ export function CaseClosedModal({
   newCases?: CaseFile[];
   onClose: () => void;
 }) {
-  const promoted = profile.rankIndex > 0;
+  const promoted = profile.rankIndex > 0 && rankForSolvedCount(profile.solvedCases.length - 1) < profile.rankIndex;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur">
       <div className="panel w-full max-w-md animate-fadeUp overflow-hidden text-center shadow-2xl">
@@ -353,13 +354,13 @@ export function CaseClosedModal({
           {allSolved && (
             <div className="rounded-lg border border-evidence/50 bg-evidence/10 p-3 text-sm text-amber-100">
               <Siren className="mx-auto mb-1 h-5 w-5 text-evidence-light" />
-              חמישה תיקים, חמש הודאות. מהיום הראשון בתחנה ועד ראשות מחלק פשעים - הוכחת שבדרום תל אביב עובדים
-              לפי ראיות.
+              חמישה תיקים, חמש הודאות. הוכחת שבדרום תל אביב עובדים לפי ראיות. אבל העיר לא הולכת לישון: תיקים
+              חדשים ימשיכו להגיע לשולחן שלך, וכל תיק סגור מקרב אותך לדרגה הבאה.
             </div>
           )}
           <button className="btn-gold w-full py-3" onClick={onClose}>
             <FileText className="h-4 w-4" />
-            {allSolved ? 'חזרה לתחנה' : 'חזרה לעבודה'}
+            חזרה לעבודה
           </button>
         </div>
       </div>

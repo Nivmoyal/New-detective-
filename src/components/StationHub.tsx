@@ -1,7 +1,7 @@
-import { CheckSquare, Crosshair, Fingerprint, Folder, FolderOpen, Lock, MapPin, ShieldAlert, Unlock, UserCheck } from 'lucide-react';
+import { CheckSquare, Crosshair, Fingerprint, Folder, FolderOpen, Lock, MapPin, Unlock, UserCheck } from 'lucide-react';
 import type { ArrivalStep, CaseProgress, DetectiveProfile } from '../types/investigation';
 import { MAPS } from '../data/maps';
-import { getCase, isSuspectCleared, loadCases, pendingLabClues } from '../services/caseEngine';
+import { RANKS, RANK_TITLES, getCase, isSuspectCleared, loadCases, pendingLabClues } from '../services/caseEngine';
 
 interface Props {
   profile: DetectiveProfile;
@@ -16,14 +16,33 @@ interface Props {
 
 /** The detective's case files. Every open case is available; nothing is assigned. */
 export default function StationHub({ profile, arrivalStep, knownCaseIds, activeCaseId, allProgress, onFocus, onOpenBoard, onOpenInterrogation }: Props) {
-  const cases = loadCases().filter((c) => knownCaseIds.includes(c.id));
+  // Open files first; closed ones sink to the bottom of the pile.
+  const known = loadCases().filter((c) => knownCaseIds.includes(c.id));
+  const cases = [...known.filter((c) => !profile.solvedCases.includes(c.id)), ...known.filter((c) => profile.solvedCases.includes(c.id)).reverse()];
   const active = activeCaseId ? getCase(activeCaseId) : null;
   const progress = activeCaseId ? allProgress[activeCaseId] : null;
-  const allDone = cases.length > 0 && loadCases().every((c) => profile.solvedCases.includes(c.id));
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
       <div className="mx-auto max-w-2xl space-y-3 p-3 pb-6">
+        <div className="panel flex items-center justify-between gap-2 p-3 text-xs">
+          <div>
+            <div className="font-display text-sm font-bold text-slate-100">
+              {RANKS[profile.rankIndex]} {profile.name}
+            </div>
+            <div className="text-steel">{RANK_TITLES[profile.rankIndex]}</div>
+          </div>
+          <div className="text-left leading-5 text-steel">
+            <div>
+              תיקים שנסגרו: <span className="font-bold text-slate-100">{profile.solvedCases.length}</span>
+            </div>
+            <div>
+              מודיעין: <span className="font-bold text-sky-300">{profile.intelPoints}</span> · אמינות:{' '}
+              <span className="font-bold text-slate-100">{profile.reliability}%</span>
+            </div>
+          </div>
+        </div>
+
         {cases.length === 0 && (
           <div className="panel p-4 text-sm leading-relaxed text-slate-300">
             {arrivalStep === 'toCommander' || arrivalStep === 'toDesk'
@@ -32,12 +51,6 @@ export default function StationHub({ profile, arrivalStep, knownCaseIds, activeC
           </div>
         )}
 
-        {allDone && (
-          <div className="panel border-evidence/60 p-4 text-center">
-            <ShieldAlert className="mx-auto mb-2 h-8 w-8 text-evidence-light" />
-            <p className="text-sm text-slate-300">כל התיקים במרחב נסגרו. הניקוד המודיעיני הסופי: {profile.intelPoints}.</p>
-          </div>
-        )}
 
         {cases.length > 0 && (
           <div className="panel p-3">
