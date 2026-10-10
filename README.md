@@ -1,4 +1,4 @@
-# התחנה - מרחב יפתח
+# תיק פתוח
 
 A mobile-first, Hebrew/RTL detective game set in the South Tel Aviv police district (תחנת שרפשטיין),
 drawn in retro noir pixel art from a top-down view. You play a rookie detective: report to the station

@@ -103,7 +103,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
             </div>
           </div>
           <div className="absolute right-3 top-3">
-            <div className="font-display text-xl font-black text-slate-50">התחנה</div>
+            <div className="font-display text-xl font-black text-slate-50">תיק פתוח</div>
             <div className="text-[11px] font-bold text-evidence-light">מרחב יפתח · תחנת שרפשטיין</div>
           </div>
           <button
