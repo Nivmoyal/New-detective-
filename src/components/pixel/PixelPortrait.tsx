@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CharacterLook } from '../../types/investigation';
-import { PORTRAIT_SIZE, portraitCanvasHD, type Expression } from '../../pixel/portrait';
-
-const HD = PORTRAIT_SIZE * 4;
+import { drawPortrait, type Expression } from '../../pixel/person';
 
 interface Props {
   look: CharacterLook;
@@ -14,11 +12,13 @@ interface Props {
   className?: string;
 }
 
-/** Animated pixel portrait: blinks, and moves its mouth while talking. */
+/** Animated close-up: blinks, and moves its mouth while talking. */
 export default function PixelPortrait({ look, expression = 'neutral', talking = false, back = false, size, className }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [blink, setBlink] = useState(false);
   const [mouth, setMouth] = useState(false);
+  const dpr = typeof window === 'undefined' ? 1 : Math.min(3, window.devicePixelRatio || 1);
+  const px = Math.round(size * dpr);
 
   useEffect(() => {
     let timer = 0;
@@ -46,17 +46,9 @@ export default function PixelPortrait({ look, expression = 'neutral', talking = 
     const c = ref.current;
     if (!c) return;
     const ctx = c.getContext('2d')!;
-    ctx.clearRect(0, 0, HD, HD);
-    ctx.drawImage(portraitCanvasHD(look, { expression, mouthOpen: mouth, blink, back }), 0, 0);
-  }, [look, expression, mouth, blink, back]);
+    ctx.clearRect(0, 0, px, px);
+    drawPortrait(ctx, look, px, { expression, mouthOpen: mouth, blink, back });
+  }, [look, expression, mouth, blink, back, px]);
 
-  return (
-    <canvas
-      ref={ref}
-      width={HD}
-      height={HD}
-      className={className}
-      style={{ width: size, height: size }}
-    />
-  );
+  return <canvas ref={ref} width={px} height={px} className={className} style={{ width: size, height: size }} />;
 }

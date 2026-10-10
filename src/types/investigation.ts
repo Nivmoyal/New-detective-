@@ -129,6 +129,8 @@ export interface MapHotspot {
 export interface CaseFile {
   id: string;
   order: number;
+  /** The case lands on the desk only after this many solved cases. */
+  unlockAfter?: number;
   title: string;
   shortTitle: string;
   crimeType: string;

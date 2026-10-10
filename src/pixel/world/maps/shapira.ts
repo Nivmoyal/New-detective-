@@ -1,7 +1,7 @@
 import { MapBuilder, look } from '../builder';
 import { RESIDENT_LINES, STREET_LINES } from '../lines';
 import { FloorStyle, Tile, WallStyle } from '../types';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
 export function buildShapira() {
   const b = new MapBuilder('shapira', 58, 46);
@@ -20,6 +20,7 @@ export function buildShapira() {
   b.prop('lemonTree', 11, 10);
   for (let x = 1; x < 14; x++) if (x !== 7) b.prop('fence', x, 13);
   b.anchor('sh-brodsky-yard', 9.5, 11.5, DIR_DOWN);
+  b.anchor('sh-neighbor', 8.5, 14.6, DIR_DOWN);
 
   b.building({ id: 'sh-h2', x: 15, y: 2, w: 12, h: 7, wall: WallStyle.Plaster, roof: '#7d6f60' });
   b.fill(15, 9, 12, 4, Tile.Grass);
@@ -39,6 +40,7 @@ export function buildShapira() {
   b.prop('crate', 38, 2);
   b.prop('mattress', 37, 5);
   b.label(35, 2.4, 'דירה שכורה', 'room', 'sh-rent');
+  b.anchor('sh-roommate', 34.5, 4.6, DIR_DOWN);
   b.fill(29, 9, 12, 4, Tile.Dirt);
   b.prop('scooter', 31, 10);
   b.prop('trash', 39, 11);
@@ -47,6 +49,7 @@ export function buildShapira() {
   b.fill(43, 10, 14, 3, Tile.Sidewalk, 1);
   b.prop('bench', 45, 11);
   b.prop('bench', 52, 11);
+  b.anchor('sh-victim', 47.5, 10.6, DIR_DOWN);
   b.npc({ x: 49.5, y: 11.5, dir: DIR_DOWN, name: 'הגבאי', role: 'גבאי בית הכנסת', look: look('male', '#e5b48f', 'short', '#bdb6ad', 'suit', '#17191d', '#17191d', { beard: true, glasses: true }), lines: [
     '{אם אתה עשירי - בוא, בבקשה. אנחנו תשעה כבר שעה.|חבל שאת לא יכולה להיות עשירית. אנחנו תשעה כבר שעה.}',
     'בבית הכנסת הזה יש שלושה גבאים, ארבעה מתפללים ושני ועדים. אבל קידוש - יש תמיד.',
@@ -109,7 +112,7 @@ export function buildShapira() {
   b.prop('lamp', 27, 37);
   b.prop('lamp', 13, 37);
   b.label(36, 39, 'גינת שפירא');
-  b.npc({ x: 31.5, y: 37.3, dir: DIR_DOWN, name: 'דודה ציונה', role: 'תושבת השכונה', look: look('female', '#9c6644', 'curly', '#3b2618', 'blazer', '#7c2d12', '#3b3a36'), lines: RESIDENT_LINES });
+  b.npc({ x: 31.5, y: 37.3, dir: DIR_DOWN, name: 'דודה רינה', role: 'תושבת השכונה', look: look('female', '#9c6644', 'curly', '#3b2618', 'blazer', '#7c2d12', '#3b3a36'), lines: RESIDENT_LINES });
   b.npc({ x: 46.5, y: 38.5, dir: DIR_LEFT, name: 'ילד מהשכונה', role: 'משחק כדור', look: look('male', '#c98f66', 'short', '#16120f', 'tshirt', '#15803d', '#2d3440'), lines: ['{אתה שוטר אמיתי|את שוטרת אמיתית}? איפה האקדח? איפה הניידת? למה {אתה הולך|את הולכת} ברגל?', 'אמא שלי אומרת לא לדבר עם זרים. אבל שוטר זה לא זר, נכון? נכון?!', 'כשאני אהיה גדול אני אהיה שוטר. או יוטיובר. עוד לא החלטתי.'], path: [{ x: 36.5, y: 38.5 }, { x: 56.5, y: 38.5 }], speed: 1.6 });
   void DIR_RIGHT;
 

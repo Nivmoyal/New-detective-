@@ -6,9 +6,10 @@ commander, open the district's case files, and work them however you want - walk
 anyone, examine anything, send evidence to the forensic lab, pin it on the corkboard, ask for a warrant,
 and break the suspect in a cautioned interrogation.
 
-Built with React 18, Vite, TypeScript and Tailwind CSS. All graphics (characters, portraits, tiles,
-buildings, vehicles, lighting) are painted procedurally in code on a Canvas 2D buffer - there are no image
-assets. Icons are `lucide-react` SVGs only; there are no emoji anywhere.
+Built with React 18, Vite, TypeScript and Tailwind CSS. All graphics are painted procedurally in code -
+there are no image assets. The city (tiles, buildings, props) is pixel art smoothed with an edge-aware
+upscaler; people are drawn with smooth canvas paths at full screen resolution, so the walking figures and
+conversation close-ups stay crisp. Icons are `lucide-react` SVGs only; there are no emoji anywhere.
 
 ## Playing
 
@@ -19,7 +20,7 @@ It is a plain static build (`npx vite build --base ./`), so it runs under strict
 
 ```bash
 npm install
-npm run dev            # local dev server (world.html opens a single map: ?map=levinsky&x=20&y=20)
+npm run dev            # local dev server (world.html opens a single map: ?map=levinsky&x=20&y=20; person.html shows every character)
 npm run build          # typecheck + production build
 npm run validate:data  # every person, place and object reachable; case-file integrity
 npm run test:sim       # headless playthrough of all three cases through the real reducer
@@ -28,7 +29,12 @@ npm run test:sim       # headless playthrough of all three cases through the rea
 ## Freedom of play
 
 - Nothing is assigned and nothing points the way: no markers, beacons, guide lines or objective lists.
-- All three cases are open at once. Every witness, scene and camera of every case is in the world from the
+- Three cases are open from the first day, and two more arrive as you close cases (a phone scam targeting
+  the elderly, and an arson tied to a protection racket in the market).
+- Street situations happen around the district - a stolen wallet, a lost child, a parking-chair war, a
+  printer that ate a court filing. Someone calls out; you decide whether and how to step in, and the choice
+  has consequences for your reliability.
+- All open cases run at once. Every witness, scene and camera of every case is in the world from the
   start; evidence you find is filed automatically under its own case, whichever case you are focused on.
 - Every person can be talked to (staff, witnesses, vendors, passers-by) and every object can be examined.
 - Some leads stay closed until you have a reason to follow them (a storage unit needs a search warrant, the
@@ -59,13 +65,15 @@ src/
   data/cases/cases.json           the three case files (Hebrew); hotspots sit on named map anchors
   data/maps.ts                    the six maps
   data/characters.ts              station staff and creator palettes
+  data/incidents.ts               street situations with choices and consequences
   services/caseEngine.ts          case loading, evidence, link validation, deduction
   services/interrogationEngine.ts interrogation tactics and outcome rules
   state/gameReducer.ts            game state, actions, localStorage persistence
   pixel/
     color.ts                      colour helpers and a tiny pixel buffer
-    sprites.ts                    16x24 character sprites: 4 directions x 4 walk frames, every outfit/hairstyle
-    portrait.ts                   40x40 conversation portraits with expressions, blinking and talking
+    person.ts                     smooth characters: 4 directions, fluid walk cycle, outfits, hair, glasses,
+                                  expressions; the same drawing frames the conversation close-ups
+    upscale.ts                    EPX / Scale2x edge smoothing for the pixel-art city
     world/types.ts                tiles, props, buildings, lights
     world/tiles.ts                floors, roads, sidewalks, two-storey facades, walls
     world/props.ts                furniture, stalls, vehicles, street furniture, signs - each with examine text

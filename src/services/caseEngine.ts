@@ -86,6 +86,11 @@ export function emptyProgress(): CaseProgress {
   };
 }
 
+/** Has this case already landed on the detective's desk? */
+export function isCaseUnlocked(caseFile: CaseFile, solvedCount: number): boolean {
+  return solvedCount >= (caseFile.unlockAfter ?? 0);
+}
+
 export function rankForSolvedCount(solvedCount: number): number {
   return Math.min(RANKS.length - 1, solvedCount);
 }

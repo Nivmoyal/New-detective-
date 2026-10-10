@@ -1,5 +1,5 @@
 import type { CharacterRef } from '../types/investigation';
-import type { Expression } from '../pixel/portrait';
+import type { Expression } from '../pixel/person';
 import PixelPortrait from './pixel/PixelPortrait';
 
 interface Props {

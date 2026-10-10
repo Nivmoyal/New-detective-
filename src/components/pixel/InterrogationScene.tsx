@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CharacterLook } from '../../types/investigation';
-import { portraitCanvasHD, type Expression } from '../../pixel/portrait';
+import { drawPortrait, type Expression } from '../../pixel/person';
 import { FrameUpscaler } from '../../pixel/upscale';
 
 interface Props {
@@ -80,7 +80,10 @@ export default function InterrogationScene({ suspect, detective, expression, tal
       out.imageSmoothingQuality = 'high';
       // Suspect, seated behind the table (smoothed high-resolution portrait).
       const shake = L.tension >= 80 ? Math.sin(t * 40) * 0.6 : 0;
-      out.drawImage(portraitCanvasHD(L.suspect, { expression: L.expression, mouthOpen: L.talking && mouth, blink }), 46 + shake, 14, 80, 80);
+      out.save();
+      out.translate(46 + shake, 14);
+      drawPortrait(out, L.suspect, 80, { expression: L.expression, mouthOpen: L.talking && mouth, blink });
+      out.restore();
       // Table.
       o(14, 70, 150, 6, '#7b828c');
       o(14, 70, 150, 1, '#a3aab3');
@@ -89,7 +92,10 @@ export default function InterrogationScene({ suspect, detective, expression, tal
       o(62, 73, 14, 1, '#7f1d1d');
       o(110, 71, 6, 4, '#111827');
       // Detective, seen from behind in the foreground.
-      out.drawImage(portraitCanvasHD(L.detective, { back: true }), 140, 26, 80, 80);
+      out.save();
+      out.translate(140, 26);
+      drawPortrait(out, L.detective, 80, { back: true });
+      out.restore();
       // Swinging lamp.
       const swing = Math.sin(t * 1.3) * 6;
       const lx = 86 + swing;

@@ -21,6 +21,7 @@ import {
   hintCost,
   intelForCollection,
   intelForLab,
+  isCaseUnlocked,
   isHotspotAvailable,
   loadCases,
   pendingLabClues,
@@ -48,6 +49,8 @@ export interface GameState {
   /** Case of the running interrogation. */
   interrogationCaseId: string | null;
   promotionCaseId: string | null;
+  /** Street situations already handled. */
+  incidentsDone: string[];
 }
 
 export type GameAction =
@@ -67,6 +70,7 @@ export type GameAction =
   | { type: 'START_INTERROGATION'; caseId?: string }
   | { type: 'INTERROGATION_ACTION'; tactic: TacticId; evidenceId?: string }
   | { type: 'END_INTERROGATION' }
+  | { type: 'RESOLVE_INCIDENT'; id: string; reliability: number; intel: number }
   | { type: 'DISMISS_PROMOTION' }
   | { type: 'RESET' };
 
@@ -89,6 +93,7 @@ export function initialState(): GameState {
     interrogation: null,
     interrogationCaseId: null,
     promotionCaseId: null,
+    incidentsDone: [],
   };
 }
 
@@ -157,8 +162,9 @@ export function activeProgress(state: GameState): CaseProgress | null {
 
 /** Cases the detective knows about (read on the desk or touched in the field). */
 export function knownCaseIds(state: GameState): string[] {
+  const solved = state.profile?.solvedCases.length ?? 0;
   return loadCases()
-    .filter((c) => state.arrivalStep === 'done' || state.progress[c.id])
+    .filter((c) => isCaseUnlocked(c, solved) && (state.arrivalStep === 'done' || state.progress[c.id]))
     .map((c) => c.id);
 }
 
@@ -171,7 +177,7 @@ export function warrantJustified(state: GameState, suspectId: string): boolean {
 
 function firstOpenCase(state: GameState, exclude?: string): string | null {
   const solved = state.profile?.solvedCases ?? [];
-  const open = loadCases().filter((c) => c.id !== exclude && !solved.includes(c.id));
+  const open = loadCases().filter((c) => c.id !== exclude && !solved.includes(c.id) && isCaseUnlocked(c, solved.length));
   const touched = open.find((c) => (state.progress[c.id]?.collected.length ?? 0) > 0);
   return (touched ?? open[0])?.id ?? null;
 }
@@ -201,7 +207,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'OPEN_CASE_FILES': {
       const progress = { ...state.progress };
-      for (const c of loadCases()) progress[c.id] = progress[c.id] ?? emptyProgress();
+      const solvedCount = state.profile?.solvedCases.length ?? 0;
+      for (const c of loadCases()) if (isCaseUnlocked(c, solvedCount)) progress[c.id] = progress[c.id] ?? emptyProgress();
       const next = { ...state, arrivalStep: 'done' as const, progress };
       return { ...next, activeCaseId: state.activeCaseId ?? firstOpenCase(next) };
     }
@@ -360,6 +367,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         view: 'hub',
       };
     }
+
+    case 'RESOLVE_INCIDENT':
+      if (state.incidentsDone.includes(action.id)) return state;
+      return {
+        ...withProfile(state, (p) => ({ reliability: clamp(p.reliability + action.reliability), intelPoints: p.intelPoints + action.intel })),
+        incidentsDone: [...state.incidentsDone, action.id],
+      };
 
     case 'DISMISS_PROMOTION':
       return { ...state, promotionCaseId: null };

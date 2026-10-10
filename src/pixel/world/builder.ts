@@ -1,7 +1,7 @@
 // Small DSL for laying out large pixel maps in code.
 import type { CharacterLook, FacilityAction } from '../../types/investigation';
 import { hashString, seeded } from '../color';
-import type { Dir } from '../sprites';
+import type { Dir } from '../person';
 import { PROPS } from './props';
 import {
   FACADE_UPPER,

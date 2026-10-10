@@ -1,7 +1,7 @@
 import { MapBuilder, look } from '../builder';
 import { RESIDENT_LINES, STREET_LINES, VENDOR_LINES } from '../lines';
 import { FloorStyle, Tile, WallStyle } from '../types';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
 export function buildLevinsky() {
   const b = new MapBuilder('levinsky', 64, 48);
@@ -37,6 +37,7 @@ export function buildLevinsky() {
   b.prop('cafeTable', 8, 13);
   b.prop('plant', 1, 9);
   b.label(5.5, 9.4, 'בית קפה', 'room', 'lev-cafe');
+  b.anchor('lev-cafe-dvr', 8.5, 9.6, DIR_DOWN);
   b.npc({ x: 3.5, y: 10.5, dir: DIR_DOWN, name: 'מורן', role: 'בריסטה', look: look('female', '#e5b48f', 'bun', '#6b4423', 'apron', '#1f2a3a'), lines: [
     'הפוך? שחור? אצלנו גם הפוך יוצא שחור, זה הקפה.',
     'מאז השוד אנשים פה מדברים רק על זה. כולם פתאום בלשים.',
@@ -74,6 +75,7 @@ export function buildLevinsky() {
   b.prop('crate', 25, 12);
   b.prop('crate', 25, 15);
   b.anchor('lev-spice', 23.5, 6.5, DIR_LEFT);
+  b.anchor('lev-notes', 23.5, 13.4, DIR_UP);
   b.label(22.9, 0.8, 'שוק לוינסקי');
   b.npc({ x: 21.5, y: 3.6, dir: DIR_RIGHT, name: 'מוטי', role: 'מוכר פיצוחים', look: look('male', '#c98f66', 'short', '#3b2618', 'tshirt', '#2f5d50', '#22252b', { beard: true }), lines: VENDOR_LINES });
   b.npc({ x: 21.5, y: 12.6, dir: DIR_RIGHT, name: 'חנה', role: 'מוכרת פירות יבשים', look: look('female', '#e5b48f', 'curly', '#16120f', 'apron', '#9f1239'), lines: VENDOR_LINES.slice(1) });
@@ -86,12 +88,10 @@ export function buildLevinsky() {
   b.prop('bookshelf', 37, 6, { name: 'מדף לחמים', examine: 'כיכרות לחם, חלות ובייגלה ירושלמי.' });
   b.prop('bookshelf', 41, 6, { name: 'מדף לחמים', examine: 'פיתות, לאפות ובגטים.' });
   b.prop('sacks', 43, 9, { color: '#e7e5e4', name: 'שקי קמח', examine: 'שקי קמח של עשרים וחמישה קילו.' });
-  b.npc({ x: 39.5, y: 11.4, dir: DIR_DOWN, name: 'אברהם', role: 'אופה', look: look('male', '#e5b48f', 'bald', '#8d877f', 'apron', '#e7e5e4', '#3b3a36'), lines: [
-    'אני פותח בארבע. בארבע וחצי כבר יש תור. ביום השוד - שמעתי ירייה ונעלתי את הדלת.',
-    'החלפנים פה מחזיקים יותר מזומן מהבנק. כולם יודעים את זה.',
-    '{תטעם|תטעמי} ג׳חנון. לא? {אתה|את} {בטוח|בטוחה}? אף אחד לא יודע את זה, אבל גם שוטרים צריכים לאכול.',
-    ...VENDOR_LINES.slice(3),
-  ] });
+  b.anchor('lev-baker', 39.5, 11.4, DIR_DOWN);
+  b.anchor('lev-baker-wife', 41.5, 13.5, DIR_LEFT);
+  b.anchor('lev-bakery-store', 43.5, 6.6, DIR_UP);
+  b.prop('stain', 42, 5, { name: 'סימני פיח', examine: 'הקיר מושחר מעשן. ריח של קמח שרוף עדיין באוויר.' });
   b.label(40.5, 5.4, 'מאפייה', 'room', 'lev-bakery');
   b.building({ id: 'lev-apts', x: 45, y: 4, w: 19, h: 14, wall: WallStyle.Pink });
   b.building({ id: 'lev-top', x: 26, y: 0, w: 38, h: 4, wall: WallStyle.Plaster, windows: false });
@@ -125,7 +125,7 @@ export function buildLevinsky() {
   b.label(12, 22, 'רחוב לוינסקי');
   b.npc({ x: 5.5, y: 19.6, dir: DIR_RIGHT, name: 'שליח', role: 'שליח וולט', look: look('male', '#9c6644', 'short', '#16120f', 'hoodie', '#0e7490'), lines: STREET_LINES, path: [{ x: 1.5, y: 19.6 }, { x: 62.5, y: 19.6 }], speed: 1.4 });
   b.npc({ x: 40.5, y: 24.6, dir: DIR_LEFT, name: 'עוברת אורח', role: 'תושבת', look: look('female', '#f3d2b3', 'ponytail', '#a8743f', 'leather', '#1c1c1c'), lines: STREET_LINES, path: [{ x: 62.5, y: 24.6 }, { x: 1.5, y: 24.6 }], speed: 1.1 });
-  b.npc({ x: 37.5, y: 25.6, dir: DIR_LEFT, name: 'ממתין לאוטובוס', role: 'עובד ניקיון', look: look('male', '#6b4430', 'buzz', '#16120f', 'vest', '#d97706'), lines: ['הקו הזה מגיע מתי שבא לו.', 'אני עובד בבניין למעלה, משמרת לילה. לא ראיתי כלום, אני ישן באוטובוס.'] });
+  b.anchor('lev-night-cleaner', 37.5, 25.6, DIR_LEFT);
 
   /* Garden and falafel stand */
   b.fill(0, 26, 22, 12, Tile.Grass);

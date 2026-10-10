@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Hand, MessageSquare, Search } from 'lucide-react';
 import type { CharacterLook, CharacterRef, MapHotspot } from '../types/investigation';
 import type { ChatNpc } from '../data/characters';
+import type { Incident } from '../data/incidents';
 import { FACILITY_CHARACTERS } from '../data/characters';
 import { WorldRenderer, type Drawable } from '../pixel/world/renderer';
-import { FrameUpscaler } from '../pixel/upscale';
 import { T, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
 import { drawEvidenceItem, examineCount, examineVariant, propDef, propName } from '../pixel/world/props';
 import { ARRIVAL_THOUGHTS, OVERHEARD, idleThoughts, repeatExamine, wallThoughts, type G } from '../pixel/world/humor';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, drawCharacter, type Dir } from '../pixel/sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, drawPerson, type Dir } from '../pixel/person';
 
 export interface WorldHotspot {
   hotspot: MapHotspot;
@@ -23,11 +23,14 @@ interface Props {
   playerLook: CharacterLook;
   addressForm: 'male' | 'female';
   hotspots: WorldHotspot[];
+  /** Street situation happening on this map right now. */
+  incident: Incident | null;
   startPosition?: { x: number; y: number };
   paused: boolean;
   onFacility: (f: PlacedFacility) => void;
   onHotspot: (h: WorldHotspot) => void;
   onChat: (npc: ChatNpc) => void;
+  onIncident: (incident: Incident) => void;
   onExamine: (title: string, text: string) => void;
   onPositionChange: (mapId: string, x: number, y: number) => void;
 }
@@ -52,6 +55,7 @@ type Target =
   | { kind: 'facility'; f: PlacedFacility; x: number; y: number; name: string; actor?: Actor }
   | { kind: 'hotspot'; hs: WorldHotspot[]; x: number; y: number; name: string; actor?: Actor }
   | { kind: 'npc'; npc: ChatNpc; x: number; y: number; name: string; actor: Actor }
+  | { kind: 'incident'; incident: Incident; x: number; y: number; name: string; actor: Actor }
   | { kind: 'prop'; p: Prop; x: number; y: number; name: string };
 
 const SPEED = 4.2;
@@ -98,11 +102,13 @@ export default function PixelWorld({
   playerLook,
   addressForm,
   hotspots,
+  incident,
   startPosition,
   paused,
   onFacility,
   onHotspot,
   onChat,
+  onIncident,
   onExamine,
   onPositionChange,
 }: Props) {
@@ -112,8 +118,8 @@ export default function PixelWorld({
 
   // Live values used inside the animation loop.
   const g: G = (m, f) => (addressForm === 'female' ? f : m);
-  const live = useRef({ paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange, g });
-  live.current = { paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange, g };
+  const live = useRef({ paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g });
+  live.current = { paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g };
   const interactRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -121,10 +127,6 @@ export default function PixelWorld({
     const wrap = wrapRef.current!;
     const display = canvas.getContext('2d')!;
     const renderer = new WorldRenderer(map);
-    const buffer = document.createElement('canvas');
-    const bctx = buffer.getContext('2d', { willReadFrequently: true })!;
-    const upscaler = new FrameUpscaler();
-    let upscaleCost = 0;
     let scale = 4;
     let dpr = 1;
     let vw = 0;
@@ -138,12 +140,10 @@ export default function PixelWorld({
       canvas.height = Math.round(ch * dpr);
       canvas.style.width = `${cw}px`;
       canvas.style.height = `${ch}px`;
-      scale = Math.max(2, Math.round((Math.min(cw, ch * 1.25) * dpr) / 220));
-      vw = Math.ceil(canvas.width / scale);
-      vh = Math.ceil(canvas.height / scale);
-      buffer.width = vw;
-      buffer.height = vh;
-      bctx.imageSmoothingEnabled = false;
+      // Screen pixels per world pixel; about 13 tiles across on a phone.
+      scale = Math.max(1.5, (Math.min(cw, ch * 1.25) * dpr) / 215);
+      vw = canvas.width / scale;
+      vh = canvas.height / scale;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -179,6 +179,14 @@ export default function PixelWorld({
       facilityActors.set(f.id, { key: f.id, x: f.x, y: f.y, dir: f.dir, look: ch.look, moving: false, anim: 0, solid: true, homeDir: f.dir });
     }
     const hotspotActors = new Map<string, Actor>();
+    // People caught up in the current street situation.
+    const incidentActors: Actor[] = [];
+    if (incident) {
+      incidentActors.push({ key: `inc-${incident.id}`, x: incident.x, y: incident.y, dir: incident.dir, look: incident.person.look, moving: false, anim: 0, solid: true, homeDir: incident.dir });
+      for (const e of incident.extras ?? [])
+        incidentActors.push({ key: `inc-${incident.id}-${e.name}`, x: e.x, y: e.y, dir: e.dir, look: e.look, moving: false, anim: 0, solid: true, homeDir: e.dir });
+    }
+    const incidentLive = () => (live.current.incident?.id === incident?.id ? incident : null);
 
     const hotspotGroups = () => {
       const groups = new Map<string, WorldHotspot[]>();
@@ -205,6 +213,7 @@ export default function PixelWorld({
       const out: Actor[] = [];
       for (const { actor } of npcActors.values()) if (actor.solid) out.push(actor);
       for (const a of facilityActors.values()) out.push(a);
+      if (incidentLive()) out.push(...incidentActors);
       for (const [anchor, a] of hotspotActors) if (hotspotGroups().has(anchor)) out.push(a);
       return out;
     };
@@ -283,6 +292,8 @@ export default function PixelWorld({
         out.push({ kind: 'hotspot', hs: list, x: actor?.x ?? pos.x, y: actor?.y ?? pos.y, name, actor });
       }
       for (const { actor, npc } of npcActors.values()) out.push({ kind: 'npc', npc, x: actor.x, y: actor.y, name: npc.character.name, actor });
+      const inc = incidentLive();
+      if (inc) for (const a of incidentActors) out.push({ kind: 'incident', incident: inc, x: a.x, y: a.y, name: a === incidentActors[0] ? inc.person.name : inc.extras?.find((e) => a.key.endsWith(e.name))?.name ?? inc.person.name, actor: a });
       for (const p of map.props) {
         const def = propDef(p);
         // Floor decals are scenery unless they were given something specific to say.
@@ -349,6 +360,10 @@ export default function PixelWorld({
         case 'npc':
           faceEachOther(t.actor);
           L.onChat(t.npc);
+          return;
+        case 'incident':
+          faceEachOther(t.actor);
+          L.onIncident(t.incident);
           return;
         case 'prop':
           player.dir = dirFromVec(t.x - player.x, t.y - player.y, player.dir);
@@ -563,6 +578,16 @@ export default function PixelWorld({
           think(pick(idleThoughts(L.g), lastThought), now);
         }
         // Someone nearby says something to nobody in particular.
+        const inc = incidentLive();
+        if (inc && now > nextOverheard - 2500 && incidentActors.length) {
+          const a = incidentActors[0];
+          const sx = a.x * T - camX;
+          const sy = a.y * T - camY;
+          if (sx > -40 && sx < vw + 40 && sy > -20 && sy < vh + 40 && !bubbles.has(a.key)) {
+            nextOverheard = now + 5000 + Math.random() * 4000;
+            bubbles.set(a.key, { text: pick(inc.call), until: now + 3800, thought: false });
+          }
+        }
         if (now > nextOverheard && OVERHEARD[map.id]) {
           nextOverheard = now + 6000 + Math.random() * 7000;
           const onScreen = [...npcActors.values()]
@@ -631,16 +656,13 @@ export default function PixelWorld({
       const drawActor = (a: Actor) => {
         ents.push({
           base: a.y * T,
-          draw: (c) => {
-            c.fillStyle = 'rgba(0,0,0,0.35)';
-            c.fillRect(Math.round(a.x * T - 5), Math.round(a.y * T - 1), 10, 2);
-            drawCharacter(c, a.look, a.x * T, a.y * T, a.dir, a.moving ? Math.floor(a.anim) % 4 : 0);
-          },
+          draw: (c) => drawPerson(c, a.look, a.x * T, a.y * T, { dir: a.dir, moving: a.moving, phase: (a.anim * Math.PI) / 2 }),
         });
       };
       drawActor(player);
       for (const { actor } of npcActors.values()) drawActor(actor);
       for (const a of facilityActors.values()) drawActor(a);
+      if (incidentLive()) for (const a of incidentActors) drawActor(a);
       const groups = hotspotGroups();
       for (const [anchor, list] of groups) {
         const pos = map.anchors[anchor];
@@ -655,17 +677,8 @@ export default function PixelWorld({
         const showItem = h.hotspot.kind === 'cctv' || (h.available && !h.visited);
         if (showItem) ents.push({ base: pos.y * T - 2, draw: (c) => drawEvidenceItem(c, pos.x * T - 8, pos.y * T - 12, h.hotspot.kind) });
       }
-      renderer.render(bctx, camX, camY, vw, vh, t, ents, openId);
-
-      // Smooth the pixel edges, then light the scene at the higher resolution.
-      const t0 = performance.now();
-      const hctx = upscaler.run(bctx, vw, vh);
-      upscaleCost = upscaleCost * 0.95 + (performance.now() - t0) * 0.05;
-      if (upscaleCost > 9 && upscaler.passes > 1) upscaler.passes = 1;
-      renderer.renderEffects(hctx, camX, camY, vw, vh, t, openId, upscaler.factor);
-      display.imageSmoothingEnabled = true;
-      display.imageSmoothingQuality = 'high';
-      display.drawImage(upscaler.out, 0, 0, vw * scale, vh * scale);
+      renderer.render(display, camX, camY, scale, vw, vh, t, ents, openId);
+      renderer.renderEffects(display, camX, camY, vw, vh, t, openId, scale);
 
       /* Crisp text layer */
       const S = scale;
@@ -702,7 +715,7 @@ export default function PixelWorld({
       // Speech and thought bubbles.
       display.font = `600 ${Math.round(4.8 * S)}px Heebo, Arial, sans-serif`;
       for (const [key, b] of bubbles) {
-        const a = key === 'player' ? player : npcActors.get(key)?.actor;
+        const a = key === 'player' ? player : (npcActors.get(key)?.actor ?? incidentActors.find((x) => x.key === key));
         if (!a) continue;
         const lines = wrapText(display, b.text, 82 * S);
         const lh = 6 * S;
@@ -749,7 +762,7 @@ export default function PixelWorld({
       }
       display.restore();
 
-      const verb = near ? (near.kind === 'prop' ? (near.p.facility ? 'שימוש' : 'בדיקה') : near.kind === 'hotspot' && !near.actor ? 'בדיקה' : 'שיחה') : '';
+      const verb = near ? (near.kind === 'incident' ? 'להתערב' : near.kind === 'prop' ? (near.p.facility ? 'שימוש' : 'בדיקה') : near.kind === 'hotspot' && !near.actor ? 'בדיקה' : 'שיחה') : '';
       const sig = near ? `${near.kind}:${near.name}:${verb}` : '';
       if (sig !== lastPrompt) {
         lastPrompt = sig;

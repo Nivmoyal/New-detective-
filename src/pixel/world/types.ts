@@ -1,5 +1,5 @@
 import type { CharacterLook, FacilityHotspot } from '../../types/investigation';
-import type { Dir } from '../sprites';
+import type { Dir } from '../person';
 
 export const T = 16;
 

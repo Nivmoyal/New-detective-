@@ -4,6 +4,7 @@ import PixelWorld from '../components/PixelWorld';
 import { MAPS } from '../data/maps';
 import { defaultPlayerLook } from '../data/characters';
 import { loadCases } from '../services/caseEngine';
+import { activeIncident } from '../data/incidents';
 
 const params = new URLSearchParams(location.search);
 const map = MAPS[params.get('map') ?? 'station'];
@@ -17,6 +18,8 @@ createRoot(document.getElementById('root')!).render(
       playerLook={defaultPlayerLook('male')}
       addressForm="male"
       hotspots={hotspots}
+      incident={activeIncident(map.id, (params.get('done') ?? '').split(','))}
+      onIncident={(i) => console.log('incident', i.id)}
       startPosition={{ x, y }}
       paused={false}
       onFacility={(f) => console.log('facility', f.id)}

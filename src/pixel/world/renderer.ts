@@ -3,6 +3,8 @@
 import { seeded, shade } from '../color';
 import { drawTile } from './tiles';
 import { PROPS, propDef } from './props';
+import { upscaleCanvas } from '../upscale';
+import { hashString } from '../color';
 import { T, type Building, type PixelMap, type Prop } from './types';
 
 type Ctx = CanvasRenderingContext2D;
@@ -173,9 +175,40 @@ function glowSprite(color: string): HTMLCanvasElement {
   return c;
 }
 
+const PAD_X = 16;
+const PAD_TOP = 48;
+const PAD_BOTTOM = 8;
+
+/** Animated props are cached per frame of their animation. */
+function animFrame(type: string, t: number): [number, number] {
+  switch (type) {
+    case 'policeCar': {
+      const f = Math.floor(t * 3) % 2;
+      return [f, f / 3 + 0.05];
+    }
+    case 'djBooth': {
+      const f = Math.floor(t * 6) % 3;
+      return [f, f / 6 + 0.01];
+    }
+    case 'cctvBox': {
+      const f = Math.floor(t) % 4;
+      return [f, f + 0.1];
+    }
+    case 'cat': {
+      const f = Math.floor(t * 4) % 8;
+      return [f, f / 4];
+    }
+    default:
+      return [0, 0];
+  }
+}
+
 export class WorldRenderer {
   readonly ground: HTMLCanvasElement;
+  /** Edge-smoothed 2x copies, drawn scaled to the screen. */
+  private groundHD: HTMLCanvasElement;
   readonly roofs = new Map<string, HTMLCanvasElement>();
+  private propCache = new Map<string, HTMLCanvasElement>();
   private dark: HTMLCanvasElement;
   private darkCtx: Ctx;
   private light = lightSprite();
@@ -190,7 +223,8 @@ export class WorldRenderer {
     for (const p of flats.filter((p) => !propDef(p).wall)) propDef(p).draw(gctx, p.x * T, p.y * T, p, 0);
     for (const p of flats.filter((p) => propDef(p).wall)) propDef(p).draw(gctx, p.x * T, p.y * T, p, 0);
     this.ground = g;
-    for (const b of map.buildings) this.roofs.set(b.id, paintRoof(b));
+    this.groundHD = upscaleCanvas(g, 1);
+    for (const b of map.buildings) this.roofs.set(b.id, upscaleCanvas(paintRoof(b), 1));
     this.dynamicProps = map.props.filter((p) => !PROPS[p.type]?.flat);
     [this.dark, this.darkCtx] = canvas(1, 1);
   }
@@ -204,13 +238,37 @@ export class WorldRenderer {
     return null;
   }
 
-  render(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, entities: Drawable[], openBuilding: string | null) {
+  private propImage(p: Prop, t: number): HTMLCanvasElement {
+    const [f, tf] = animFrame(p.type, t);
+    const key = `${p.type}|${p.w}|${p.h}|${p.color ?? hashString(p.id) % 9}|${p.variant ?? ''}|${f}`;
+    let c = this.propCache.get(key);
+    if (!c) {
+      const [raw, rctx] = canvas(p.w * T + PAD_X * 2, p.h * T + PAD_TOP + PAD_BOTTOM);
+      propDef(p).draw(rctx, PAD_X, PAD_TOP, p, tf);
+      c = upscaleCanvas(raw, 1);
+      this.propCache.set(key, c);
+    }
+    return c;
+  }
+
+  /**
+   * Draw the world straight onto the screen canvas. Units are world pixels;
+   * S is screen pixels per world pixel, so people and text stay sharp.
+   */
+  render(ctx: Ctx, camX: number, camY: number, S: number, vw: number, vh: number, t: number, entities: Drawable[], openBuilding: string | null) {
     const map = this.map;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#07090c';
-    ctx.fillRect(0, 0, vw, vh);
-    ctx.save();
-    ctx.translate(-Math.round(camX), -Math.round(camY));
-    ctx.drawImage(this.ground, 0, 0);
+    ctx.fillRect(0, 0, vw * S, vh * S);
+    ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    // Visible part of the ground.
+    const gx = Math.max(0, Math.floor(camX));
+    const gy = Math.max(0, Math.floor(camY));
+    const gw = Math.min(map.w * T - gx, Math.ceil(vw) + 2);
+    const gh = Math.min(map.h * T - gy, Math.ceil(vh) + 2);
+    if (gw > 0 && gh > 0) ctx.drawImage(this.groundHD, gx * 2, gy * 2, gw * 2, gh * 2, gx, gy, gw, gh);
 
     const x0 = camX - 64;
     const x1 = camX + vw + 64;
@@ -221,22 +279,28 @@ export class WorldRenderer {
       const px = p.x * T;
       const py = p.y * T;
       if (px + p.w * T < x0 || px > x1 || py + p.h * T < y0 || py - 48 > y1) continue;
-      const def = propDef(p);
-      list.push({ base: (p.y + p.h) * T - 1, draw: (c) => def.draw(c, px, py, p, t) });
+      list.push({
+        base: (p.y + p.h) * T - 1,
+        draw: (c) => {
+          const img = this.propImage(p, t);
+          c.drawImage(img, px - PAD_X, py - PAD_TOP, img.width / 2, img.height / 2);
+        },
+      });
     }
     for (const b of map.buildings) {
       if (b.id === openBuilding) continue;
       const roof = this.roofs.get(b.id)!;
       const bx = b.x * T;
       const by = b.y * T;
-      if (bx > x1 || bx + roof.width < x0 || by > y1 || by + roof.height < y0) continue;
-      list.push({ base: (b.y + b.h - 2) * T - 0.5, draw: (c) => c.drawImage(roof, bx, by) });
+      const rw = roof.width / 2;
+      const rh = roof.height / 2;
+      if (bx > x1 || bx + rw < x0 || by > y1 || by + rh < y0) continue;
+      list.push({ base: (b.y + b.h - 2) * T - 0.5, draw: (c) => c.drawImage(roof, bx, by, rw, rh) });
     }
     list.push(...entities);
     list.sort((a, b) => a.base - b.base);
     for (const d of list) d.draw(ctx);
-    ctx.restore();
-
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   /** Night lighting and rain, drawn on top of the (possibly upscaled) frame. k = upscale factor. */

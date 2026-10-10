@@ -1,7 +1,7 @@
 import { MapBuilder, look } from '../builder';
 import { RESIDENT_LINES, STREET_LINES, VENDOR_LINES } from '../lines';
 import { FloorStyle, Tile, WallStyle } from '../types';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
 export function buildNeveShaanan() {
   const b = new MapBuilder('neveShaanan', 60, 46);
@@ -80,11 +80,14 @@ export function buildNeveShaanan() {
   b.prop('bench', 50, 22);
   [6, 31, 56].forEach((x) => b.prop('lamp', x, 18));
   [19, 41].forEach((x) => b.prop('lamp', x, 22));
-  b.prop('scooter', 16, 19);
+  b.prop('scooter', 16, 19, { name: 'קורקינט משלוחים', examine: 'קורקינט משלוחים עם ארגז תרמי נעול. מישהו פה עובד קשה. או משהו.' });
+  b.anchor('ns-scooter', 16.5, 20.4, DIR_DOWN);
   b.prop('scooter', 33, 19);
   b.prop('stall', 42, 21, { color: '#475569', variant: 3, name: 'דוכן בגדים', examine: 'בגדים יד שנייה, נעלי ספורט ומטעני טלפון.' });
   b.prop('cardboard', 22, 23);
   b.prop('trash', 46, 23);
+  b.prop('dumpster', 23, 22, { name: 'הפח של רחוב החנויות' });
+  b.anchor('ns-sim-bin', 25.5, 22.6, DIR_LEFT);
   b.anchor('ns-shelter-guard', 48.5, 18.7, DIR_DOWN);
   b.label(28, 20.5, 'מדרחוב נווה שאנן');
   b.npc({ x: 43.5, y: 20.5, dir: DIR_DOWN, name: 'סלומון', role: 'מוכר בגדים', look: look('male', '#6b4430', 'curly', '#16120f', 'leather', '#2b2b2e'), lines: VENDOR_LINES });

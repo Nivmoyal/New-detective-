@@ -1,20 +1,17 @@
 import { useState } from 'react';
 import {
-  Activity,
   ChevronLeft,
   Eye,
   FileText,
-  Fingerprint,
   Folder,
   MapPin,
   Pause,
   Play,
-  Search,
   ShieldAlert,
   UserPlus,
 } from 'lucide-react';
 import type { AddressForm, CaseFile, CharacterLook, DetectiveProfile, Specialization } from '../types/investigation';
-import { RANKS, SPECIALIZATIONS, WARRANT_THRESHOLD } from '../services/caseEngine';
+import { RANKS, WARRANT_THRESHOLD } from '../services/caseEngine';
 import {
   COMMANDER,
   HAIR_COLORS,
@@ -41,11 +38,6 @@ interface Props {
   onClose?: () => void;
 }
 
-const SPEC_ICONS: Record<Specialization, React.ReactNode> = {
-  criminal: <Search className="h-5 w-5" />,
-  intel: <Activity className="h-5 w-5" />,
-  forensic: <Fingerprint className="h-5 w-5" />,
-};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -92,7 +84,6 @@ function Chips<T extends string>({ options, value, onChange }: { options: { id: 
 
 function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProfile'] }) {
   const [name, setName] = useState('');
-  const [spec, setSpec] = useState<Specialization>('criminal');
   const [look, setLook] = useState<CharacterLook>(defaultPlayerLook('male'));
   const [walking, setWalking] = useState(true);
   const valid = name.trim().length >= 2;
@@ -106,7 +97,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(37,99,235,0.2),transparent_60%)]" />
           <div className="crt-overlay pointer-events-none absolute inset-0" />
           <div className="absolute inset-x-0 bottom-9 flex items-end justify-center gap-6">
-            <SpritePreview look={look} walking={walking} scale={6} />
+            <SpritePreview look={look} walking={walking} scale={5} />
             <div className="mb-2 rounded-lg border-2 border-noir-border bg-[#141b26]">
               <PixelPortrait look={look} size={120} className="block" />
             </div>
@@ -220,30 +211,10 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
           </div>
         </Section>
 
-        <Section title="התמחות">
-          <div className="space-y-2">
-            {(Object.keys(SPECIALIZATIONS) as Specialization[]).map((id) => (
-              <button
-                key={id}
-                onClick={() => setSpec(id)}
-                className={`flex w-full items-start gap-3 rounded-lg border p-3 text-right transition ${
-                  spec === id ? 'border-evidence-light bg-evidence/10' : 'border-noir-border bg-noir-deep hover:border-slate-600'
-                }`}
-              >
-                <span className={spec === id ? 'text-evidence-light' : 'text-steel'}>{SPEC_ICONS[id]}</span>
-                <span>
-                  <span className="block text-sm font-bold text-slate-100">{SPECIALIZATIONS[id].label}</span>
-                  <span className="block text-xs leading-snug text-steel">{SPECIALIZATIONS[id].perk}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </Section>
-
         <button
           className="btn-primary w-full py-3 text-base"
           disabled={!valid}
-          onClick={() => onCreateProfile?.(name, spec, look.body, look)}
+          onClick={() => onCreateProfile?.(name, 'criminal', look.body, look)}
         >
           <MapPin className="h-5 w-5" />
           {valid ? 'הגעה לתחנה' : 'כתבו את השם שלכם כדי להמשיך'}
@@ -261,7 +232,6 @@ export default function RookieArrivalModal({ mode, profile, cases = [], onCreate
     ? [
         `אז ${g('אתה', 'את')} ${profile.name}. ${g('ברוך הבא', 'ברוכה הבאה')} למרחב יפתח, תחנת שרפשטיין. אני סנ״צ אורנה ברק, מפקדת התחנה.`,
         `דרום תל אביב זה לא תרגיל בבית הספר לשוטרים. נווה שאנן, שוק לוינסקי, התחנה המרכזית הישנה, פלורנטין, שכונת שפירא. כל רחוב פה מספר סיפור, ורוב האנשים לא רוצים ש${g('תשמע', 'תשמעי')} אותו.`,
-        `ראיתי בתיק האישי שלך התמחות ב${SPECIALIZATIONS[profile.specialization].label}. טוב. ${SPECIALIZATIONS[profile.specialization].perk}`,
         `הכללים שלי פשוטים. עובדים לפי ראיות, לא לפי שמועות. כל ראיה פיזית עוברת אצל ד״ר מאיה שטרן במעבדת מז״פ. ${WARRANT_THRESHOLD} ראיות מאומתות על הלוח שמצביעות על אותו חשוד - ואני חותמת על צו מעצר.`,
         `חיבור שגוי בלוח או טעות טקטית בחדר החקירות פוגעים באמינות שלך מולי ומול הפרקליטות. ${g('תהיה', 'תהיי')} ${g('יסודי', 'יסודית')}.`,
         `על השולחן שלך במשרד החוקרים מחכים תיקים פתוחים. באיזה סדר, איפה מתחילים ואת מי מתשאלים - זה שלך. אני רוצה תוצאות, לא דיווחים. בהצלחה, ${RANKS[profile.rankIndex]} ${profile.name}.`,
@@ -272,7 +242,7 @@ export default function RookieArrivalModal({ mode, profile, cases = [], onCreate
     ? [
         `${g('אתה החדש', 'את החדשה')}? יוסי כהן, ראש צוות. זה השולחן שלך, ליד החלון. הקפה במטבחון, והמדפסת לא עובדת מאז 2019.`,
         'לוח השעם ליד השולחן הוא הכלי הכי חשוב שלך. שם מצמידים חשודים, ממצאים מהזירה, מניעים ואליבי, ומותחים חוט אדום בין מה שבאמת מתחבר.',
-        'שלושה תיקים פתוחים במרחב. אף אחד לא יגיד לך מאיפה להתחיל. כל ראיה שתמצא בשטח תיכנס אוטומטית לתיק שלה.',
+        `שלושה תיקים פתוחים במרחב, ויגיעו עוד. אף אחד לא יגיד לך מאיפה להתחיל. כל ראיה ש${g('תמצא', 'תמצאי')} בשטח תיכנס אוטומטית לתיק שלה.`,
         `אליבי שמחזיק - מנקה חשוד. שלושה חוטים מאומתים לאותו חשוד - הולכים למפקדת לצו. ואם חיברת משהו שלא מתחבר, ${g('תקבל', 'תקבלי')} על זה הערה.`,
       ]
     : [];

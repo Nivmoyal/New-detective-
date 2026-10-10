@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Activity, Award, CheckSquare, RotateCcw, ShieldAlert, Siren, X } from 'lucide-react';
 import type { DetectiveProfile } from '../types/investigation';
-import { RANKS, RANK_TITLES, SPECIALIZATIONS } from '../services/caseEngine';
+import { RANKS, RANK_TITLES } from '../services/caseEngine';
 
 interface Props {
   profile: DetectiveProfile;
@@ -40,7 +40,7 @@ export default function PoliceHeader({ profile, activeCaseTitle, onReset }: Prop
               {RANKS[profile.rankIndex]} {profile.name}
             </div>
             <div className="truncate text-[11px] text-steel">
-              {RANK_TITLES[profile.rankIndex]} · {SPECIALIZATIONS[profile.specialization].label} · תחנת שרפשטיין
+              {RANK_TITLES[profile.rankIndex]} · תחנת שרפשטיין
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { Compass, Crosshair, Folder, Lock, ShieldAlert } from 'lucide-react';
 import type { View } from './types/investigation';
 import { MAPS, STATION_MAP_ID } from './data/maps';
 import type { PlacedFacility } from './pixel/world/types';
-import { emptyProgress, getCase, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
+import { emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
 import {
   WARRANT_DENIAL_PENALTY,
   activeProgress,
@@ -20,6 +20,8 @@ import PixelWorld, { type WorldHotspot } from './components/PixelWorld';
 import ChatDialog from './components/ChatDialog';
 import { COMMANDER, INTERROGATION_OFFICER, type ChatNpc } from './data/characters';
 import { chatAnnoyed } from './pixel/world/humor';
+import { activeIncident, type Incident } from './data/incidents';
+import IncidentDialog from './components/IncidentDialog';
 import type { CharacterRef } from './types/investigation';
 import EvidenceBoard from './components/EvidenceBoard';
 import InterrogationRoom from './components/InterrogationRoom';
@@ -27,8 +29,9 @@ import StationHub from './components/StationHub';
 import HotspotDialog from './components/HotspotDialog';
 import { CaseClosedModal, CommanderModal, EvidenceRoomModal, LabModal, NoticeModal, TravelModal } from './components/StationModals';
 
-// How many times each background character has been talked to this session.
-const chatVisits = new Map<string, number>();
+// How many lines of each character the detective has already heard, and how often they were pestered since.
+const chatHeard = new Map<string, number>();
+const chatPestered = new Map<string, number>();
 
 type ModalState =
   | { type: 'arrivalCommander' }
@@ -38,7 +41,8 @@ type ModalState =
   | { type: 'evidenceRoom' }
   | { type: 'travel' }
   | { type: 'hotspot'; spot: WorldHotspot }
-  | { type: 'chat'; npc: ChatNpc; opener?: string }
+  | { type: 'chat'; npc: ChatNpc; annoyed: string }
+  | { type: 'incident'; incident: Incident }
   | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police' }
   | null;
 
@@ -57,7 +61,9 @@ export default function App() {
   // Every lead of every case lives in the world from the start.
   const worldHotspots = useMemo<WorldHotspot[]>(() => {
     const out: WorldHotspot[] = [];
+    const solvedCount = state.profile?.solvedCases.length ?? 0;
     for (const c of loadCases()) {
+      if (!isCaseUnlocked(c, solvedCount)) continue;
       const p = state.progress[c.id] ?? emptyProgress();
       for (const h of c.hotspots) {
         if (h.mapId !== map.id) continue;
@@ -65,7 +71,7 @@ export default function App() {
       }
     }
     return out;
-  }, [state.progress, map.id]);
+  }, [state.progress, map.id, state.profile?.solvedCases.length]);
 
   // Case waiting in the interrogation room: the focused one first, then any other.
   const warrantCaseId = useMemo(() => {
@@ -130,13 +136,18 @@ export default function App() {
   }, []);
   const handleChat = useCallback(
     (npc: ChatNpc) => {
-      const visits = (chatVisits.get(npc.id) ?? 0) + 1;
-      chatVisits.set(npc.id, visits);
-      const annoyed = chatAnnoyed((m, f) => (profile?.addressForm === 'female' ? f : m));
-      setModal({ type: 'chat', npc, opener: visits >= 3 ? annoyed[(visits - 3) % annoyed.length] : undefined });
+      const lines = chatAnnoyed((m, f) => (profile?.addressForm === 'female' ? f : m));
+      let annoyed = lines[0];
+      if ((chatHeard.get(npc.id) ?? 0) >= npc.lines.length) {
+        const n = chatPestered.get(npc.id) ?? 0;
+        chatPestered.set(npc.id, n + 1);
+        annoyed = lines[n % lines.length];
+      }
+      setModal({ type: 'chat', npc, annoyed });
     },
     [profile?.addressForm],
   );
+  const handleIncident = useCallback((incident: Incident) => setModal({ type: 'incident', incident }), []);
   const handleExamine = useCallback((title: string, text: string) => setModal({ type: 'notice', title, text, tone: 'police' }), []);
 
   /* ---------------- Onboarding: character creation ---------------- */
@@ -196,6 +207,8 @@ export default function App() {
             playerLook={profile.look}
             addressForm={profile.addressForm}
             hotspots={worldHotspots}
+            incident={activeIncident(map.id, state.incidentsDone)}
+            onIncident={handleIncident}
             startPosition={state.positions[map.id]}
             paused={modal !== null}
             onFacility={handleFacility}
@@ -292,7 +305,7 @@ export default function App() {
         <RookieArrivalModal
           mode="desk"
           profile={profile}
-          cases={loadCases()}
+          cases={loadCases().filter((c) => isCaseUnlocked(c, profile.solvedCases.length))}
           onClose={() => setModal(null)}
           onComplete={() => {
             dispatch({ type: 'OPEN_CASE_FILES' });
@@ -329,7 +342,24 @@ export default function App() {
       {modal?.type === 'notice' && (
         <NoticeModal title={modal.title} text={modal.text} character={modal.character} tone={modal.tone} onClose={() => setModal(null)} />
       )}
-      {modal?.type === 'chat' && <ChatDialog npc={modal.npc} opener={modal.opener} addressForm={profile.addressForm} onClose={() => setModal(null)} />}
+      {modal?.type === 'incident' && (
+        <IncidentDialog
+          incident={modal.incident}
+          addressForm={profile.addressForm}
+          onResolve={(c) => dispatch({ type: 'RESOLVE_INCIDENT', id: modal.incident.id, reliability: c.reliability, intel: c.intel })}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'chat' && (
+        <ChatDialog
+          npc={modal.npc}
+          heard={chatHeard.get(modal.npc.id) ?? 0}
+          annoyed={modal.annoyed}
+          addressForm={profile.addressForm}
+          onHeard={(n) => chatHeard.set(modal.npc.id, Math.max(n, chatHeard.get(modal.npc.id) ?? 0))}
+          onClose={() => setModal(null)}
+        />
+      )}
 
       {promotionCase && state.progress[promotionCase.id] && (
         <CaseClosedModal
@@ -337,6 +367,7 @@ export default function App() {
           caseFile={promotionCase}
           progress={state.progress[promotionCase.id]}
           allSolved={allCasesSolved(state)}
+          newCases={loadCases().filter((c) => (c.unlockAfter ?? 0) > 0 && c.unlockAfter === profile.solvedCases.length)}
           onClose={() => dispatch({ type: 'DISMISS_PROMOTION' })}
         />
       )}

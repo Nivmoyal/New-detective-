@@ -25,9 +25,10 @@ if (s.progress[third.id].collected.length !== before) fail('locked lead yielded 
 
 d({ type: 'ARRIVAL_COMMANDER_DONE' });
 d({ type: 'OPEN_CASE_FILES' });
-if (Object.keys(s.progress).length !== loadCases().length) fail('not every case was opened');
+if (Object.keys(s.progress).length !== loadCases().filter((c) => !c.unlockAfter).length) fail('not every open case was opened');
 
 for (const c of loadCases()) {
+  if ((c.unlockAfter ?? 0) > s.profile!.solvedCases.length) fail(`${c.id}: still locked after ${s.profile!.solvedCases.length} solved`);
   d({ type: 'FOCUS_CASE', caseId: c.id });
   // A premature warrant request is refused and costs reliability.
   const rel = s.profile!.reliability;
@@ -71,7 +72,7 @@ for (const c of loadCases()) {
   d({ type: 'DISMISS_PROMOTION' });
 }
 console.log('rank', s.profile!.rankIndex, 'solved', s.profile!.solvedCases.length, 'intel', s.profile!.intelPoints, 'rel', s.profile!.reliability);
-if (s.profile!.solvedCases.length !== 3) fail('not all cases solved');
+if (s.profile!.solvedCases.length !== loadCases().length) fail('not all cases solved');
 
 // Failure path: pure pressure should drive a suspect to demand a lawyer.
 let f = initialState();

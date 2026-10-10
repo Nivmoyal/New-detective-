@@ -3,6 +3,7 @@
 import casesData from '../src/data/cases/cases.json';
 import { MAPS } from '../src/data/maps';
 import { FACILITY_CHARACTERS } from '../src/data/characters';
+import { INCIDENTS } from '../src/data/incidents';
 import type { CasesFile } from '../src/types/investigation';
 import type { PixelMap } from '../src/pixel/world/types';
 
@@ -83,7 +84,33 @@ for (const m of Object.values(MAPS)) {
   }
 }
 
+for (const inc of INCIDENTS) {
+  const m = MAPS[inc.mapId];
+  if (!m) {
+    errors.push(`incident ${inc.id}: unknown map`);
+    continue;
+  }
+  for (const p of [{ x: inc.x, y: inc.y, name: inc.person.name }, ...(inc.extras ?? [])]) {
+    if (m.blocked[Math.floor(p.y) * m.w + Math.floor(p.x)]) errors.push(`incident ${inc.id}: ${p.name} stands inside a wall/prop`);
+    if (!nearReachable(m, reach[m.id], p.x, p.y, 1.9)) errors.push(`incident ${inc.id}: ${p.name} out of reach`);
+    for (const n of m.npcs) {
+      if (!n.path && Math.hypot(n.x - p.x, n.y - p.y) < 0.9) errors.push(`incident ${inc.id}: ${p.name} overlaps ${n.name}`);
+      if (n.path)
+        for (let i = 0; i < n.path.length; i++) {
+          const a = n.path[i];
+          const b = n.path[(i + 1) % n.path.length];
+          for (let t = 0; t <= 1; t += 0.02)
+            if (Math.hypot(a.x + (b.x - a.x) * t - p.x, a.y + (b.y - a.y) * t - p.y) < 0.7) {
+              errors.push(`incident ${inc.id}: walker ${n.name} walks through ${p.name}`);
+              t = 2;
+            }
+        }
+    }
+  }
+}
+
 const emoji = /\p{Extended_Pictographic}/u;
+if (emoji.test(JSON.stringify(INCIDENTS))) errors.push('incidents contain emoji');
 if (emoji.test(JSON.stringify(data))) errors.push('cases.json contains emoji');
 const usedAnchors = new Set<string>();
 for (const c of data.cases) {

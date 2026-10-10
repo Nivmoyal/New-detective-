@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { CaseFile, CaseProgress, CharacterLook, InterrogationState, TacticId } from '../types/investigation';
 import InterrogationScene from './pixel/InterrogationScene';
-import type { Expression } from '../pixel/portrait';
+import type { Expression } from '../pixel/person';
 import { collectedClues, isPendingLab, SOURCE_LABELS } from '../services/caseEngine';
 import { MAX_MISTAKES, MAX_TURNS, TACTICS } from '../services/interrogationEngine';
 

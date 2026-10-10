@@ -1,7 +1,7 @@
 import { MapBuilder, look } from '../builder';
 import { STREET_LINES } from '../lines';
 import { FloorStyle, Tile, WallStyle } from '../types';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
 export function buildOldCbs() {
   const b = new MapBuilder('oldCbs', 58, 46);
@@ -38,6 +38,7 @@ export function buildOldCbs() {
   b.prop('bench', 35, 10);
   b.prop('counter', 41, 15, { w: 3, color: '#57534e', name: 'קיוסק נטוש', examine: 'קיוסק נטוש. על הדלפק עדיין מחירון משנת 2009.' });
   b.prop('crate', 44, 15);
+  b.anchor('cbs-callcenter', 42.5, 16.5, DIR_UP);
   b.prop('mattress', 50, 4);
   b.prop('cardboard', 52, 4);
   b.prop('mattress', 51, 8);

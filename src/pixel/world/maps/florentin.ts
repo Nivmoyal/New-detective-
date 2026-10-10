@@ -1,7 +1,7 @@
 import { MapBuilder, look } from '../builder';
 import { NIGHT_LINES, RESIDENT_LINES, STREET_LINES } from '../lines';
 import { FloorStyle, Tile, WallStyle } from '../types';
-import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../sprites';
+import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
 export function buildFlorentin() {
   const b = new MapBuilder('florentin', 58, 46);

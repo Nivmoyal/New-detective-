@@ -293,12 +293,14 @@ export function CaseClosedModal({
   caseFile,
   progress,
   allSolved,
+  newCases = [],
   onClose,
 }: {
   profile: DetectiveProfile;
   caseFile: CaseFile;
   progress: CaseProgress;
   allSolved: boolean;
+  newCases?: CaseFile[];
   onClose: () => void;
 }) {
   const promoted = profile.rankIndex > 0;
@@ -338,10 +340,20 @@ export function CaseClosedModal({
               <div className="text-xs text-steel">{RANK_TITLES[profile.rankIndex]}</div>
             </div>
           )}
+          {newCases.map((c) => (
+            <div key={c.id} className="rounded-lg border border-alert/50 bg-red-950/30 p-3 text-right">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-red-300">
+                <Siren className="h-4 w-4" />
+                תיק חדש הונח על השולחן שלך
+              </div>
+              <div className="mt-1 font-display text-sm font-bold text-slate-100">{c.title}</div>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-300">{c.summary}</p>
+            </div>
+          ))}
           {allSolved && (
             <div className="rounded-lg border border-evidence/50 bg-evidence/10 p-3 text-sm text-amber-100">
               <Siren className="mx-auto mb-1 h-5 w-5 text-evidence-light" />
-              שלושה תיקים, שלוש הודאות. מהיום הראשון בתחנה ועד ראשות מחלק פשעים - הוכחת שבדרום תל אביב עובדים
+              חמישה תיקים, חמש הודאות. מהיום הראשון בתחנה ועד ראשות מחלק פשעים - הוכחת שבדרום תל אביב עובדים
               לפי ראיות.
             </div>
           )}
