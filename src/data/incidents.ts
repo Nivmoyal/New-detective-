@@ -120,7 +120,7 @@ export const INCIDENTS: Incident[] = [
   {
     id: 'lev-parking',
     mapId: 'levinsky',
-    x: 14.5,
+    x: 15.5,
     y: 18.6,
     dir: 1,
     person: { name: 'רועי', role: 'נהג שמחפש חניה כבר 40 דקות', look: L('male', '#e5b48f', 'short', '#6b4423', 'hoodie', '#334155') },

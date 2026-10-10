@@ -79,9 +79,9 @@ export function buildOldCbs() {
   /* Parking and guard booth */
   b.fill(41, 21, 17, 15, Tile.Concrete);
   for (let y = 23; y < 35; y += 3) b.set(42, y, Tile.Parking, 1);
-  b.building({ id: 'cbs-booth', x: 46, y: 21, w: 6, h: 5, wall: WallStyle.White, floor: FloorStyle.Lino, doors: [2], sign: { text: 'ביטחון', color: '#1e3a8a', x: 3, w: 2 } });
+  b.building({ id: 'cbs-booth', x: 49, y: 21, w: 6, h: 5, wall: WallStyle.White, floor: FloorStyle.Lino, doors: [2], sign: { text: 'ביטחון', color: '#1e3a8a', x: 3, w: 2 } });
   b.prop('cctvBox', 49, 26, { name: 'עמדת המצלמות של החניון', examine: 'שש מצלמות על מסך אחד. אחת מהן מכוונת לרמפה לקומות הנטושות.' });
-  b.anchor('cbs-guard', 47.5, 26.7, DIR_DOWN);
+  b.anchor('cbs-guard', 50.5, 26.7, DIR_DOWN);
   // Places reserved for generated cases (see services/caseGenerator.ts).
   b.anchor('gen-cbs-a-scene', 20.5, 4.5, DIR_DOWN);
   b.anchor('gen-cbs-a-w1', 28.5, 8.5, DIR_DOWN);
@@ -98,7 +98,7 @@ export function buildOldCbs() {
   b.prop('van', 46, 31, { color: '#1e3a8a', name: 'טנדר כחול חונה', examine: 'טנדר כחול מאובק. הלוחית שייכת לחברת השכרה.' });
   b.fill(53, 27, 5, 8, Tile.Asphalt);
   b.label(55.5, 30, 'רמפה לחניון התחתון');
-  b.prop('fence', 52, 26);
+  b.prop('fence', 55, 26);
   b.prop('lamp', 51, 33);
   b.prop('lamp', 41, 27);
 

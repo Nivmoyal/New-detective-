@@ -96,7 +96,7 @@ export function buildStation() {
   b.anchor('st-intel-desk', 24.5, 4.5, DIR_LEFT);
   b.anchor('st-records-terminal', 29.5, 5.5, DIR_DOWN);
   b.anchor('st-fraud-desk', 20.5, 8.5, DIR_LEFT);
-  b.anchor('st-traffic', 36.5, 11.5, DIR_DOWN);
+  b.anchor('st-traffic', 41.5, 11.5, DIR_LEFT);
   b.npc({ id: 'npc-mentor', x: 16.5, y: 5.5, dir: DIR_DOWN, name: MENTOR.name, role: MENTOR.role, look: MENTOR.look, lines: [
     'אז את{ה|} החדש{|ה}. יוסי. אל תיבהל{|י} מהבלגן, זה בלגן מאורגן. רוב הזמן.',
     'דבר ראשון: אף אחד פה לא יגיד לך מאיפה להתחיל. התיקים על השולחן, השטח בחוץ. {תבחר|תבחרי} ו{תתחיל|תתחילי} לדבר עם אנשים.',

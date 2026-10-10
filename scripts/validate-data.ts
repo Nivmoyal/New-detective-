@@ -6,7 +6,7 @@ import { FACILITY_CHARACTERS } from '../src/data/characters';
 import { INCIDENTS } from '../src/data/incidents';
 import { generateCase } from '../src/services/caseGenerator';
 import type { CaseFile, CasesFile } from '../src/types/investigation';
-import type { PixelMap } from '../src/pixel/world/types';
+import { Tile, type PixelMap } from '../src/pixel/world/types';
 
 const errors: string[] = [];
 const data = casesData as unknown as CasesFile;
@@ -208,6 +208,58 @@ for (const m of Object.values(MAPS)) {
             }
         }
   }
+}
+
+// Nobody stands in a doorway: with every person in the world in place (staff,
+// passers-by, case witnesses of every case, street situations), every door
+// must still be walkable and lead somewhere.
+for (const m of Object.values(MAPS)) {
+  const people: { x: number; y: number; who: string }[] = [
+    ...m.npcs.filter((n) => !n.path).map((n) => ({ x: n.x, y: n.y, who: n.name })),
+    ...m.facilities.filter((f) => !f.object).map((f) => ({ x: f.x, y: f.y, who: f.label })),
+    ...INCIDENTS.filter((i) => i.mapId === m.id).flatMap((i) => [{ x: i.x, y: i.y, who: i.person.name }, ...(i.extras ?? []).map((e) => ({ x: e.x, y: e.y, who: e.name }))]),
+  ];
+  for (const c of [...data.cases, ...generated])
+    for (const h of c.hotspots)
+      if (h.mapId === m.id && h.character && m.anchors[h.anchor]) people.push({ x: m.anchors[h.anchor].x, y: m.anchors[h.anchor].y, who: `${h.character.name} (${c.id})` });
+  // Same collision test the game uses: the player at the tile centre bumps into a person nearby.
+  const standsOn = (tx: number, ty: number) => people.find((a) => Math.hypot(a.x - (tx + 0.5), (a.y - (ty + 0.5)) * 1.4) < 0.75);
+  const seen = new Set<number>();
+  const q = [Math.floor(m.spawn.y) * m.w + Math.floor(m.spawn.x)];
+  while (q.length) {
+    const k = q.pop()!;
+    const x = k % m.w;
+    const y = (k - x) / m.w;
+    if (seen.has(k) || m.blocked[k] || (seen.size > 0 && standsOn(x, y))) continue;
+    seen.add(k);
+    if (x > 0) q.push(k - 1);
+    if (x < m.w - 1) q.push(k + 1);
+    if (y > 0) q.push(k - m.w);
+    if (y < m.h - 1) q.push(k + m.w);
+  }
+  // Nobody cuts off a corridor either: everything walkable stays reachable.
+  const cut: string[] = [];
+  for (let y = 0; y < m.h; y++)
+    for (let x = 0; x < m.w; x++) {
+      const k = y * m.w + x;
+      if (m.blocked[k] || seen.has(k) || standsOn(x, y)) continue;
+      // Ignore pockets that were never reachable anyway (behind props, inside solid blocks).
+      if (!reach[m.id].has(k)) continue;
+      cut.push(`${x},${y}`);
+    }
+  if (cut.length) errors.push(`${m.id}: ${cut.length} tiles cut off by people standing in the way, e.g. ${cut.slice(0, 4).join(' ')}`);
+  for (let y = 0; y < m.h; y++)
+    for (let x = 0; x < m.w; x++) {
+      const t = m.tiles[y * m.w + x];
+      if (t !== Tile.Door && t !== Tile.DoorTop) continue;
+      // A doorway joins two sides: across it (up/down or left/right) both
+      // neighbours must be open and reachable.
+      const ok = (i: number, j: number) => i >= 0 && j >= 0 && i < m.w && j < m.h && seen.has(j * m.w + i);
+      const through = (ok(x, y - 1) && ok(x, y + 1)) || (ok(x - 1, y) && ok(x + 1, y));
+      if (seen.has(y * m.w + x) && through) continue;
+      const near = people.filter((a) => Math.hypot(a.x - (x + 0.5), a.y - (y + 0.5)) < 2.5).map((a) => a.who);
+      errors.push(`${m.id}: doorway at ${x},${y} can't be walked through${near.length ? ` (in the way: ${near.join(', ')})` : ''}`);
+    }
 }
 
 // Nobody in the city repeats someone else's words.
