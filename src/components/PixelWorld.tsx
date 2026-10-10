@@ -139,6 +139,9 @@ export default function PixelWorld({
   const g: G = (m, f) => (addressForm === 'female' ? f : m);
   const live = useRef({ paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g });
   live.current = { paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g };
+  /** On-screen joystick: direction and how far it is pushed (0..1). */
+  const joy = useRef({ x: 0, y: 0, id: -1 });
+  const knobRef = useRef<HTMLDivElement>(null);
   const interactRef = useRef<() => void>(() => {});
   const [soundOn, setSoundOn] = useState(ambient.enabled);
 
@@ -565,8 +568,19 @@ export default function PixelWorld({
           ix = pointer.x - pointer.sx;
           iy = pointer.y - pointer.sy;
         }
+        // The joystick: a light push walks slowly, a full push at full speed.
+        let speed = SPEED;
+        const js = joy.current;
+        const push = Math.hypot(js.x, js.y);
+        if (push > 0.18) {
+          ix = js.x;
+          iy = js.y;
+          speed = SPEED * Math.min(1, 0.45 + push * 0.6);
+          path = [];
+          pendingTarget = null;
+        }
         if (ix || iy) {
-          moveActor(player, ix, iy, dt, SPEED, solids);
+          moveActor(player, ix, iy, dt, speed, solids);
           wallTime = player.moving ? 0 : wallTime + dt;
           if (wallTime > 1.3 && now - lastThoughtAt > 7000) {
             think(pick(wallThoughts(L.g), lastThought), now);
@@ -830,6 +844,33 @@ export default function PixelWorld({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, playerLook]);
 
+  // Let go of the stick whenever a window opens over the world.
+  useEffect(() => {
+    if (paused) {
+      joy.current = { x: 0, y: 0, id: -1 };
+      if (knobRef.current) knobRef.current.style.transform = '';
+    }
+  }, [paused]);
+
+  const JOY_R = 40;
+  const moveJoy = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    let dx = e.clientX - (r.left + r.width / 2);
+    let dy = e.clientY - (r.top + r.height / 2);
+    const d = Math.hypot(dx, dy);
+    if (d > JOY_R) {
+      dx = (dx / d) * JOY_R;
+      dy = (dy / d) * JOY_R;
+    }
+    joy.current.x = dx / JOY_R;
+    joy.current.y = dy / JOY_R;
+    if (knobRef.current) knobRef.current.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  };
+  const releaseJoy = () => {
+    joy.current = { x: 0, y: 0, id: -1 };
+    if (knobRef.current) knobRef.current.style.transform = '';
+  };
+
   return (
     <div ref={wrapRef} className="relative h-full w-full select-none overflow-hidden bg-[#07090c]" style={{ touchAction: 'none' }}>
       <canvas ref={canvasRef} className="absolute inset-0 block" />
@@ -849,14 +890,41 @@ export default function PixelWorld({
         <div className="font-display text-sm font-bold leading-tight text-slate-100">{map.name}</div>
         <div className="text-[10px] text-steel">{map.district}</div>
       </div>
+      {!paused && (
+        <div
+          aria-label="ג׳ויסטיק"
+          className="absolute bottom-4 left-4 h-28 w-28 touch-none rounded-full border-2 border-slate-400/30 bg-noir-bg/45 shadow-lg backdrop-blur-sm"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.currentTarget.setPointerCapture(e.pointerId);
+            joy.current.id = e.pointerId;
+            moveJoy(e);
+          }}
+          onPointerMove={(e) => {
+            if (joy.current.id === e.pointerId) moveJoy(e);
+          }}
+          onPointerUp={releaseJoy}
+          onPointerCancel={releaseJoy}
+        >
+          {/* Direction marks */}
+          <div className="pointer-events-none absolute left-1/2 top-1.5 h-0 w-0 -translate-x-1/2 border-x-[5px] border-b-[6px] border-x-transparent border-b-slate-400/50" />
+          <div className="pointer-events-none absolute bottom-1.5 left-1/2 h-0 w-0 -translate-x-1/2 border-x-[5px] border-t-[6px] border-x-transparent border-t-slate-400/50" />
+          <div className="pointer-events-none absolute left-1.5 top-1/2 h-0 w-0 -translate-y-1/2 border-y-[5px] border-r-[6px] border-y-transparent border-r-slate-400/50" />
+          <div className="pointer-events-none absolute right-1.5 top-1/2 h-0 w-0 -translate-y-1/2 border-y-[5px] border-l-[6px] border-y-transparent border-l-slate-400/50" />
+          <div
+            ref={knobRef}
+            className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-200/70 bg-gradient-to-b from-slate-300/80 to-slate-500/80 shadow-md"
+          />
+        </div>
+      )}
       {prompt && !paused && (
         <button
           onClick={() => interactRef.current()}
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-evidence/60 bg-noir-panel/95 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-lg active:scale-95"
+          className="absolute bottom-8 right-4 flex max-w-[calc(100%-10rem)] items-center gap-2 rounded-xl border border-evidence/60 bg-noir-panel/95 px-4 py-2.5 text-sm font-bold text-slate-100 shadow-lg active:scale-95"
         >
           {prompt.kind === 'prop' ? <Search className="h-4 w-4 text-steel" /> : prompt.verb === 'בדיקה' ? <Hand className="h-4 w-4 text-evidence-light" /> : <MessageSquare className="h-4 w-4 text-evidence-light" />}
           <span>{prompt.verb}</span>
-          <span className="max-w-[46vw] truncate text-steel">{prompt.name}</span>
+          <span className="min-w-0 truncate text-steel">{prompt.name}</span>
         </button>
       )}
     </div>

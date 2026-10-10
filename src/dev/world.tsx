@@ -28,7 +28,7 @@ createRoot(document.getElementById('root')!).render(
       onHotspot={(h) => console.log('hotspot', h.hotspot.id)}
       onChat={(n) => console.log('chat', n.character.name)}
       onExamine={(a, b) => console.log('examine', a, b)}
-      onPositionChange={() => {}}
+      onPositionChange={(_m, x, y) => console.log('pos', x.toFixed(2), y.toFixed(2))}
     />
   </div>,
 );

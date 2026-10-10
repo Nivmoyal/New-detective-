@@ -58,7 +58,7 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 1. **Arrival.** Type your name and design your detective in the pixel character creator (body, skin tone,
    hairstyle, hair colour, outfit, colours, glasses, beard).
 2. **The streets.** Six large maps: the station, שוק לוינסקי, נווה שאנן, התחנה המרכזית הישנה, פלורנטין
-   and שכונת שפירא. Buildings open up when you walk in. Move with WASD/arrow keys, drag anywhere as a
+   and שכונת שפירא. Buildings open up when you walk in. Move with the on-screen joystick (bottom left; a light push walks slowly), WASD/arrow keys, drag anywhere as a
    joystick, or tap to walk; tap a person or object to walk over and interact. Travel with the patrol car.
 3. **Forensic lab.** Physical items stay "ממתין למז״פ" until analyzed and can't be pinned before that.
 4. **Evidence board.** Tap a suspect, then evidence (or the reverse). Red string = implicates, blue = an alibi
