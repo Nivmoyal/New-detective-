@@ -109,8 +109,8 @@ export interface DialogueLine {
 export interface MapHotspot {
   id: string;
   mapId: string;
-  x: number;
-  y: number;
+  /** Named place on the map where this hotspot sits. */
+  anchor: string;
   kind: HotspotKind;
   label: string;
   title: string;
@@ -118,10 +118,12 @@ export interface MapHotspot {
   evidenceIds: string[];
   /** Person standing at the hotspot (witnesses, camera owners). */
   character?: CharacterRef;
-  /** Direction the character faces, in radians (0 = towards the camera). */
-  facing?: number;
-  /** Evidence ids that must be collected before this hotspot appears. */
+  /** Evidence ids needed before this lead can be followed (otherwise the place is locked). */
   requires?: string[];
+  /** Name shown for the place while it is still locked. */
+  lockedLabel?: string;
+  /** What the detective hears/sees while the lead cannot be followed yet. */
+  lockedText?: string;
 }
 
 export interface CaseFile {

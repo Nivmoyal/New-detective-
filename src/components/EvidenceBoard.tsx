@@ -357,10 +357,13 @@ export default function EvidenceBoard({ caseFile, progress, onLink, onRemoveLink
                       ))}
                     </div>
                   )}
-                  {d.canIssueWarrant && !progress.warrantSuspectId && (
-                    <button className="btn-danger mt-2 w-full" onClick={() => onIssueWarrant(d.suspectId)}>
+                  {!d.cleared && !progress.warrantSuspectId && !progress.solved && (
+                    <button
+                      className={`${d.canIssueWarrant ? 'btn-danger' : 'btn-ghost'} mt-2 w-full`}
+                      onClick={() => onIssueWarrant(d.suspectId)}
+                    >
                       <Lock className="h-4 w-4" />
-                      הוצאת צו מעצר נגד {suspect.name}
+                      בקשת צו מעצר נגד {suspect.name}
                     </button>
                   )}
                 </div>

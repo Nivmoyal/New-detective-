@@ -11,8 +11,8 @@ import {
   Zap,
 } from 'lucide-react';
 import type { CaseFile, CaseProgress, CharacterLook, InterrogationState, TacticId } from '../types/investigation';
-import InterrogationScene from './three/InterrogationScene';
-import type { Mood } from './three/Humanoid';
+import InterrogationScene from './pixel/InterrogationScene';
+import type { Expression } from '../pixel/portrait';
 import { collectedClues, isPendingLab, SOURCE_LABELS } from '../services/caseEngine';
 import { MAX_MISTAKES, MAX_TURNS, TACTICS } from '../services/interrogationEngine';
 
@@ -67,7 +67,8 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
   const breakPct = Math.min(100, Math.round((session.progress / profile.breakThreshold) * 100));
 
   const [suspectTalking, setSuspectTalking] = useState(false);
-  const mood: Mood =
+  const [detectiveTalking, setDetectiveTalking] = useState(false);
+  const mood: Expression =
     session.status === 'confessed'
       ? 'broken'
       : session.status !== 'active'
@@ -81,9 +82,10 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
     const last = session.log[session.log.length - 1];
-    if (last?.speaker !== 'suspect') return;
-    setSuspectTalking(true);
-    const t = window.setTimeout(() => setSuspectTalking(false), 2600);
+    if (!last || last.speaker === 'system') return;
+    const set = last.speaker === 'suspect' ? setSuspectTalking : setDetectiveTalking;
+    set(true);
+    const t = window.setTimeout(() => set(false), 2400);
     return () => window.clearTimeout(t);
   }, [session.log]);
 
@@ -96,8 +98,9 @@ export default function InterrogationRoom({ detectiveLook, caseFile, progress, s
             suspect={suspect.look}
             detective={detectiveLook}
             tension={session.tension}
-            mood={mood}
+            expression={mood}
             talking={suspectTalking}
+            detectiveTalking={detectiveTalking}
             className="absolute inset-0"
           />
         )}

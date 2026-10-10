@@ -71,3 +71,10 @@ body {
   @apply flex h-12 w-12 items-center justify-center rounded-xl border border-noir-border bg-noir-panel/85 text-slate-200 backdrop-blur active:bg-police active:text-white;
   touch-action: none;
 }
+
+.crt-overlay {
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0px, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  mix-blend-mode: multiply;
+}

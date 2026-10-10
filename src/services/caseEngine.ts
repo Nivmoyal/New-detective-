@@ -86,19 +86,6 @@ export function emptyProgress(): CaseProgress {
   };
 }
 
-/** The next case the detective should be assigned, or null when all are solved. */
-export function nextCaseId(solved: string[]): string | null {
-  const next = loadCases().find((c) => !solved.includes(c.id));
-  return next ? next.id : null;
-}
-
-export function isCaseUnlocked(caseId: string, solved: string[]): boolean {
-  const c = getCase(caseId);
-  return loadCases()
-    .filter((o) => o.order < c.order)
-    .every((o) => solved.includes(o.id));
-}
-
 export function rankForSolvedCount(solvedCount: number): number {
   return Math.min(RANKS.length - 1, solvedCount);
 }
@@ -113,11 +100,6 @@ export function rankLabel(profile: DetectiveProfile): string {
 
 export function isHotspotAvailable(hotspot: MapHotspot, progress: CaseProgress): boolean {
   return (hotspot.requires ?? []).every((id) => progress.collected.includes(id));
-}
-
-/** Hotspots of the active case on a map that are unlocked. */
-export function getVisibleHotspots(caseFile: CaseFile, mapId: string, progress: CaseProgress): MapHotspot[] {
-  return caseFile.hotspots.filter((h) => h.mapId === mapId && isHotspotAvailable(h, progress));
 }
 
 export function isHotspotExhausted(hotspot: MapHotspot, progress: CaseProgress): boolean {
@@ -222,47 +204,6 @@ export function buildEvidenceNodes(caseFile: CaseFile, progress: CaseProgress): 
     pendingLab: isPendingLab(clue, progress),
   }));
   return [...suspects, ...evidence];
-}
-
-/* ------------------------------------------------------------------ */
-/* Objectives                                                          */
-/* ------------------------------------------------------------------ */
-
-export interface Objective {
-  id: string;
-  text: string;
-  done: boolean;
-}
-
-export function getObjectives(caseFile: CaseFile, progress: CaseProgress): Objective[] {
-  const pending = pendingLabClues(caseFile, progress).length;
-  const best = Math.max(0, ...evaluateDeduction(caseFile, progress).map((d) => d.validatedCount));
-  const innocents = caseFile.suspects.filter((s) => s.id !== caseFile.culpritId);
-  const clearedCount = innocents.filter((s) => isSuspectCleared(progress, s.id)).length;
-  return [
-    {
-      id: 'collect',
-      text: `איסוף ראיות בשטח (${progress.collected.length}/${caseFile.clues.length})`,
-      done: progress.collected.length >= Math.min(caseFile.clues.length, 6),
-    },
-    {
-      id: 'lab',
-      text: pending > 0 ? `ניתוח במעבדת מז״פ - ${pending} ממתינות` : 'כל הראיות הפיזיות נותחו במז״פ',
-      done: pending === 0 && progress.analyzed.length > 0,
-    },
-    {
-      id: 'clear',
-      text: `ניקוי חשודים באמצעות אליבי (${clearedCount}/${innocents.length})`,
-      done: clearedCount === innocents.length,
-    },
-    {
-      id: 'board',
-      text: `חיבור ${WARRANT_THRESHOLD} ראיות מאומתות לחשוד אחד בלוח (${Math.min(best, WARRANT_THRESHOLD)}/${WARRANT_THRESHOLD})`,
-      done: best >= WARRANT_THRESHOLD,
-    },
-    { id: 'warrant', text: 'הוצאת צו מעצר', done: progress.warrantSuspectId !== null },
-    { id: 'interrogate', text: 'גביית הודאה בחקירה באזהרה', done: progress.solved },
-  ];
 }
 
 export function caseScore(progress: CaseProgress, mistakes: number): number {

@@ -248,8 +248,7 @@
         {
           "id": "h1-shop",
           "mapId": "levinsky",
-          "x": 13.5,
-          "y": 9.5,
+          "anchor": "lev-exchange-back",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "זירת השוד - החדר האחורי",
@@ -279,14 +278,12 @@
               "pantsColor": "#2d3440",
               "glasses": true
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h1-owner",
           "mapId": "levinsky",
-          "x": 11.5,
-          "y": 8.5,
+          "anchor": "lev-exchange-owner",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "שמעון אלבז - בעל החלפנות",
@@ -322,14 +319,12 @@
               "glasses": true,
               "height": 0.96
             }
-          },
-          "facing": 3.14
+          }
         },
         {
           "id": "h1-spice",
           "mapId": "levinsky",
-          "x": 6.5,
-          "y": 3.5,
+          "anchor": "lev-spice",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "דוכן התבלינים - עדת ראייה",
@@ -358,14 +353,12 @@
               "topColor": "#8a3b2e",
               "pantsColor": "#22252b"
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h1-alley",
           "mapId": "levinsky",
-          "x": 4.5,
-          "y": 17.5,
+          "anchor": "lev-alley-bin",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "פח אשפה בסמטה האחורית",
@@ -382,8 +375,7 @@
         {
           "id": "h1-falafel",
           "mapId": "levinsky",
-          "x": 20.5,
-          "y": 12.5,
+          "anchor": "lev-falafel",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "דוכן הפלאפל של אבוטבול",
@@ -414,14 +406,12 @@
               "beard": true,
               "height": 1.02
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h1-cctv",
           "mapId": "oldCbs",
-          "x": 22.5,
-          "y": 13.5,
+          "anchor": "cbs-guard",
           "kind": "cctv",
           "label": "בדיקת מצלמות אבטחה",
           "title": "עמדת השומר - מצלמות החניון",
@@ -451,14 +441,12 @@
               "pantsColor": "#2d3440",
               "cap": true
             }
-          },
-          "facing": 3.14
+          }
         },
         {
           "id": "h1-gambling",
           "mapId": "oldCbs",
-          "x": 5.5,
-          "y": 12.5,
+          "anchor": "cbs-gambling",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "משרד ההימורים הנטוש",
@@ -475,8 +463,7 @@
         {
           "id": "h1-antenna",
           "mapId": "station",
-          "x": 16.5,
-          "y": 3.5,
+          "anchor": "st-intel-desk",
           "kind": "cctv",
           "label": "בדיקת מודיעין",
           "title": "עמדת מודיעין - פלט אנטנות",
@@ -506,13 +493,13 @@
               "glasses": true
             }
           },
-          "facing": 0
+          "lockedLabel": "עמדת מודיעין",
+          "lockedText": "אין לי מה להריץ בלי כיוון. תביא לי מספר, שם, משהו קונקרטי לבדוק - ואני אוציא לך פלט אנטנות תוך שעה."
         },
         {
           "id": "h1-parole",
           "mapId": "station",
-          "x": 15.5,
-          "y": 11.5,
+          "anchor": "st-lobby-bench",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "קצין המבחן בלובי",
@@ -541,7 +528,8 @@
               "pantsColor": "#2d3440"
             }
           },
-          "facing": 0
+          "lockedLabel": "קצין מבחן ממתין",
+          "lockedText": "אני מחכה לאחד הקצינים בעניין אחר. אם יהיה לכם משהו לשאול על אחד המשוחררים שלי - אני פה."
         }
       ],
       "hints": [
@@ -796,8 +784,7 @@
         {
           "id": "h2-door",
           "mapId": "neveShaanan",
-          "x": 10.5,
-          "y": 12.5,
+          "anchor": "ns-transfer-door",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "דלת משרד אסמרה אקספרס",
@@ -814,8 +801,7 @@
         {
           "id": "h2-owner",
           "mapId": "neveShaanan",
-          "x": 13.5,
-          "y": 13.5,
+          "anchor": "ns-transfer-owner",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "טספאי גברהיווט - בעל העסק",
@@ -850,14 +836,12 @@
               "pantsColor": "#2d3440",
               "glasses": true
             }
-          },
-          "facing": 3.14
+          }
         },
         {
           "id": "h2-guard",
           "mapId": "neveShaanan",
-          "x": 19.5,
-          "y": 13.5,
+          "anchor": "ns-shelter-guard",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "מוחמד עבדאללה - שומר הלילה",
@@ -891,14 +875,12 @@
               "pantsColor": "#1b1d22",
               "cap": true
             }
-          },
-          "facing": 3.14
+          }
         },
         {
           "id": "h2-kiosk",
           "mapId": "neveShaanan",
-          "x": 2.5,
-          "y": 5.5,
+          "anchor": "ns-kiosk",
           "kind": "cctv",
           "label": "בדיקת מצלמות אבטחה",
           "title": "הקיוסק של אבו עלי - מצלמה",
@@ -929,14 +911,12 @@
               "beard": true,
               "height": 0.95
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h2-barber",
           "mapId": "neveShaanan",
-          "x": 9.5,
-          "y": 5.5,
+          "anchor": "ns-barber",
           "kind": "cctv",
           "label": "בדיקת מצלמות אבטחה",
           "title": "המספרה של יוסף - מצלמת רחוב",
@@ -966,14 +946,12 @@
               "pantsColor": "#22252b",
               "beard": true
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h2-restaurant",
           "mapId": "neveShaanan",
-          "x": 23.5,
-          "y": 6.5,
+          "anchor": "ns-restaurant",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "המסעדה של אלם - בעלת המסעדה",
@@ -1002,14 +980,12 @@
               "topColor": "#b0452e",
               "pantsColor": "#22252b"
             }
-          },
-          "facing": 3.14
+          }
         },
         {
           "id": "h2-storage",
           "mapId": "shapira",
-          "x": 22.5,
-          "y": 13.5,
+          "anchor": "sh-storage4",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "מחסן 4 - מושכר על שם דני אוחיון",
@@ -1024,13 +1000,14 @@
           ],
           "evidenceIds": [
             "c2-ledger"
-          ]
+          ],
+          "lockedLabel": "מחסן 4",
+          "lockedText": "דלת גלילה נעולה במנעול תלייה כבד. בלי סיבה מבוססת וצו חיפוש - אי אפשר לפתוח."
         },
         {
           "id": "h2-wife",
           "mapId": "shapira",
-          "x": 9.5,
-          "y": 3.5,
+          "anchor": "sh-brodsky-yard",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "בית משפחת ברודסקי",
@@ -1059,14 +1036,12 @@
               "topColor": "#6b5a7a",
               "pantsColor": "#2d3440"
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h2-record",
           "mapId": "station",
-          "x": 10.5,
-          "y": 5.5,
+          "anchor": "st-records-terminal",
           "kind": "cctv",
           "label": "בדיקת מודיעין",
           "title": "מסוף רישום פלילי",
@@ -1081,7 +1056,9 @@
           ],
           "evidenceIds": [
             "c2-alex-record"
-          ]
+          ],
+          "lockedLabel": "מסוף פל״א",
+          "lockedText": "המסוף מבקש שם ומספר זהות לשאילתה. אין לך כרגע שם קונקרטי להריץ."
         }
       ],
       "hints": [
@@ -1325,8 +1302,7 @@
         {
           "id": "h3-bar",
           "mapId": "florentin",
-          "x": 4.5,
-          "y": 12.5,
+          "anchor": "fl-bar",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "הבר - שירן הברמנית",
@@ -1360,14 +1336,12 @@
               "topColor": "#151515",
               "pantsColor": "#17191d"
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h3-backdoor",
           "mapId": "florentin",
-          "x": 10.5,
-          "y": 16.5,
+          "anchor": "fl-backdoor",
           "kind": "collect",
           "label": "איסוף ראיה",
           "title": "היציאה האחורית",
@@ -1384,8 +1358,7 @@
         {
           "id": "h3-smoker",
           "mapId": "florentin",
-          "x": 3.5,
-          "y": 17.5,
+          "anchor": "fl-smoker",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "מעשן קבוע בסמטה",
@@ -1414,14 +1387,12 @@
               "topColor": "#e8e4dc",
               "pantsColor": "#22252b"
             }
-          },
-          "facing": 0
+          }
         },
         {
           "id": "h3-office",
           "mapId": "florentin",
-          "x": 3.5,
-          "y": 7.5,
+          "anchor": "fl-office-dvr",
           "kind": "cctv",
           "label": "בדיקת מצלמות אבטחה",
           "title": "משרד ההנהלה - מחשב ומצלמות",
@@ -1443,8 +1414,7 @@
         {
           "id": "h3-taxi",
           "mapId": "florentin",
-          "x": 6.5,
-          "y": 4.5,
+          "anchor": "fl-taxi",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "תחנת המוניות ברחוב וושינגטון",
@@ -1479,13 +1449,13 @@
               "height": 1.02
             }
           },
-          "facing": 0
+          "lockedLabel": "תחנת מוניות",
+          "lockedText": "הנהג מעיף מבט ומושך בכתפיים: \"אני מסיע מאה אנשים בלילה. תראה לי מי אתה מחפש, אולי אזכור.\""
         },
         {
           "id": "h3-grocery",
           "mapId": "florentin",
-          "x": 20.5,
-          "y": 1.5,
+          "anchor": "fl-grocery",
           "kind": "cctv",
           "label": "בדיקת מצלמות אבטחה",
           "title": "מכולת 24/7 - מצלמת רחוב",
@@ -1518,13 +1488,13 @@
               "pantsColor": "#22252b"
             }
           },
-          "facing": 0
+          "lockedLabel": "מכולת 24/7",
+          "lockedText": "בעל המכולת עסוק עם ספק: \"מצלמה יש, אבל אני לא מריץ קלטות בשביל סקרנות. תגיד לי מה בדיוק אתה מחפש ובאיזו שעה.\""
         },
         {
           "id": "h3-parking",
           "mapId": "oldCbs",
-          "x": 22.5,
-          "y": 14.5,
+          "anchor": "cbs-guard",
           "kind": "witness",
           "label": "תשאול עד",
           "title": "שומר החניון בתחנה הישנה",
@@ -1558,7 +1528,8 @@
               "cap": true
             }
           },
-          "facing": 3.14
+          "lockedLabel": "שומר החניון",
+          "lockedText": "\"טנדרים? פה עוברים מאות רכבים. תגיד לי מה אתה מחפש ואני אגיד לך אם ראיתי.\""
         }
       ],
       "hints": [

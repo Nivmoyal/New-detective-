@@ -26,15 +26,16 @@ import {
   TOP_COLORS,
   defaultPlayerLook,
 } from '../data/characters';
-import CharacterPortrait from './three/CharacterPortrait';
 import CharacterBanner from './CharacterBanner';
+import SpritePreview from './pixel/SpritePreview';
+import PixelPortrait from './pixel/PixelPortrait';
 
 type Mode = 'profile' | 'commander' | 'desk';
 
 interface Props {
   mode: Mode;
   profile: DetectiveProfile | null;
-  caseFile?: CaseFile | null;
+  cases?: CaseFile[];
   onCreateProfile?: (name: string, specialization: Specialization, addressForm: AddressForm, look: CharacterLook) => void;
   onComplete?: () => void;
   onClose?: () => void;
@@ -93,17 +94,23 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
   const [name, setName] = useState('');
   const [spec, setSpec] = useState<Specialization>('criminal');
   const [look, setLook] = useState<CharacterLook>(defaultPlayerLook('male'));
-  const [walking, setWalking] = useState(false);
+  const [walking, setWalking] = useState(true);
   const valid = name.trim().length >= 2;
   const set = (patch: Partial<CharacterLook>) => setLook((l) => ({ ...l, ...patch }));
 
   return (
     <div>
-      {/* Live 3D preview */}
+      {/* Live pixel-art preview */}
       <div className="sticky top-0 z-10 -mx-4 border-b border-noir-border bg-noir-bg/95 backdrop-blur">
-        <div className="relative h-[38vh] max-h-80 min-h-56">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(37,99,235,0.18),transparent_60%)]" />
-          <CharacterPortrait look={look} framing="full" turntable walking={walking} className="absolute inset-0" />
+        <div className="relative h-[34vh] max-h-72 min-h-52 overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(37,99,235,0.2),transparent_60%)]" />
+          <div className="crt-overlay pointer-events-none absolute inset-0" />
+          <div className="absolute inset-x-0 bottom-9 flex items-end justify-center gap-6">
+            <SpritePreview look={look} walking={walking} scale={6} />
+            <div className="mb-2 rounded-lg border-2 border-noir-border bg-[#141b26]">
+              <PixelPortrait look={look} size={120} className="block" />
+            </div>
+          </div>
           <div className="absolute right-3 top-3">
             <div className="font-display text-xl font-black text-slate-50">התחנה</div>
             <div className="text-[11px] font-bold text-evidence-light">מרחב יפתח · תחנת שרפשטיין</div>
@@ -114,7 +121,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
             aria-label={walking ? 'עצירה' : 'הליכה'}
           >
             {walking ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            {walking ? 'עצירה' : 'הדגמת הליכה'}
+            {walking ? 'עמידה' : 'הליכה'}
           </button>
           {name.trim() && (
             <div className="absolute bottom-3 right-3 rounded-md bg-noir-panel/90 px-2 py-1 text-sm font-bold">{name.trim()}</div>
@@ -246,7 +253,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
   );
 }
 
-export default function RookieArrivalModal({ mode, profile, caseFile, onCreateProfile, onComplete, onClose }: Props) {
+export default function RookieArrivalModal({ mode, profile, cases = [], onCreateProfile, onComplete, onClose }: Props) {
   const [step, setStep] = useState(0);
   const g = (male: string, female: string) => (profile?.addressForm === 'female' ? female : male);
 
@@ -257,14 +264,15 @@ export default function RookieArrivalModal({ mode, profile, caseFile, onCreatePr
         `ראיתי בתיק האישי שלך התמחות ב${SPECIALIZATIONS[profile.specialization].label}. טוב. ${SPECIALIZATIONS[profile.specialization].perk}`,
         `הכללים שלי פשוטים. עובדים לפי ראיות, לא לפי שמועות. כל ראיה פיזית עוברת אצל ד״ר מאיה שטרן במעבדת מז״פ. ${WARRANT_THRESHOLD} ראיות מאומתות על הלוח שמצביעות על אותו חשוד - ואני חותמת על צו מעצר.`,
         `חיבור שגוי בלוח או טעות טקטית בחדר החקירות פוגעים באמינות שלך מולי ומול הפרקליטות. ${g('תהיה', 'תהיי')} ${g('יסודי', 'יסודית')}.`,
-        `רפ״ק יוסי כהן יראה לך את השולחן שלך במשרד החוקרים. על השולחן כבר מחכה לך תיק. בהצלחה, ${RANKS[profile.rankIndex]} ${profile.name}.`,
+        `על השולחן שלך במשרד החוקרים מחכים תיקים פתוחים. באיזה סדר, איפה מתחילים ואת מי מתשאלים - זה שלך. אני רוצה תוצאות, לא דיווחים. בהצלחה, ${RANKS[profile.rankIndex]} ${profile.name}.`,
       ]
     : [];
 
   const deskLines = profile
     ? [
         `${g('אתה החדש', 'את החדשה')}? יוסי כהן, ראש צוות. זה השולחן שלך, ליד החלון. הקפה במטבחון, והמדפסת לא עובדת מאז 2019.`,
-        'לוח השעם שמעל השולחן הוא הכלי הכי חשוב שלך. שם מצמידים חשודים, ממצאים מהזירה, מניעים ואליבי, ומותחים חוט אדום בין מה שבאמת מתחבר.',
+        'לוח השעם ליד השולחן הוא הכלי הכי חשוב שלך. שם מצמידים חשודים, ממצאים מהזירה, מניעים ואליבי, ומותחים חוט אדום בין מה שבאמת מתחבר.',
+        'שלושה תיקים פתוחים במרחב. אף אחד לא יגיד לך מאיפה להתחיל. כל ראיה שתמצא בשטח תיכנס אוטומטית לתיק שלה.',
         `אליבי שמחזיק - מנקה חשוד. שלושה חוטים מאומתים לאותו חשוד - הולכים למפקדת לצו. ואם חיברת משהו שלא מתחבר, ${g('תקבל', 'תקבלי')} על זה הערה.`,
       ]
     : [];
@@ -281,7 +289,7 @@ export default function RookieArrivalModal({ mode, profile, caseFile, onCreatePr
 
   const lines = mode === 'commander' ? commanderLines : deskLines;
   const last = step >= lines.length - 1;
-  const showCase = mode === 'desk' && last && caseFile;
+  const showCases = mode === 'desk' && last && cases.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center">
@@ -292,14 +300,18 @@ export default function RookieArrivalModal({ mode, profile, caseFile, onCreatePr
             {lines[step]}
           </p>
 
-          {showCase && (
-            <div className="mt-3 animate-fadeUp rounded-lg border border-evidence/50 bg-cork/60 p-3">
-              <div className="mb-1 flex items-center gap-2 text-evidence-light">
-                <Folder className="h-5 w-5" />
-                <span className="text-xs font-bold">תיק חקירה · {caseFile.crimeType}</span>
-              </div>
-              <div className="font-display text-base font-bold text-slate-50">{caseFile.title}</div>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">{caseFile.summary}</p>
+          {showCases && (
+            <div className="mt-3 max-h-[38vh] space-y-2 overflow-y-auto scrollbar-thin">
+              {cases.map((c) => (
+                <div key={c.id} className="animate-fadeUp rounded-lg border border-evidence/50 bg-cork/60 p-3">
+                  <div className="mb-1 flex items-center gap-2 text-evidence-light">
+                    <Folder className="h-4 w-4" />
+                    <span className="text-[11px] font-bold">{c.crimeType} · {c.locationName}</span>
+                  </div>
+                  <div className="font-display text-sm font-bold text-slate-50">{c.title}</div>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-300">{c.summary}</p>
+                </div>
+              ))}
             </div>
           )}
 
@@ -328,7 +340,7 @@ export default function RookieArrivalModal({ mode, profile, caseFile, onCreatePr
               ) : (
                 <button className="btn-gold" onClick={onComplete}>
                   <FileText className="h-4 w-4" />
-                  לקחת את התיק מהשולחן
+                  פתיחת התיקים
                 </button>
               )}
             </div>

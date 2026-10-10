@@ -4,6 +4,7 @@ import {
   Award,
   CheckSquare,
   Compass,
+  Eye,
   FileText,
   Fingerprint,
   Folder,
@@ -27,6 +28,7 @@ import {
   clueDisplayText,
   collectedClues,
   hintCost,
+  loadCases,
   pendingLabClues,
 } from '../services/caseEngine';
 
@@ -45,7 +47,7 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   tone?: 'police' | 'gold' | 'red';
-  /** When set, the header shows the live 3D portrait of the person you are talking to. */
+  /** When set, the header shows the pixel portrait of the person you are talking to. */
   character?: CharacterRef;
 }) {
   const toneCls =
@@ -82,19 +84,13 @@ export function Modal({
 
 /* ------------------------------------------------------------------ */
 
-export function LabModal({
-  caseFile,
-  progress,
-  onAnalyze,
-  onClose,
-}: {
-  caseFile: CaseFile | null;
-  progress: CaseProgress | null;
-  onAnalyze: () => void;
-  onClose: () => void;
-}) {
-  const pending = caseFile && progress ? pendingLabClues(caseFile, progress) : [];
-  const analyzed = caseFile && progress ? collectedClues(caseFile, progress).filter((c) => progress.analyzed.includes(c.id)) : [];
+export function LabModal({ allProgress, onAnalyze, onClose }: { allProgress: Record<string, CaseProgress>; onAnalyze: () => void; onClose: () => void }) {
+  const cases = loadCases();
+  const pending = cases.flatMap((c) => (allProgress[c.id] ? pendingLabClues(c, allProgress[c.id]) : []));
+  const analyzed = cases.flatMap((c) => {
+    const p = allProgress[c.id];
+    return p ? collectedClues(c, p).filter((x) => p.analyzed.includes(x.id)) : [];
+  });
   return (
     <Modal title='מעבדת מז״פ' subtitle="מחלק זיהוי פלילי, מרחב יפתח" icon={<Fingerprint className="h-5 w-5" />} onClose={onClose} character={LAB_TECH}>
       <div className="mb-3 rounded-lg border border-noir-border bg-noir-deep/70 p-3 text-sm text-slate-300">
@@ -173,12 +169,10 @@ export function EvidenceRoomModal({
 
 export function TravelModal({
   currentMapId,
-  caseFile,
   onTravel,
   onClose,
 }: {
   currentMapId: string;
-  caseFile: CaseFile | null;
   onTravel: (mapId: string) => void;
   onClose: () => void;
 }) {
@@ -189,7 +183,6 @@ export function TravelModal({
       <div className="space-y-2">
         {ids.map((id) => {
           const m = MAPS[id];
-          const relevant = caseFile?.mapIds.includes(id) && id !== STATION_MAP_ID;
           const here = id === currentMapId;
           return (
             <button
@@ -197,14 +190,13 @@ export function TravelModal({
               disabled={here}
               onClick={() => onTravel(id)}
               className={`flex w-full items-start gap-3 rounded-lg border p-3 text-right transition disabled:opacity-50 ${
-                relevant ? 'border-evidence/60 bg-evidence/10 hover:border-evidence-light' : 'border-noir-border bg-noir-deep hover:border-police-light'
+                'border-noir-border bg-noir-deep hover:border-police-light'
               }`}
             >
-              <MapPin className={`mt-0.5 h-5 w-5 shrink-0 ${relevant ? 'text-evidence-light' : 'text-police-light'}`} />
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-police-light" />
               <span className="flex-1">
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-bold">{m.name}</span>
-                  {relevant && <span className="label-tag bg-evidence/20 text-evidence-light">רלוונטי לתיק</span>}
                   {here && <span className="label-tag bg-noir-border text-steel">מיקום נוכחי</span>}
                 </span>
                 <span className="mt-0.5 block text-xs leading-snug text-steel">{m.description}</span>
@@ -239,7 +231,7 @@ export function CommanderModal({
     <Modal title='סנ״צ אורנה ברק' subtitle="מפקדת תחנת שרפשטיין" icon={<UserCheck className="h-5 w-5" />} onClose={onClose} character={COMMANDER}>
       {!caseFile ? (
         <p className="text-sm leading-relaxed text-slate-300">
-          {`אין לך תיק פעיל כרגע. התיק הבא כבר מחכה על השולחן שלך במשרד החוקרים. ${g('לך', 'לכי')} לקחת אותו.`}
+          {`על איזה תיק ${g('אתה רוצה', 'את רוצה')} לדבר? ${g('תפתח', 'תפתחי')} תיק בתיקייה שלך ואז ${g('תחזור', 'תחזרי')} אליי.`}
         </p>
       ) : (
         <div className="space-y-3">
@@ -331,7 +323,7 @@ export function CaseClosedModal({
           )}
           <button className="btn-gold w-full py-3" onClick={onClose}>
             <FileText className="h-4 w-4" />
-            {allSolved ? 'חזרה לתחנה' : 'חזרה לתחנה - התיק הבא מחכה על השולחן'}
+            {allSolved ? 'חזרה לתחנה' : 'חזרה לעבודה'}
           </button>
         </div>
       </div>
@@ -345,15 +337,17 @@ export function NoticeModal({
   title,
   text,
   character,
+  tone = 'red',
   onClose,
 }: {
   title: string;
   text: string;
   character?: CharacterRef;
+  tone?: 'red' | 'gold' | 'police';
   onClose: () => void;
 }) {
   return (
-    <Modal title={title} icon={<Lock className="h-5 w-5" />} onClose={onClose} tone="red" character={character}>
+    <Modal title={title} icon={tone === 'red' ? <Lock className="h-5 w-5" /> : <Eye className="h-5 w-5" />} onClose={onClose} tone={tone} character={character}>
       <p className="text-sm leading-relaxed text-slate-300">{text}</p>
       <button className="btn-ghost mt-4 w-full" onClick={onClose}>
         הבנתי

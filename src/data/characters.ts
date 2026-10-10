@@ -13,7 +13,9 @@ export const HAIR_STYLE_OPTIONS: { id: HairStyle; label: string }[] = [
   { id: 'short', label: 'קצר' },
   { id: 'buzz', label: 'קוצים' },
   { id: 'long', label: 'ארוך' },
-  { id: 'bun', label: 'פקעות' },
+  { id: 'ponytail', label: 'קוקו' },
+  { id: 'curly', label: 'מתולתל' },
+  { id: 'bun', label: 'פקעת' },
   { id: 'bald', label: 'קרחת' },
 ];
 
@@ -167,78 +169,9 @@ export const FACILITY_CHARACTERS: Record<string, CharacterRef> = {
   'f-exit-sh': PATROL_DRIVER,
 };
 
-/** People you can chat with who are not tied to a facility or a case. */
+/** Someone the detective can simply talk to. */
 export interface ChatNpc {
   id: string;
-  mapId: string;
-  x: number;
-  y: number;
-  facing: number;
   character: CharacterRef;
   lines: string[];
 }
-
-export const CHAT_NPCS: ChatNpc[] = [
-  {
-    id: 'npc-mentor',
-    mapId: 'station',
-    x: 9.5,
-    y: 1.6,
-    facing: 0,
-    character: MENTOR,
-    lines: [
-      'טיפ ממני: אל תחברו ללוח שום דבר שלא בדקתם עד הסוף. כל חוט אדום שקורס בפרקליטות - חוזר אליכם.',
-      'אליבי טוב שווה זהב. הוא לא רק מנקה חשוד - הוא מצמצם לכם את הרשימה.',
-      'בחדר החקירות, לחץ בלי ראיות זה רק רעש. קודם מניחים את הראיה על השולחן, אחר כך לוחצים.',
-      'מז״פ זה לא פורמליות. ראיה פיזית שלא עברה מעבדה - לא קיימת מבחינת הלוח.',
-    ],
-  },
-  {
-    id: 'npc-sergeant',
-    mapId: 'station',
-    x: 9.5,
-    y: 12.5,
-    facing: Math.PI / 2,
-    character: DESK_SERGEANT,
-    lines: [
-      'בוקר. הקפה במטבחון, המעלית לא עובדת, ומישהו שוב החנה על המקום של המפקדת.',
-      'שמעתי שקיבלת תיק כבר ביום הראשון. המפקדת לא עושה את זה לכל אחד.',
-      'אם אתם יוצאים לשטח, ליאת מחכה בניידת בחניון. היא מכירה כל סמטה בדרום העיר.',
-    ],
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/* Ambient pedestrians                                                 */
-/* ------------------------------------------------------------------ */
-
-export interface Pedestrian {
-  mapId: string;
-  path: { x: number; y: number }[];
-  speed: number;
-  look: CharacterLook;
-}
-
-const ped = (
-  body: 'male' | 'female',
-  skin: string,
-  hairStyle: HairStyle,
-  hairColor: string,
-  outfit: Outfit,
-  topColor: string,
-): CharacterLook => ({ body, skin, hairStyle, hairColor, outfit, topColor, pantsColor: '#22252b' });
-
-export const PEDESTRIANS: Pedestrian[] = [
-  { mapId: 'levinsky', path: [{ x: 2.5, y: 3.5 }, { x: 23.5, y: 3.5 }], speed: 1.1, look: ped('female', '#e5b48f', 'long', '#16120f', 'tshirt', '#6b4a7a') },
-  { mapId: 'levinsky', path: [{ x: 22.5, y: 12.5 }, { x: 2.5, y: 12.5 }], speed: 0.9, look: ped('male', '#9c6644', 'short', '#16120f', 'hoodie', '#5e1f26') },
-  { mapId: 'levinsky', path: [{ x: 9.5, y: 1.5 }, { x: 18.5, y: 1.5 }], speed: 0.7, look: ped('male', '#e5b48f', 'bald', '#16120f', 'tshirt', '#4b5a6b') },
-  { mapId: 'neveShaanan', path: [{ x: 2.5, y: 9.5 }, { x: 20.2, y: 9.5 }], speed: 1.0, look: ped('male', '#6b4430', 'buzz', '#16120f', 'tshirt', '#2f5d50') },
-  { mapId: 'neveShaanan', path: [{ x: 22.5, y: 17.5 }, { x: 2.5, y: 17.5 }], speed: 0.8, look: ped('female', '#6b4430', 'bun', '#16120f', 'tshirt', '#a3472b') },
-  { mapId: 'oldCbs', path: [{ x: 2.5, y: 17.5 }, { x: 23.5, y: 17.5 }], speed: 0.6, look: ped('male', '#c98f66', 'curly', '#3b2618', 'hoodie', '#2b2b2e') },
-  { mapId: 'florentin', path: [{ x: 2.5, y: 4.5 }, { x: 23.5, y: 4.5 }], speed: 1.2, look: ped('female', '#f3d2b3', 'ponytail', '#a8743f', 'leather', '#1c1c1c') },
-  { mapId: 'florentin', path: [{ x: 8.5, y: 10.5 }, { x: 22.5, y: 12.5 }], speed: 0.5, look: ped('male', '#e5b48f', 'curly', '#16120f', 'tshirt', '#7c3aed') },
-  { mapId: 'florentin', path: [{ x: 20.5, y: 7.5 }, { x: 9.5, y: 7.5 }], speed: 0.5, look: ped('female', '#c98f66', 'long', '#16120f', 'tshirt', '#be185d') },
-  { mapId: 'shapira', path: [{ x: 2.5, y: 9.5 }, { x: 22.5, y: 9.5 }], speed: 0.8, look: ped('female', '#e5b48f', 'bun', '#bdb6ad', 'blazer', '#6b5a4a') },
-  { mapId: 'shapira', path: [{ x: 5.5, y: 16.5 }, { x: 22.5, y: 16.5 }], speed: 0.9, look: ped('male', '#9c6644', 'short', '#16120f', 'tshirt', '#3d6b8a') },
-  { mapId: 'station', path: [{ x: 2.5, y: 7.5 }, { x: 23.5, y: 7.5 }], speed: 0.9, look: { ...ped('male', '#e5b48f', 'short', '#3b2618', 'uniform', UNIFORM_BLUE), pantsColor: '#1d2633' } },
-];
