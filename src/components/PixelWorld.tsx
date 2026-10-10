@@ -34,6 +34,8 @@ interface Props {
   onIncident: (incident: Incident) => void;
   onExamine: (title: string, text: string) => void;
   onPositionChange: (mapId: string, x: number, y: number) => void;
+  /** The investigation partner, when she came along on this patrol. */
+  partner?: { look: CharacterLook; quips: string[] } | null;
 }
 
 interface Actor {
@@ -130,6 +132,7 @@ export default function PixelWorld({
   onIncident,
   onExamine,
   onPositionChange,
+  partner = null,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -200,6 +203,13 @@ export default function PixelWorld({
       };
       npcActors.set(n.id, { actor, npc: { id: n.id, character: { name: n.name, role: n.role, look: n.look }, lines: n.lines, done: n.done } });
     }
+    // The partner walks a step behind, along the path the player took.
+    const partnerActor: Actor | null = partner
+      ? { key: 'partner', x: start.x + 0.9, y: start.y + 0.3, dir: DIR_DOWN, look: partner.look, moving: false, anim: 0, solid: false, homeDir: DIR_DOWN }
+      : null;
+    const trail: { x: number; y: number }[] = [{ x: start.x, y: start.y }];
+    const quips = partner ? [...partner.quips] : [];
+    let nextQuip = performance.now() + 9000 + Math.random() * 8000;
     const facilityActors = new Map<string, Actor>();
     for (const f of map.facilities) {
       if (f.object) continue;
@@ -453,11 +463,8 @@ export default function PixelWorld({
       if (!pointer || pointer.id !== e.pointerId) return;
       pointer.x = e.clientX;
       pointer.y = e.clientY;
-      if (!pointer.drag && Math.hypot(pointer.x - pointer.sx, pointer.y - pointer.sy) > 14) {
-        pointer.drag = true;
-        path = [];
-        pendingTarget = null;
-      }
+      // A finger that slides is not a tap (walking is the joystick's job).
+      if (!pointer.drag && Math.hypot(pointer.x - pointer.sx, pointer.y - pointer.sy) > 14) pointer.drag = true;
     };
     const onUp = (e: PointerEvent) => {
       if (!pointer || pointer.id !== e.pointerId) return;
@@ -564,10 +571,6 @@ export default function PixelWorld({
         if (keys.has('arrowright') || keys.has('d')) ix += 1;
         if (keys.has('arrowup') || keys.has('w')) iy -= 1;
         if (keys.has('arrowdown') || keys.has('s')) iy += 1;
-        if (pointer?.drag) {
-          ix = pointer.x - pointer.sx;
-          iy = pointer.y - pointer.sy;
-        }
         // The joystick: a light push walks slowly, a full push at full speed.
         let speed = SPEED;
         const js = joy.current;
@@ -671,6 +674,44 @@ export default function PixelWorld({
         actor.moving = true;
         actor.anim += dt * (actor.speed ?? 1) * 2.1;
       }
+      if (partnerActor) {
+        const last = trail[trail.length - 1];
+        if (Math.hypot(player.x - last.x, player.y - last.y) > 0.25) {
+          trail.push({ x: player.x, y: player.y });
+          if (trail.length > 40) trail.shift();
+        }
+        // Aim for the spot on the trail about 1.4 tiles behind the player.
+        let target = trail[0];
+        let acc = 0;
+        let px = player.x;
+        let py = player.y;
+        for (let i = trail.length - 1; i >= 0; i--) {
+          acc += Math.hypot(trail[i].x - px, trail[i].y - py);
+          px = trail[i].x;
+          py = trail[i].y;
+          target = trail[i];
+          if (acc >= 1.4) break;
+        }
+        const far = Math.hypot(partnerActor.x - player.x, partnerActor.y - player.y);
+        if (far > 7) {
+          partnerActor.x = target.x;
+          partnerActor.y = target.y;
+        }
+        const dx = target.x - partnerActor.x;
+        const dy = target.y - partnerActor.y;
+        if (!L.paused && Math.hypot(dx, dy) > 0.3 && far > 1.1) moveActor(partnerActor, dx, dy, dt, SPEED * (far > 2.6 ? 1.25 : 0.95), []);
+        else {
+          partnerActor.moving = false;
+          if (far < 2.5) partnerActor.dir = dirFromVec(player.x - partnerActor.x, player.y - partnerActor.y, partnerActor.dir);
+        }
+        // Now and then she says something - never where to go.
+        if (!L.paused && now > nextQuip && quips.length && !bubbles.has('partner')) {
+          const text = quips.shift()!;
+          quips.push(text);
+          bubbles.set('partner', { text, until: now + 5200, thought: false });
+          nextQuip = now + 32000 + Math.random() * 26000;
+        }
+      }
       for (const a of [...facilityActors.values(), ...hotspotActors.values()]) {
         if (a.pauseUntil && a.pauseUntil < now) {
           a.dir = a.homeDir;
@@ -711,6 +752,7 @@ export default function PixelWorld({
         });
       };
       drawActor(player);
+      if (partnerActor) drawActor(partnerActor);
       for (const { actor } of npcActors.values()) drawActor(actor);
       for (const a of facilityActors.values()) drawActor(a);
       if (incidentLive()) for (const a of incidentActors) drawActor(a);
@@ -766,7 +808,7 @@ export default function PixelWorld({
       // Speech and thought bubbles.
       display.font = `600 ${Math.round(4.8 * S)}px Heebo, Arial, sans-serif`;
       for (const [key, b] of bubbles) {
-        const a = key === 'player' ? player : (npcActors.get(key)?.actor ?? incidentActors.find((x) => x.key === key));
+        const a = key === 'player' ? player : key === 'partner' ? partnerActor : (npcActors.get(key)?.actor ?? incidentActors.find((x) => x.key === key));
         if (!a) continue;
         const lines = wrapText(display, b.text, 82 * S);
         const lh = 6 * S;
@@ -842,7 +884,7 @@ export default function PixelWorld({
     };
     // The world is rebuilt only when the map or the player's look changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, playerLook]);
+  }, [map, playerLook, partner]);
 
   // Let go of the stick whenever a window opens over the world.
   useEffect(() => {
@@ -874,7 +916,7 @@ export default function PixelWorld({
   return (
     <div ref={wrapRef} className="relative h-full w-full select-none overflow-hidden bg-[#07090c]" style={{ touchAction: 'none' }}>
       <canvas ref={canvasRef} className="absolute inset-0 block" />
-      <div className="crt-overlay pointer-events-none absolute inset-0" />
+
       <button
         onClick={() => {
           const next = !soundOn;

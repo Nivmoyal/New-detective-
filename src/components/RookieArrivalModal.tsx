@@ -95,7 +95,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
       <div className="sticky top-0 z-10 -mx-4 border-b border-noir-border bg-noir-bg/95 backdrop-blur">
         <div className="relative h-[34vh] max-h-72 min-h-52 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(37,99,235,0.2),transparent_60%)]" />
-          <div className="crt-overlay pointer-events-none absolute inset-0" />
+
           <div className="absolute inset-x-0 bottom-9 flex items-end justify-center gap-6">
             <SpritePreview look={look} walking={walking} scale={5} />
             <div className="mb-2 rounded-lg border-2 border-noir-border bg-[#141b26]">

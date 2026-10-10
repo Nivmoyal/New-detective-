@@ -50,6 +50,19 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
   order and their own last word, and the validator fails if two people share a line.
 - Some leads stay closed until you have a reason to follow them (a storage unit needs a search warrant, the
   intelligence desk needs a name to run) - the person tells you so in their own words.
+- Choices have a price. A locked lead can be opened with an early warrant from the commander (reliability -10,
+  and she only signs above 40%); a witness can be pressed for a quick answer (reliability -6). Reliability
+  matters: suspects cooperate more with a detective whose reputation is good.
+- Generated cases don't all run the same way: some have no camera (a card receipt from a shop in another
+  neighbourhood instead), some have an eyewitness who names the wrong person out of an old grudge, and in some
+  the culprit has an alibi that collapses when the friend is asked properly. Every kind of suspect has their own
+  lines in the interrogation room.
+- The case file keeps a notebook of the places you know about, by neighbourhood - places you visited, the scene
+  area, the suspects, and anyone whose name came up. No arrows: a place enters the notebook when someone
+  mentions it.
+- רס״ל דנה עזרא joins about six patrols in ten, walks a step behind and comments - never where to go.
+- The phone (header) gets messages from the lab, the commander, the desk sergeant, witnesses who remembered
+  something, and the station's group chat.
 - You can ask the commander for a warrant at any time. Without three validated links on the board she refuses,
   and your reliability drops.
 
@@ -58,8 +71,7 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 1. **Arrival.** Type your name and design your detective in the pixel character creator (body, skin tone,
    hairstyle, hair colour, outfit, colours, glasses, beard).
 2. **The streets.** Six large maps: the station, שוק לוינסקי, נווה שאנן, התחנה המרכזית הישנה, פלורנטין
-   and שכונת שפירא. Buildings open up when you walk in. Move with the on-screen joystick (bottom left; a light push walks slowly), WASD/arrow keys, drag anywhere as a
-   joystick, or tap to walk; tap a person or object to walk over and interact. Travel with the patrol car.
+   and שכונת שפירא. Buildings open up when you walk in. Move with the on-screen joystick (bottom left; a light push walks slowly), WASD/arrow keys, or tap to walk; tap a person or object to walk over and interact. Travel with the patrol car.
 3. **Forensic lab.** Physical items stay "ממתין למז״פ" until analyzed and can't be pinned before that.
 4. **Evidence board.** Tap a suspect, then evidence (or the reverse). Red string = implicates, blue = an alibi
    that clears. Wrong links cost reliability.

@@ -6,6 +6,8 @@
 // draws one or two false leads and has an alibi that clears them.
 import { citySpots, placeName, prepareCity, type Spot } from '../data/citySpots';
 import { MAPS, SCENE_MAP_IDS } from '../data/maps';
+import { ROLE_LINES } from './roleLines';
+import { ALIBI_OPENERS, ARCHIVE_LINES, CAMERA_OPENERS, NEIGHBOR_OPENERS, VICTIM_OPENERS, VISIT_OPENERS, W1_OPENERS, W2_TAILS, rot } from './genLines';
 import type { CaseFile, CharacterLook, CharacterRef, Clue, MapHotspot, Suspect } from '../types/investigation';
 
 // The open places and extra residents are part of the world from the start.
@@ -288,22 +290,6 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-const W1_OPENERS = [
-  'אני ראיתי הכל. טוב, לא הכל. אבל מספיק.',
-  'סוף סוף מישהו שואל אותי. אני מחכה{|ה} פה מהבוקר.',
-  'רק שלא יידעו שאני דיברתי, כן? אני גר{|ה} פה.',
-  'כתבתי את זה בפתק כדי שלא אשכח. רגע... הנה.',
-  'שתי דקות, אני באמצע משהו. טוב, מה אתם רוצים לדעת?',
-];
-
-const CAMERA_OPENERS = [
-  'המצלמה שלי מכוונת לרחוב. תסתכלו כמה שאתם רוצים, רק אל תמחקו לי את המונדיאל.',
-  'הסיסמה למערכת? 1234. מה, זה לא בטוח?',
-  'קניתי את המצלמה אחרי שגנבו לי פעמיים את העציץ. סוף סוף היא שווה משהו.',
-  'הנכד שלי התקין אותה. אני רק יודע{|ת} ללחוץ על המשולש.',
-  'קחו את הדיסק. רק תחזירו, יש שם גם את החתונה של הבת שלי.',
-];
-
 const WITNESS_ROLES = [
   'שכן{|ה} מהבניין ממול',
   'עובר{|ת} אורח קבוע{|ה}',
@@ -343,13 +329,6 @@ const VICTIM_STATEMENTS: Record<string, string> = {
   rentalScam: 'שילמתי במזומן, קיבלתי חוזה וחיוך. אפילו הראו לי איפה לשים את מכונת הכביסה.',
 };
 
-const VICTIM_OPENERS = ['סוף סוף. חיכיתי לכם מהבוקר.', 'אתם מהמשטרה? תודה שבאתם. אני עוד לא {מעכל|מעכלת}.', 'שאלו מה שאתם רוצים. רק תמצאו מי שעשה את זה.'];
-const VISIT_OPENERS = [
-  'משטרה? אצלי? מה עשיתי עכשיו?',
-  'אם זה בקשר ל{victim} - שמעתי. מה אתם רוצים ממני?',
-  'שתי דקות, אני באמצע משהו. טוב, שאלו.',
-  'ידעתי שתגיעו. כולם פה כבר מדברים.',
-];
 const NEIGHBOR_ROLES = ['שכ{ן|נה} ותיק{|ה} מהרחוב', 'בעל{|ת} הדוכן הקרוב', 'יושב{|ת} קבוע{|ה} על הספסל', 'שליח{|ה} שעובר{|ת} פה כל יום'];
 const AUTO_CAMERA_OWNERS = ['בעל{|ת} החנות הסמוכה', 'ועד הבית של הבניין ממול', 'בעל{|ת} הקיוסק הקרוב', 'מנהל{|ת} הסניף ממול', 'השכ{ן|נה} עם המצלמה במרפסת'];
 
@@ -459,7 +438,7 @@ export function generateCase(n: number): CaseFile {
     .slice(0, count)
     .map((ri) => {
       const role = roleList[ri];
-      return { role, p: person(r, used, role.outfits) };
+      return { role, ri, p: person(r, used, role.outfits) };
     });
   const culpritIdx = Math.floor(r() * count);
   const id = `gen-${n}`;
@@ -511,7 +490,12 @@ export function generateCase(n: number): CaseFile {
     startCooperation: 32 + Math.floor(r() * 15),
     breakThreshold: 7,
     keyEvidence: [`${id}-lab`, `${id}-cam`],
-    lines: { pressure: [], trust: [], evidenceHit: [], evidenceKey: [], evidenceMiss: [], confrontFail: [], confrontSuccess: [], wavering: [] },
+    // Their own voice first; the shared pools fill in around it.
+    lines: (() => {
+      const own = ROLE_LINES[`${tpl.id}:${culprit.ri}`];
+      const say = (list: string[] = []) => list.map((t) => aboutCulprit(t));
+      return { pressure: say(own?.pressure), trust: say(own?.trust), evidenceHit: [], evidenceKey: say(own?.key), evidenceMiss: [], confrontFail: [], confrontSuccess: [], wavering: say(own?.wavering) };
+    })(),
     confession: culprit.role.confession.map((t) => aboutCulprit(t)),
     lawyer: aboutCulprit('זהו. אני לא אומר{|ת} מילה בלי עורך דין.'),
     silence: g('אני שומר{|ת} על זכות השתיקה.', culprit.p.female),
@@ -552,7 +536,7 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-victim`, mapId: P.mapId, anchor: P.victim, kind: 'witness', label: 'שיחה עם הקורבן', title: g(`${victim.name} - {המתלונן|המתלוננת}`, victim.female),
       character: ref(victim, g('{המתלונן|המתלוננת}', victim.female)),
       dialogue: [
-        { speaker: victim.name, text: g(pick(r, VICTIM_OPENERS), victim.female) },
+        { speaker: victim.name, text: g(rot(VICTIM_OPENERS, n), victim.female) },
         { speaker: victim.name, text: aboutVictim(VICTIM_STATEMENTS[tpl.id]) },
         { speaker: victim.name, text: `ועוד משהו שכדאי שתדעו: ${about(inB, people[inB].role.motive)}` },
       ],
@@ -562,7 +546,7 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-w1`, mapId: P.mapId, anchor: P.w1, kind: 'witness', label: 'תשאול עד', title: g(`${w1.name} - עד{|ה} ראייה`, w1.female),
       character: ref(w1, witnessRole(w1)),
       dialogue: [
-        { speaker: w1.name, text: g(pick(r, W1_OPENERS), w1.female) },
+        { speaker: w1.name, text: g(rot(W1_OPENERS, n), w1.female) },
         { speaker: w1.name, text: aboutCulprit(tpl.sawText) },
       ],
       evidenceIds: [`${id}-saw`],
@@ -572,7 +556,7 @@ export function generateCase(n: number): CaseFile {
       character: ref(w2, witnessRole(w2)),
       dialogue: [
         { speaker: w2.name, text: aboutCulprit(culprit.role.motive) },
-        { speaker: w2.name, text: `${about(inA, people[inA].role.motive)} ${g(pick(r, ['מוזר, לא?', 'אני רק אומר{|ת}.', 'תעשו עם זה מה שאתם רוצים.']), w2.female)}` },
+        { speaker: w2.name, text: `${about(inA, people[inA].role.motive)} ${g(rot(W2_TAILS, n), w2.female)}` },
       ],
       evidenceIds: [`${id}-motive`, `${id}-motiveA`],
     },
@@ -580,7 +564,7 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-neighbor`, mapId: P.mapId, anchor: P.neighbor, kind: 'witness', label: 'תשאול עד', title: g(`${neighbor.name} - ${pick(r, NEIGHBOR_ROLES)}`, neighbor.female),
       character: ref(neighbor, g('תושב{|ת} השכונה', neighbor.female)),
       dialogue: [
-        { speaker: neighbor.name, text: g('אני לא אוהב{|ת} לדבר על אנשים. אבל מה שראיתי - ראיתי.', neighbor.female) },
+        { speaker: neighbor.name, text: g(rot(NEIGHBOR_OPENERS, n), neighbor.female) },
         { speaker: neighbor.name, text: about(inA, tpl.rumor) },
         ...(inC !== undefined ? [{ speaker: neighbor.name, text: `ושמעתי עוד משהו: ${about(inC, people[inC].role.motive)}` }] : []),
       ],
@@ -590,12 +574,20 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-cam`, mapId: P.mapId, anchor: P.camera, kind: 'cctv', label: 'בדיקת מצלמות אבטחה', title: `המצלמה של ${owner}`,
       character: ref(camOwner, owner),
       dialogue: [
-        { speaker: camOwner.name, text: g(pick(r, CAMERA_OPENERS), camOwner.female) },
+        { speaker: camOwner.name, text: g(rot(CAMERA_OPENERS, n), camOwner.female) },
         { speaker: 'יומן חקירה', text: aboutCulprit(tpl.cameraText) },
       ],
       evidenceIds: [`${id}-cam`],
     },
   ];
+  // Innocent suspects name who can vouch for them - that is how the
+  // detective learns where to check.
+  const alibiLine = (i: number) => {
+    const p = people[i].p;
+    const who = i === inA ? alibiWitness : i === inC ? alibiWitnessC : null;
+    if (!who) return txt('באותו זמן בכלל לא הייתי שם. תבדקו במערכות שלכם, אני {נקי|נקייה}.', p);
+    return txt(`באותו זמן בכלל לא הייתי שם. ${who.name} ${who.female ? 'יכולה' : 'יכול'} לאשר. ${who.female ? 'תשאלו אותה' : 'תשאלו אותו'}.`, p);
+  };
   // A visit to each suspect, wherever they live or work in the city.
   people.forEach(({ role, p }, i) => {
     const spot = elsewhere();
@@ -604,11 +596,11 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-visit${i}`, mapId: spot.mapId, anchor: spot.anchor, kind: 'witness', label: 'שיחה עם חשוד', title: `${p.name} - ${placeName(spot)}`,
       character: ref(p, g(`חשוד{|ה} - ${txt(role.occupation, p)}`, p.female)),
       dialogue: [
-        { speaker: p.name, text: txt(pick(r, VISIT_OPENERS), p) },
+        { speaker: p.name, text: txt(rot(VISIT_OPENERS, n, i + 1), p) },
         { speaker: p.name, text: txt(role.opening, p) },
         isCulprit
           ? { speaker: 'יומן חקירה', text: aboutCulprit(`בכניסה ${hangs} {clothes} - בדיוק כמו בתיאור של העדים. {name} {התעקש|התעקשה} שזה "של מישהו אחר".`) }
-          : { speaker: p.name, text: txt('באותו זמן בכלל לא הייתי שם. יש מי שיכול לאשר. תבדקו.', p) },
+          : { speaker: p.name, text: alibiLine(i) },
       ],
       evidenceIds: [isCulprit ? `${id}-clothes` : `${id}-ver${i}`],
     });
@@ -619,7 +611,7 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-alibiA`, mapId: alibiSpot.mapId, anchor: alibiSpot.anchor, kind: 'witness', label: 'בירור אליבי', title: `בירור האליבי של ${people[inA].p.name}`,
       character: ref(alibiWitness, g('מכיר{|ה} של החשוד', alibiWitness.female)),
       dialogue: [
-        { speaker: alibiWitness.name, text: about(inA, `אתם מחפשים את {name}? ${tpl.when}? שבו, אני אסביר.`) },
+        { speaker: alibiWitness.name, text: about(inA, rot(ALIBI_OPENERS, n).replace('{when}', tpl.when)) },
         { speaker: alibiWitness.name, text: about(inA, people[inA].role.alibi) },
       ],
       evidenceIds: [`${id}-alibiA`],
@@ -628,7 +620,7 @@ export function generateCase(n: number): CaseFile {
       id: `${id}-h-archive`, mapId: 'station', anchor: 'st-archive', kind: 'cctv', label: 'בדיקת מודיעין', title: `ארכיון - ${people[inB].p.name}`,
       character: ARCHIVE_CLERK,
       dialogue: [
-        { speaker: ARCHIVE_CLERK.name, text: `הרצתי את ${people[inB].p.name} בכל המערכות. יש לי משהו בשבילך.` },
+        { speaker: ARCHIVE_CLERK.name, text: rot(ARCHIVE_LINES, n).replace('{name}', people[inB].p.name) },
         { speaker: ARCHIVE_CLERK.name, text: about(inB, people[inB].role.alibi) },
       ],
       evidenceIds: [`${id}-alibiB`],
@@ -645,6 +637,73 @@ export function generateCase(n: number): CaseFile {
       ],
       evidenceIds: [`${id}-alibiC`],
     });
+  }
+
+  // Not every case runs the same way. A separate random stream picks the
+  // twist, so the people and places above stay the same for a given case.
+  const rv = rng(n * 31 + 7);
+  const variant = (['standard', 'noCamera', 'liar', 'fakeAlibi'] as const)[Math.floor(rv() * 4)];
+  const C = culprit.p;
+  const A = people[inA].p;
+  const he = (p: Person, m: string, f: string) => (p.female ? f : m);
+  const hint: string[] = [];
+  if (variant === 'noCamera') {
+    // No camera at the scene: the culprit paid by card at a shop nearby.
+    const shopSpot = elsewhere();
+    const shop = pick(rv, ['הקיוסק', 'המכולת', 'תחנת הדלק', 'הפיצרייה', 'חנות הנוחות']);
+    const cam = clues.find((c) => c.id === `${id}-cam`)!;
+    cam.title = `קבלה מ${shop} - ${placeName(shopSpot)}`;
+    cam.source = 'document';
+    cam.description = `כרטיס האשראי של ${C.name} חויב ב${shop} ב${placeName(shopSpot)}, רבע שעה אחרי האירוע. ${he(camOwner, 'המוכר', 'המוכרת')} זוכר${he(camOwner, '', 'ת')} גם את הבגד: ${C.clothes}.`;
+    const h = hotspots.findIndex((x) => x.id === `${id}-h-cam`);
+    hotspots.splice(h, 1);
+    hotspots.push({
+      id: `${id}-h-cam`, mapId: shopSpot.mapId, anchor: shopSpot.anchor, kind: 'cctv', label: 'בדיקת קבלות', title: `${shop} - ${placeName(shopSpot)}`,
+      character: ref(camOwner, g(`${he(camOwner, 'המוכר', 'המוכרת')} ב${shop}`, camOwner.female)),
+      dialogue: [
+        { speaker: camOwner.name, text: g('אין לי מצלמה. יש לי משהו יותר טוב: מחשב קופה שזוכר כל שקל.', camOwner.female) },
+        { speaker: 'יומן חקירה', text: cam.description },
+      ],
+      evidenceIds: [`${id}-cam`],
+    });
+    hint.push('בזירה אין מצלמות. אבל מי שבורח - לפעמים עוצר לקנות משהו בדרך.');
+  } else if (variant === 'liar') {
+    // The eyewitness names the wrong person - and has a reason to.
+    const saw = clues.find((c) => c.id === `${id}-saw`)!;
+    saw.implicates = [sid(inA)];
+    saw.description = g(`אני {מוכן|מוכנה} להישבע: ראיתי את ${A.name} ${he(A, 'יוצא', 'יוצאת')} משם בדיוק בזמן.`, w1.female);
+    const rumor = clues.findIndex((c) => c.id === `${id}-rumorA`);
+    clues.splice(rumor, 1);
+    clues.push({
+      id: `${id}-grudge`, title: `הסכסוך של ${w1.name}`, category: 'clue', source: 'testimony', implicates: [], clears: [],
+      description: `${w1.name} ו${A.name} לא מדברים כבר שנים. סכסוך על חניה, או על כסף - תלוי את מי שואלים.`,
+    });
+    const w1h = hotspots.find((x) => x.id === `${id}-h-w1`)!;
+    w1h.dialogue[1] = { speaker: w1.name, text: saw.description };
+    const nh = hotspots.find((x) => x.id === `${id}-h-neighbor`)!;
+    nh.dialogue[1] = { speaker: neighbor.name, text: g(`${w1.name} {אמר|אמרה} לכם שזה ${A.name}? לא מפתיע. ${w1.female && A.female ? 'השתיים האלה' : 'השניים האלה'} לא מדברים כבר שנים.`, neighbor.female) };
+    nh.evidenceIds = nh.evidenceIds.map((e) => (e === `${id}-rumorA` ? `${id}-grudge` : e));
+    hint.push('עד ראייה זה לא תמיד עד אמת. כדאי לדעת מי מכיר את מי.');
+  } else if (variant === 'fakeAlibi') {
+    // The culprit has an alibi - until the friend is asked properly.
+    const friend = person(rv, used, ['tshirt', 'hoodie', 'blazer']);
+    const fSpot = elsewhere();
+    const visit = hotspots.find((x) => x.id === `${id}-h-visit${culpritIdx}`)!;
+    visit.dialogue.splice(2, 0, { speaker: C.name, text: g(`באותו זמן הייתי אצל ${friend.name}. ${he(friend, 'תשאלו אותו', 'תשאלו אותה')}.`, C.female) });
+    clues.push({
+      id: `${id}-fakealibi`, title: `האליבי של ${C.name} קרס`, category: 'clue', source: 'testimony', implicates: [sid(culpritIdx)], clears: [],
+      description: `${friend.name} ${he(friend, 'הודה', 'הודתה')} ש${C.name} ${he(C, 'ביקש', 'ביקשה')} ${he(friend, 'ממנו', 'ממנה')} לספר שהיו ביחד. באותו זמן ${he(friend, 'הוא', 'היא')} בכלל לא ${he(friend, 'ראה', 'ראתה')} ${he(C, 'אותו', 'אותה')}.`,
+    });
+    hotspots.push({
+      id: `${id}-h-fakealibi`, mapId: fSpot.mapId, anchor: fSpot.anchor, kind: 'witness', label: 'בירור אליבי', title: `בירור האליבי של ${C.name}`,
+      character: ref(friend, g(`{חבר|חברה} של ${C.name}`, friend.female)),
+      dialogue: [
+        { speaker: friend.name, text: `${C.name}? כן... ${he(C, 'הוא היה', 'היא הייתה')} אצלי. ${g('נראה לי. אני לא {בטוח|בטוחה} בשעה.', friend.female)}` },
+        { speaker: friend.name, text: g(`טוב. אני לא {מוכן|מוכנה} לשקר למשטרה. ${C.name} ${he(C, 'ביקש', 'ביקשה')} ממני להגיד את זה. באותו זמן לא ראיתי ${he(C, 'אותו', 'אותה')} בכלל.`, friend.female) },
+      ],
+      evidenceIds: [`${id}-fakealibi`],
+    });
+    hint.push('גם לאשם יש אליבי. השאלה היא אם הוא מחזיק כשבודקים אותו עד הסוף.');
   }
 
   const mapIds = [...new Set(hotspots.map((h) => h.mapId))];
@@ -670,8 +729,9 @@ export function generateCase(n: number): CaseFile {
     hotspots,
     hints: [
       `תתחילו מ${P.place}. מה שנשאר בזירה הולך למז״פ, ו${victim.name} מחכה לכם שם.`,
-      `${owner} - יש שם מצלמה שמכוונת לרחוב.`,
+      ...(variant === 'noCamera' ? [] : [`${owner} - יש שם מצלמה שמכוונת לרחוב.`]),
       'לכל אחד מהחשודים יש מניע. רק לאחד אין אליבי. ביקור בבית של כל אחד מהם יכול לגלות הרבה.',
+      ...hint,
     ],
     generated: true,
   };

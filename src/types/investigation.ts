@@ -176,6 +176,10 @@ export interface CaseProgress {
   hintsUsed: number;
   solved: boolean;
   score: number;
+  /** Leads opened early with a warrant the commander signed reluctantly. */
+  forced?: string[];
+  /** Witnesses who were pressed for a quick answer. */
+  pressed?: string[];
 }
 
 export type TacticId = 'pressure' | 'evidence' | 'trust' | 'confront';

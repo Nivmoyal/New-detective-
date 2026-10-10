@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { connectCloud, type CloudSave } from './state/cloudSave';
-import { Compass, Crosshair, Folder, Lock, ShieldAlert } from 'lucide-react';
+import { Compass, Crosshair, Folder, Lock, ShieldAlert, Smartphone } from 'lucide-react';
 import type { View } from './types/investigation';
-import { MAPS, STATION_MAP_ID } from './data/maps';
+import { MAPS, SCENE_MAP_IDS, STATION_MAP_ID } from './data/maps';
+import { PARTNER, partnerQuips } from './pixel/world/partner';
+import { GROUP_CHAT, type PhoneMessage } from './state/messages';
 import type { PlacedFacility } from './pixel/world/types';
-import { emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
+import { EARLY_WARRANT_COST, EARLY_WARRANT_MIN_RELIABILITY, PRESS_WITNESS_COST, emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
 import {
   WARRANT_DENIAL_PENALTY,
   activeProgress,
@@ -22,7 +24,7 @@ import RookieArrivalModal from './components/RookieArrivalModal';
 import PixelWorld, { type WorldHotspot } from './components/PixelWorld';
 import ChatDialog from './components/ChatDialog';
 import { COMMANDER, INTERROGATION_OFFICER, type ChatNpc } from './data/characters';
-import { chatAnnoyed } from './pixel/world/humor';
+import { chatAnnoyed, genderize } from './pixel/world/humor';
 import { activeIncident, type Incident } from './data/incidents';
 import IncidentDialog from './components/IncidentDialog';
 import type { CharacterRef } from './types/investigation';
@@ -46,7 +48,7 @@ type ModalState =
   | { type: 'hotspot'; spot: WorldHotspot }
   | { type: 'chat'; npc: ChatNpc; annoyed: string }
   | { type: 'incident'; incident: Incident }
-  | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police' }
+  | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police'; earlyWarrant?: WorldHotspot }
   | null;
 
 export default function App() {
@@ -142,6 +144,45 @@ export default function App() {
   const caseFile = state.activeCaseId ? getCase(state.activeCaseId) : null;
   const progress = activeProgress(state);
   const map = MAPS[state.currentMapId] ?? MAPS[STATION_MAP_ID];
+  /* ---------------- Phone ---------------- */
+  // A new message pops up for a few seconds; the full list is in the header.
+  const [toast, setToast] = useState<PhoneMessage | null>(null);
+  const seenMessages = useRef(state.messages.length ? state.messages[state.messages.length - 1].id : '');
+  useEffect(() => {
+    const last = state.messages[state.messages.length - 1];
+    if (!last || last.id === seenMessages.current) return;
+    seenMessages.current = last.id;
+    if (last.read) return;
+    setToast(last);
+    const t = window.setTimeout(() => setToast(null), 5200);
+    return () => window.clearTimeout(t);
+  }, [state.messages]);
+  // The station's group chat buzzes every few minutes of play.
+  const playing = !!profile && state.arrivalStep === 'done';
+  useEffect(() => {
+    if (!playing) return;
+    let id = 0;
+    const schedule = () => {
+      id = window.setTimeout(() => {
+        const s = stateRef.current;
+        const k = s.messages.filter((m) => m.from === 'קבוצת התחנה').length + (s.profile?.solvedCases.length ?? 0);
+        dispatch({ type: 'ADD_MESSAGE', from: 'קבוצת התחנה', text: GROUP_CHAT[k % GROUP_CHAT.length] });
+        schedule();
+      }, 180000 + Math.random() * 180000);
+    };
+    schedule();
+    return () => window.clearTimeout(id);
+  }, [playing]);
+
+  // Dana comes along on about six patrols out of ten.
+  const partner = useMemo(
+    () =>
+      profile && SCENE_MAP_IDS.includes(map.id) && Math.random() < 0.6
+        ? { look: PARTNER.look, quips: partnerQuips(map.id).map((q) => genderize(q, profile.addressForm)) }
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [map.id, profile?.addressForm],
+  );
   const g = (m: string, f: string) => (profile?.addressForm === 'female' ? f : m);
 
   // Every lead of every case lives in the world from the start.
@@ -215,6 +256,7 @@ export default function App() {
         text: spot.hotspot.lockedText ?? 'אין פה כרגע מה לעשות.',
         character: spot.hotspot.character,
         tone: 'gold',
+        earlyWarrant: spot.hotspot.requires?.length ? spot : undefined,
       });
       return;
     }
@@ -285,10 +327,22 @@ export default function App() {
   };
 
   return (
-    <div dir="rtl" className="flex h-full flex-col overflow-hidden bg-noir-bg font-sans text-slate-100">
+    <div dir="rtl" className="relative flex h-full flex-col overflow-hidden bg-noir-bg font-sans text-slate-100">
       {state.view !== 'interrogation' && (
-        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} cloudSaved={cloudStatus === 'cloud'} onReset={() => dispatch({ type: 'RESET' })} />
+        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} cloudSaved={cloudStatus === 'cloud'} messages={state.messages} onReadMessages={() => dispatch({ type: 'READ_MESSAGES' })} onReset={() => dispatch({ type: 'RESET' })} />
       )}
+      {toast && (
+          <button
+            className="absolute left-1/2 top-12 z-30 flex w-[min(92%,26rem)] -translate-x-1/2 animate-fadeUp items-start gap-2 rounded-xl border border-police/50 bg-noir-panel/95 p-2.5 text-right shadow-2xl"
+            onClick={() => setToast(null)}
+          >
+            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-police-light" />
+            <span className="min-w-0 text-xs leading-relaxed">
+              <span className="font-bold text-sky-300">{toast.from}: </span>
+              <span className="text-slate-200">{toast.text}</span>
+            </span>
+          </button>
+        )}
 
       <main className="relative min-h-0 flex-1">
         {state.view === 'map' && (
@@ -307,6 +361,7 @@ export default function App() {
             onChat={handleChat}
             onExamine={handleExamine}
             onPositionChange={savePosition}
+            partner={partner}
           />
         )}
 
@@ -427,11 +482,36 @@ export default function App() {
           caseFile={getCase(modal.spot.caseId)}
           progress={state.progress[modal.spot.caseId] ?? emptyProgress()}
           onCollect={() => dispatch({ type: 'VISIT_HOTSPOT', caseId: modal.spot.caseId, hotspotId: modal.spot.hotspot.id })}
+          onPress={() => dispatch({ type: 'PRESS_WITNESS', caseId: modal.spot.caseId, hotspotId: modal.spot.hotspot.id })}
+          pressCost={PRESS_WITNESS_COST}
           onClose={() => setModal(null)}
         />
       )}
       {modal?.type === 'notice' && (
-        <NoticeModal title={modal.title} text={modal.text} character={modal.character} tone={modal.tone} onClose={() => setModal(null)} />
+        <NoticeModal
+          title={modal.title}
+          text={modal.text}
+          character={modal.character}
+          tone={modal.tone}
+          action={
+            modal.earlyWarrant && profile
+              ? {
+                  label: `לבקש מהמפקדת צו מוקדם (אמינות -${EARLY_WARRANT_COST})`,
+                  note:
+                    profile.reliability >= EARLY_WARRANT_MIN_RELIABILITY
+                      ? 'בלי הראיה שפותחת את הדלת הזאת, המפקדת תחתום - אבל תזכור. מי שמבקש צווים בלי בסיס מאבד אמון.'
+                      : `המפקדת לא תחתום על צו מוקדם למי שהאמינות שלו מתחת ל-${EARLY_WARRANT_MIN_RELIABILITY}%. קודם תחזיר${g('', 'י')} לה את האמון.`,
+                  disabled: profile.reliability < EARLY_WARRANT_MIN_RELIABILITY,
+                  onClick: () => {
+                    const spot = modal.earlyWarrant!;
+                    dispatch({ type: 'FORCE_HOTSPOT', caseId: spot.caseId, hotspotId: spot.hotspot.id });
+                    setModal({ type: 'hotspot', spot: { ...spot, available: true } });
+                  },
+                }
+              : undefined
+          }
+          onClose={() => setModal(null)}
+        />
       )}
       {modal?.type === 'incident' && (
         <IncidentDialog

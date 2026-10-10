@@ -23,6 +23,24 @@ const before = s.progress[third.id].collected.length;
 d({ type: 'VISIT_HOTSPOT', caseId: third.id, hotspotId: locked.id });
 if (s.progress[third.id].collected.length !== before) fail('locked lead yielded evidence');
 
+// Decisions with a price: an early warrant opens a locked lead for 10 reliability,
+// pressing a witness costs 6 - tried on a copy, the real playthrough goes on untouched.
+{
+  let t = s;
+  const rel = t.profile!.reliability;
+  t = gameReducer(t, { type: 'FORCE_HOTSPOT', caseId: third.id, hotspotId: locked.id });
+  if (!isHotspotAvailable(locked, t.progress[third.id]) || t.profile!.reliability !== rel - 10) fail('early warrant did not open the lead at its price');
+  t = gameReducer(t, { type: 'PRESS_WITNESS', caseId: third.id, hotspotId: locked.id });
+  t = gameReducer(t, { type: 'PRESS_WITNESS', caseId: third.id, hotspotId: locked.id });
+  if (t.profile!.reliability !== rel - 16) fail('pressing a witness should cost once');
+  t = { ...t, profile: { ...t.profile!, reliability: 30 } };
+  const other = third.hotspots.find((h) => h.requires?.length && h.id !== locked.id);
+  if (other) {
+    t = gameReducer(t, { type: 'FORCE_HOTSPOT', caseId: third.id, hotspotId: other.id });
+    if (t.progress[third.id].forced?.includes(other.id)) fail('commander signed an early warrant at low reliability');
+  }
+}
+
 d({ type: 'ARRIVAL_COMMANDER_DONE' });
 d({ type: 'OPEN_CASE_FILES' });
 if (Object.keys(s.progress).length !== loadCases().filter((c) => !c.unlockAfter).length) fail('not every open case was opened');
@@ -79,6 +97,13 @@ for (let c = nextCase(); c && s.profile!.solvedCases.length < TARGET; c = nextCa
 console.log('rank', s.profile!.rankIndex, 'solved', s.profile!.solvedCases.length, 'intel', s.profile!.intelPoints, 'rel', s.profile!.reliability);
 if (s.profile!.solvedCases.length !== TARGET) fail(`solved ${s.profile!.solvedCases.length}, expected ${TARGET}`);
 if (s.profile!.rankIndex !== 6) fail('rank did not keep climbing past the story cases');
+// The phone: the lab calls about evidence, the commander about closed cases.
+const from = (name: string) => s.messages.filter((m) => m.from === name).length;
+if (!from('ד״ר מאיה שטרן')) fail('the lab never called');
+if (from('סנ״צ אורנה ברק') < 5) fail('the commander did not message after closed cases');
+if (s.messages.length > 40) fail('the phone keeps more than 40 messages');
+if (s.messages.some((m) => /[{}]/.test(m.text))) fail('a phone message has an unresolved marker');
+console.log('phone:', s.messages.length, 'messages, e.g.', s.messages[s.messages.length - 1].from, '-', s.messages[s.messages.length - 1].text);
 
 // Failure path: pure pressure should drive a suspect to demand a lawyer.
 let f = initialState();

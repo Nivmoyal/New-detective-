@@ -14,7 +14,7 @@ export default function CharacterBanner({ character, talking = true, tone = 'pol
   const ring = tone === 'gold' ? 'from-evidence/25' : tone === 'red' ? 'from-alert/25' : 'from-police/25';
   return (
     <div className={`relative flex h-32 items-end gap-3 overflow-hidden rounded-t-xl bg-gradient-to-b ${ring} to-noir-deep px-4 sm:h-36`}>
-      <div className="crt-overlay pointer-events-none absolute inset-0 opacity-60" />
+
       <div className="relative shrink-0 rounded-t-lg border-x-2 border-t-2 border-noir-border bg-[#141b26]">
         <PixelPortrait look={character.look} talking={talking} expression={expression} size={120} className="block" />
       </div>

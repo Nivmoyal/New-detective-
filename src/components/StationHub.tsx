@@ -1,7 +1,7 @@
-import { CheckSquare, Crosshair, Fingerprint, Folder, FolderOpen, Lock, MapPin, Unlock, UserCheck } from 'lucide-react';
+import { BookOpen, Circle, CheckSquare, Crosshair, Fingerprint, Folder, FolderOpen, Lock, MapPin, Unlock, UserCheck } from 'lucide-react';
 import type { ArrivalStep, CaseProgress, DetectiveProfile } from '../types/investigation';
 import { MAPS } from '../data/maps';
-import { RANKS, RANK_TITLES, getCase, isSuspectCleared, loadCases, pendingLabClues } from '../services/caseEngine';
+import { RANKS, RANK_TITLES, getCase, isSuspectCleared, knownPlaces, loadCases, pendingLabClues } from '../services/caseEngine';
 
 interface Props {
   profile: DetectiveProfile;
@@ -137,6 +137,8 @@ export default function StationHub({ profile, arrivalStep, knownCaseIds, activeC
               )}
             </div>
 
+            <Notebook caseFile={active} progress={progress} />
+
             <div className="panel p-3">
               <div className="mb-2 flex items-center gap-2">
                 <UserCheck className="h-5 w-5 text-alert" />
@@ -164,6 +166,42 @@ export default function StationHub({ profile, arrivalStep, knownCaseIds, activeC
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The places this case has led to so far, by neighbourhood. No arrows, no order: just what you know. */
+function Notebook({ caseFile, progress }: { caseFile: ReturnType<typeof getCase>; progress: CaseProgress }) {
+  const places = knownPlaces(caseFile, progress);
+  const byMap = new Map<string, typeof places>();
+  for (const p of places) byMap.set(p.hotspot.mapId, [...(byMap.get(p.hotspot.mapId) ?? []), p]);
+  // Neighbourhoods in the order the case touches them, the station last.
+  const maps = [...byMap.keys()].sort((a, b) => (a === 'station' ? 1 : b === 'station' ? -1 : 0));
+  return (
+    <div className="panel p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <BookOpen className="h-5 w-5 text-evidence-light" />
+        <h3 className="font-display font-bold">פנקס - מקומות בתיק</h3>
+      </div>
+      <div className="space-y-2.5">
+        {maps.map((m) => (
+          <div key={m}>
+            <div className="mb-1 flex items-center gap-1 text-[11px] font-bold text-steel">
+              <MapPin className="h-3 w-3" />
+              {MAPS[m]?.name ?? m}
+            </div>
+            <ul className="space-y-1">
+              {byMap.get(m)!.map(({ hotspot, visited }) => (
+                <li key={hotspot.id} className={`flex items-start gap-2 text-xs ${visited ? 'text-steel' : 'text-slate-200'}`}>
+                  {visited ? <CheckSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" /> : <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-steel" />}
+                  <span className={visited ? 'line-through decoration-steel/50' : ''}>{hotspot.title}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-steel">מקומות נוספים נכנסים לפנקס כשמישהו מזכיר אותם.</p>
     </div>
   );
 }

@@ -122,6 +122,11 @@ export function isCaseUnlocked(caseFile: CaseFile, solvedCount: number): boolean
   return solvedCount >= (caseFile.unlockAfter ?? 0);
 }
 
+/** The commander signs an early warrant only for a detective she trusts. */
+export const EARLY_WARRANT_MIN_RELIABILITY = 40;
+export const EARLY_WARRANT_COST = 10;
+export const PRESS_WITNESS_COST = 6;
+
 export function rankForSolvedCount(solvedCount: number): number {
   let rank = 0;
   RANK_THRESHOLDS.forEach((need, i) => {
@@ -139,7 +144,7 @@ export function rankLabel(profile: DetectiveProfile): string {
 /* ------------------------------------------------------------------ */
 
 export function isHotspotAvailable(hotspot: MapHotspot, progress: CaseProgress): boolean {
-  return (hotspot.requires ?? []).every((id) => progress.collected.includes(id));
+  return !!progress.forced?.includes(hotspot.id) || (hotspot.requires ?? []).every((id) => progress.collected.includes(id));
 }
 
 export function isHotspotExhausted(hotspot: MapHotspot, progress: CaseProgress): boolean {
@@ -251,4 +256,36 @@ export function caseScore(progress: CaseProgress, mistakes: number): number {
   const evidenceBonus = progress.collected.length * 5;
   const penalty = mistakes * 15 + progress.interrogationAttempts * 20 + progress.hintsUsed * 10;
   return Math.max(50, base + evidenceBonus - penalty);
+}
+
+/* ------------------------------------------------------------------ */
+/* Notebook: places the detective knows about                          */
+/* ------------------------------------------------------------------ */
+
+export interface KnownPlace {
+  hotspot: MapHotspot;
+  visited: boolean;
+}
+
+/**
+ * The places of a case the detective has reason to know about: ones already
+ * visited, everything around the scene, the station, the suspects
+ * themselves, and anyone whose name came up in evidence or conversation.
+ * Nothing else - the notebook never points to what hasn't been heard of.
+ */
+export function knownPlaces(caseFile: CaseFile, progress: CaseProgress): KnownPlace[] {
+  const visited = new Set(progress.visitedHotspots);
+  const sceneMap = (caseFile.hotspots.find((h) => h.id.endsWith('-h-scene')) ?? caseFile.hotspots[0])?.mapId;
+  const heard = [
+    ...collectedClues(caseFile, progress).map((c) => `${c.title} ${clueDisplayText(c, progress)}`),
+    ...caseFile.hotspots.filter((h) => visited.has(h.id)).flatMap((h) => h.dialogue.map((d) => d.text)),
+  ].join(' ');
+  const suspects = new Set(caseFile.suspects.map((s) => s.name));
+  return caseFile.hotspots
+    .filter((h) => {
+      if (visited.has(h.id) || h.mapId === sceneMap || h.mapId === 'station') return true;
+      const who = h.character?.name;
+      return !!who && (suspects.has(who) || heard.includes(who));
+    })
+    .map((hotspot) => ({ hotspot, visited: visited.has(hotspot.id) }));
 }

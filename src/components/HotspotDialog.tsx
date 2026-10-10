@@ -9,6 +9,9 @@ interface Props {
   caseFile: CaseFile;
   progress: CaseProgress;
   onCollect: () => void;
+  /** Press the witness for a quick answer (costs reliability). */
+  onPress?: () => void;
+  pressCost?: number;
   onClose: () => void;
 }
 
@@ -18,12 +21,24 @@ const KIND_META = {
   cctv: { icon: <Video className="h-5 w-5" />, label: 'בדיקת מצלמות אבטחה' },
 };
 
-export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, onClose }: Props) {
+export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, onPress, pressCost, onClose }: Props) {
   const [alreadyVisited] = useState(() => progress.visitedHotspots.includes(hotspot.id));
   const [step, setStep] = useState(alreadyVisited ? hotspot.dialogue.length : 0);
   const [collected, setCollected] = useState(alreadyVisited);
   const finished = step >= hotspot.dialogue.length;
   const meta = KIND_META[hotspot.kind];
+
+  const [pressed, setPressed] = useState(false);
+  const canPress = !!onPress && hotspot.kind === 'witness' && !alreadyVisited && !finished && step < hotspot.dialogue.length - 1;
+  const press = () => {
+    setPressed(true);
+    onPress?.();
+    setStep(hotspot.dialogue.length);
+    if (!collected) {
+      setCollected(true);
+      onCollect();
+    }
+  };
 
   const advance = () => {
     const next = step + 1;
@@ -56,6 +71,13 @@ export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, 
           ))}
         </div>
 
+        {pressed && (
+          <div className="mt-2 rounded-lg border border-alert/40 bg-red-950/30 p-3 text-sm text-red-100">
+            <span className="font-bold">{hotspot.character?.name ?? 'העד'}: </span>
+            טוב! הנה, זה מה שיש. ועכשיו תעזבו אותי בשקט.
+            <div className="mt-1 text-[11px] text-red-200/80">לחצת על עד. זה עובד מהר, אבל השמועה מתפשטת: אמינות -{pressCost}.</div>
+          </div>
+        )}
         {finished && (
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
@@ -82,10 +104,17 @@ export default function HotspotDialog({ hotspot, caseFile, progress, onCollect, 
 
         <div className="mt-4 flex justify-end gap-2">
           {!finished ? (
-            <button className="btn-primary" onClick={advance}>
-              המשך
-              <ChevronLeft className="h-4 w-4" />
-            </button>
+            <>
+              {canPress && (
+                <button className="btn-ghost text-red-200" onClick={press} title={`אמינות -${pressCost ?? 0}`}>
+                  ללחוץ: "בלי סיפורים"
+                </button>
+              )}
+              <button className="btn-primary" onClick={advance}>
+                המשך
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </>
           ) : (
             <button className="btn-gold" onClick={onClose}>
               חזרה לסיור

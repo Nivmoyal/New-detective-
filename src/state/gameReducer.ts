@@ -10,6 +10,7 @@ import type {
   TacticId,
   View,
 } from '../types/investigation';
+import { messagesFor, newMessage, type PhoneMessage } from './messages';
 import { MAPS, STATION_MAP_ID } from '../data/maps';
 import { defaultPlayerLook } from '../data/characters';
 import {
@@ -23,6 +24,9 @@ import {
   intelForLab,
   isCaseUnlocked,
   isHotspotAvailable,
+  EARLY_WARRANT_COST,
+  EARLY_WARRANT_MIN_RELIABILITY,
+  PRESS_WITNESS_COST,
   loadCases,
   storyCases,
   syncCaseHorizon,
@@ -51,11 +55,17 @@ export interface GameState {
   /** Case of the running interrogation. */
   interrogationCaseId: string | null;
   promotionCaseId: string | null;
+  /** The detective's phone, newest last. */
+  messages: PhoneMessage[];
   /** Street situations already handled. */
   incidentsDone: string[];
 }
 
 export type GameAction =
+  | { type: 'ADD_MESSAGE'; from: string; text: string }
+  | { type: 'READ_MESSAGES' }
+  | { type: 'FORCE_HOTSPOT'; caseId: string; hotspotId: string }
+  | { type: 'PRESS_WITNESS'; caseId: string; hotspotId: string }
   | { type: 'LOAD_GAME'; state: GameState }
   | { type: 'CREATE_PROFILE'; name: string; specialization: Specialization; addressForm: AddressForm; look: CharacterLook }
   | { type: 'ARRIVAL_COMMANDER_DONE' }
@@ -97,6 +107,7 @@ export function initialState(): GameState {
     interrogationCaseId: null,
     promotionCaseId: null,
     incidentsDone: [],
+    messages: [],
   };
 }
 
@@ -204,9 +215,33 @@ function firstOpenCase(state: GameState, exclude?: string): string | null {
   return (touched ?? open[0])?.id ?? null;
 }
 
+/** Every step of the game, plus whatever it puts on the detective's phone. */
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (action.type === 'ADD_MESSAGE') return { ...state, messages: [...state.messages, newMessage(action.from, action.text)].slice(-40) };
+  if (action.type === 'READ_MESSAGES') return state.messages.some((m) => !m.read) ? { ...state, messages: state.messages.map((m) => ({ ...m, read: true })) } : state;
+  const next = coreReducer(state, action);
+  if (next === state) return next;
+  const fresh = messagesFor(state, next, action as { type: string; caseId?: string; hotspotId?: string });
+  return fresh.length ? { ...next, messages: [...(next.messages ?? []), ...fresh].slice(-40) } : next;
+}
+
+function coreReducer(state: GameState, action: GameAction): GameState {
   syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
   switch (action.type) {
+    case 'FORCE_HOTSPOT': {
+      if (!state.profile || state.profile.reliability < EARLY_WARRANT_MIN_RELIABILITY) return state;
+      const next = updateCase(state, action.caseId, (p) => ({ forced: [...new Set([...(p.forced ?? []), action.hotspotId])] }));
+      return withProfile(next, (p) => ({ reliability: clamp(p.reliability - EARLY_WARRANT_COST) }));
+    }
+
+    case 'PRESS_WITNESS': {
+      if (!state.profile) return state;
+      const progress = caseProgress(state, action.caseId);
+      if (progress.pressed?.includes(action.hotspotId)) return state;
+      const next = updateCase(state, action.caseId, (p) => ({ pressed: [...(p.pressed ?? []), action.hotspotId] }));
+      return withProfile(next, (p) => ({ reliability: clamp(p.reliability - PRESS_WITNESS_COST) }));
+    }
+
     case 'LOAD_GAME':
       syncCaseHorizon(action.state.profile?.solvedCases.length ?? 0);
       return action.state;
@@ -344,7 +379,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         activeCaseId: caseId,
-        interrogation: startInterrogation(suspect, state.profile.specialization),
+        interrogation: startInterrogation(suspect, state.profile.specialization, state.profile.reliability),
         interrogationCaseId: caseId,
         view: 'interrogation',
       };

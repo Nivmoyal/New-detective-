@@ -5,6 +5,8 @@ import { MAPS } from '../data/maps';
 import { defaultPlayerLook } from '../data/characters';
 import { loadCases, syncCaseHorizon } from '../services/caseEngine';
 import { activeIncident } from '../data/incidents';
+import { PARTNER, partnerQuips } from '../pixel/world/partner';
+import { genderize } from '../pixel/world/humor';
 
 const params = new URLSearchParams(location.search);
 // ?gen=N shows the first N generated cases on the map.
@@ -28,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
       onHotspot={(h) => console.log('hotspot', h.hotspot.id)}
       onChat={(n) => console.log('chat', n.character.name)}
       onExamine={(a, b) => console.log('examine', a, b)}
+      partner={params.get('partner') ? { look: PARTNER.look, quips: partnerQuips(map.id).map((q) => genderize(q, 'male')) } : null}
       onPositionChange={(_m, x, y) => console.log('pos', x.toFixed(2), y.toFixed(2))}
     />
   </div>,

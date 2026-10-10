@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Award, CheckSquare, Menu, RotateCcw, ShieldAlert, Siren, X } from 'lucide-react';
+import { Activity, Award, CheckSquare, Menu, RotateCcw, ShieldAlert, Siren, Smartphone, X } from 'lucide-react';
 import type { DetectiveProfile } from '../types/investigation';
+import type { PhoneMessage } from '../state/messages';
 import { RANKS, RANK_TITLES } from '../services/caseEngine';
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
   activeCaseTitle: string | null;
   /** The game is also kept in the player's claude.ai space. */
   cloudSaved: boolean;
+  messages: PhoneMessage[];
+  onReadMessages: () => void;
   onReset: () => void;
 }
 
@@ -24,21 +27,24 @@ function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: stri
   );
 }
 
-export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, onReset }: Props) {
+export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, messages, onReadMessages, onReset }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const unread = messages.filter((m) => !m.read).length;
   const close = () => {
     setMenuOpen(false);
+    setPhoneOpen(false);
     setConfirming(false);
   };
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !phoneOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [menuOpen]);
+  }, [menuOpen, phoneOpen]);
   const reliabilityTone =
     profile.reliability >= 70 ? 'text-emerald-400' : profile.reliability >= 40 ? 'text-evidence-light' : 'text-alert';
 
@@ -58,7 +64,27 @@ export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, onR
         </span>
         <button
           className="relative z-40 -m-1 shrink-0 rounded-lg p-2 text-steel hover:text-slate-100 active:bg-noir-deep"
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => {
+            setMenuOpen(false);
+            setPhoneOpen((v) => !v);
+            onReadMessages();
+          }}
+          aria-label={unread ? `טלפון, ${unread} הודעות חדשות` : 'טלפון'}
+          aria-expanded={phoneOpen}
+        >
+          <Smartphone className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-alert px-1 text-[10px] font-bold leading-none text-white">
+              {unread}
+            </span>
+          )}
+        </button>
+        <button
+          className="relative z-40 -m-1 shrink-0 rounded-lg p-2 text-steel hover:text-slate-100 active:bg-noir-deep"
+          onClick={() => {
+            setPhoneOpen(false);
+            setMenuOpen((v) => !v);
+          }}
           aria-label={menuOpen ? 'סגירת התפריט' : 'תפריט'}
           aria-expanded={menuOpen}
         >
@@ -66,7 +92,27 @@ export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, onR
         </button>
       </div>
 
-      {menuOpen &&
+      {phoneOpen && (
+        <div className="panel absolute left-3 top-full z-30 mt-1 max-h-[70vh] w-72 animate-fadeUp overflow-y-auto p-3 shadow-2xl scrollbar-thin">
+          <div className="mb-2 flex items-center gap-2 text-sm font-bold">
+            <Smartphone className="h-4 w-4 text-police-light" />
+            הודעות
+          </div>
+          {messages.length === 0 && <p className="text-xs text-steel">אין הודעות. נהנים מהשקט כל עוד הוא נמשך.</p>}
+          <ul className="space-y-2">
+            {[...messages].reverse().map((m) => (
+              <li key={m.id} className="rounded-lg border border-noir-border bg-noir-deep/70 p-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[11px] font-bold text-sky-300">{m.from}</span>
+                  <span className="shrink-0 text-[10px] text-steel">{new Date(m.at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-200">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {(menuOpen || phoneOpen) &&
         // Tapping anywhere outside the menu closes it. Rendered on the page
         // body: the header's blur would otherwise clip a fixed layer to itself.
         createPortal(<div className="fixed inset-0 z-[15]" onClick={close} aria-hidden="true" />, document.body)}

@@ -38,10 +38,12 @@ export const TACTICS: InterrogationOption[] = [
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
-export function startInterrogation(suspect: Suspect, specialization: Specialization): InterrogationState {
+export function startInterrogation(suspect: Suspect, specialization: Specialization, reliability = 60): InterrogationState {
   const profile = suspect.interrogation;
   if (!profile) throw new Error(`Suspect ${suspect.id} cannot be interrogated`);
-  const coopBonus = specialization === 'criminal' ? 10 : 0;
+  // A detective's reputation walks into the room first: a trusted one gets
+  // more cooperation, one known for cutting corners gets less.
+  const coopBonus = (specialization === 'criminal' ? 10 : 0) + Math.round((reliability - 60) / 4);
   return {
     suspectId: suspect.id,
     tension: profile.startTension,
