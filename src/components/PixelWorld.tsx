@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Hand, MessageSquare, Search } from 'lucide-react';
+import { Hand, MessageSquare, Search, Volume2, VolumeX } from 'lucide-react';
+import { ambient } from '../pixel/audio';
 import type { CharacterLook, CharacterRef, MapHotspot } from '../types/investigation';
 import type { ChatNpc } from '../data/characters';
 import type { Incident } from '../data/incidents';
 import { FACILITY_CHARACTERS } from '../data/characters';
 import { WorldRenderer, type Drawable } from '../pixel/world/renderer';
-import { T, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
+import { T, Tile, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
 import { drawEvidenceItem, examineCount, examineVariant, propDef, propName } from '../pixel/world/props';
 import { ARRIVAL_THOUGHTS, OVERHEARD, idleThoughts, repeatExamine, wallThoughts, type G } from '../pixel/world/humor';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, drawPerson, type Dir } from '../pixel/person';
@@ -121,12 +122,19 @@ export default function PixelWorld({
   const live = useRef({ paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g });
   live.current = { paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g };
   const interactRef = useRef<() => void>(() => {});
+  const [soundOn, setSoundOn] = useState(ambient.enabled);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const wrap = wrapRef.current!;
     const display = canvas.getContext('2d')!;
     const renderer = new WorldRenderer(map);
+    ambient.setScene(map.ambient, map.rain);
+    const unlockAudio = () => ambient.unlock();
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+    let lastStep = 0;
+    let lastClub: boolean | null = null;
     let scale = 4;
     let dpr = 1;
     let vw = 0;
@@ -651,6 +659,19 @@ export default function PixelWorld({
       const openB = renderer.buildingAt(player.x, player.y - 0.1);
       const openId = openB?.id ?? null;
 
+      // Footsteps on every other walk frame; softer on grass and dirt.
+      const stepFrame = Math.floor(player.anim);
+      if (player.moving && stepFrame !== lastStep && stepFrame % 2 === 1) {
+        const tile = map.tiles[Math.floor(player.y) * map.w + Math.floor(player.x)];
+        ambient.step(tile === Tile.Grass || tile === Tile.Dirt ? 'soft' : 'hard');
+      }
+      lastStep = stepFrame;
+      const inClub = openId === 'fl-club';
+      if (inClub !== lastClub) {
+        lastClub = inClub;
+        ambient.setInsideClub(inClub);
+      }
+
       /* Draw world */
       const ents: Drawable[] = [];
       const drawActor = (a: Actor) => {
@@ -781,6 +802,8 @@ export default function PixelWorld({
       cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
       window.removeEventListener('keyup', onKey);
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
@@ -795,6 +818,17 @@ export default function PixelWorld({
     <div ref={wrapRef} className="relative h-full w-full select-none overflow-hidden bg-[#07090c]" style={{ touchAction: 'none' }}>
       <canvas ref={canvasRef} className="absolute inset-0 block" />
       <div className="crt-overlay pointer-events-none absolute inset-0" />
+      <button
+        onClick={() => {
+          const next = !soundOn;
+          setSoundOn(next);
+          ambient.setEnabled(next);
+        }}
+        aria-label={soundOn ? 'השתקה' : 'הפעלת צליל'}
+        className="absolute left-2 top-2 rounded-md border border-noir-border bg-noir-bg/80 p-2 text-steel backdrop-blur hover:text-slate-100"
+      >
+        {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+      </button>
       <div className="pointer-events-none absolute right-2 top-2 rounded-md border border-noir-border bg-noir-bg/80 px-2.5 py-1 backdrop-blur">
         <div className="font-display text-sm font-bold leading-tight text-slate-100">{map.name}</div>
         <div className="text-[10px] text-steel">{map.district}</div>

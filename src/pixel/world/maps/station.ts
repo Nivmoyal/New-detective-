@@ -177,7 +177,7 @@ export function buildStation() {
   b.prop('table', 32, 18);
   b.prop('chair', 31, 18);
   b.prop('chair', 34, 19);
-  b.npc({ x: 31.5, y: 21.5, dir: DIR_UP, name: 'רס״ל מירב לוי', role: 'בלשית בצוות הסמים', look: look('female', '#c98f66', 'ponytail', '#3b2618', 'leather', '#2b2b2e'), lines: COP_LINES.slice(1) });
+  b.npc({ x: 34.5, y: 21.5, dir: DIR_UP, name: 'רס״מ אלון ביטון', role: 'חוקר, צוות רכוש', look: look('male', '#9c6644', 'short', '#16120f', 'blazer', '#3d4a3a'), lines: COP_LINES.slice(1) });
 
   /* Evidence room */
   b.prop('evidenceShelf', 37, 18);
