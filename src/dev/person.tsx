@@ -2,7 +2,10 @@ import { drawPerson, drawPortrait, type Dir } from '../pixel/person';
 import { COMMANDER, LAB_TECH, MENTOR, EVIDENCE_CLERK, INTERROGATION_OFFICER, PATROL_DRIVER, defaultPlayerLook } from '../data/characters';
 import type { CharacterLook } from '../types/investigation';
 
-const looks: CharacterLook[] = [
+const HAIRS = ['short', 'buzz', 'long', 'ponytail', 'curly', 'bun', 'bald'] as const;
+const grid = new URLSearchParams(location.search).get('grid');
+const bodyLooks = (body: 'male' | 'female', beard: boolean): CharacterLook[] => HAIRS.map((h) => ({ ...defaultPlayerLook(body), hairStyle: h, beard }));
+const looks: CharacterLook[] = grid === 'm' ? bodyLooks('male', false) : grid === 'b' ? bodyLooks('male', true) : grid === 'f' ? bodyLooks('female', false) : [
   defaultPlayerLook('male'),
   defaultPlayerLook('female'),
   { ...defaultPlayerLook('male'), outfit: 'suit', glasses: true, beard: true, topColor: '#1f2a3a' },

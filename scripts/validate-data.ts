@@ -58,7 +58,7 @@ for (const m of Object.values(MAPS)) {
       for (let i = 0; i < n.path.length; i++) {
         const a = n.path[i];
         const b = n.path[(i + 1) % n.path.length];
-        for (let t = 0; t <= 1; t += 0.02) {
+        for (let t = 0, dt = 0.2 / (Math.hypot(b.x - a.x, b.y - a.y) || 1); t <= 1; t += dt) {
           const x = Math.floor(a.x + (b.x - a.x) * t);
           const y = Math.floor(a.y + (b.y - a.y) * t);
           if (m.blocked[y * m.w + x]) {
@@ -100,7 +100,7 @@ for (const inc of INCIDENTS) {
         for (let i = 0; i < n.path.length; i++) {
           const a = n.path[i];
           const b = n.path[(i + 1) % n.path.length];
-          for (let t = 0; t <= 1; t += 0.02)
+          for (let t = 0, dt = 0.2 / (Math.hypot(b.x - a.x, b.y - a.y) || 1); t <= 1; t += dt)
             if (Math.hypot(a.x + (b.x - a.x) * t - p.x, a.y + (b.y - a.y) * t - p.y) < 0.7) {
               errors.push(`incident ${inc.id}: walker ${n.name} walks through ${p.name}`);
               t = 2;
@@ -186,7 +186,7 @@ for (const c of [...data.cases, ...generated]) {
 
 // Generated-case places must not stand on top of anyone else in the world.
 for (const m of Object.values(MAPS)) {
-  const gen = Object.entries(m.anchors).filter(([k]) => k.startsWith('gen-') || k === 'st-archive');
+  const gen = Object.entries(m.anchors).filter(([k]) => k.startsWith('gen-') || k.startsWith('auto-') || k === 'st-archive');
   const others = Object.entries(m.anchors).filter(([k]) => !gen.some(([g]) => g === k));
   const people = [
     ...m.npcs.filter((n) => !n.path).map((n) => ({ name: n.name, x: n.x, y: n.y })),
@@ -201,7 +201,7 @@ for (const m of Object.values(MAPS)) {
         for (let i = 0; i < n.path.length; i++) {
           const p = n.path[i];
           const q = n.path[(i + 1) % n.path.length];
-          for (let t = 0; t <= 1; t += 0.02)
+          for (let t = 0, dt = 0.2 / (Math.hypot(q.x - p.x, q.y - p.y) || 1); t <= 1; t += dt)
             if (Math.hypot(p.x + (q.x - p.x) * t - a.x, p.y + (q.y - p.y) * t - a.y) < 0.7) {
               errors.push(`${m.id}: walker ${n.name} walks through ${k}`);
               t = 2;

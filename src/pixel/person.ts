@@ -154,74 +154,186 @@ const HEAD_RY = 4.6;
 
 const longSleeves = (o: CharacterLook['outfit']) => !['tshirt', 'apron', 'uniform'].includes(o);
 const sleeveColor = (look: CharacterLook, p: Pal) => (look.outfit === 'labcoat' ? '#eef0f2' : look.outfit === 'vest' ? '#d3d6d9' : p.top);
-const hasLongHairBack = (look: CharacterLook) => look.hairStyle === 'long' || (look.hairStyle === 'curly' && look.body === 'female');
 
 /* ------------------------------------------------------------------ */
 /* Hair                                                                */
 /* ------------------------------------------------------------------ */
 
-function hairCap(ctx: Ctx, hc: number, cutY: number, color: string) {
-  ctx.save();
+type PathFn = () => void;
+
+/** Fill (and outline) a path built by fn. */
+function shape(ctx: Ctx, fn: PathFn, fill: string, outline = true) {
   ctx.beginPath();
-  ctx.rect(-HEAD_RX - 3, hc - HEAD_RY - 4, HEAD_RX * 2 + 6, HEAD_RY + 4 + cutY);
+  fn();
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (outline) {
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = LW;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+}
+
+const pt = (cx: number, cy: number, rx: number, ry: number, a: number): [number, number] => [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+
+/** A bumpy (curly) edge along an ellipse arc from angle a0 to a1. */
+function scallop(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, a0: number, a1: number, n: number, amp: number, move: boolean) {
+  const [x0, y0] = pt(cx, cy, rx, ry, a0);
+  if (move) ctx.moveTo(x0, y0);
+  else ctx.lineTo(x0, y0);
+  for (let i = 0; i < n; i++) {
+    const t1 = a0 + ((a1 - a0) * (i + 1)) / n;
+    const tm = a0 + ((a1 - a0) * (i + 0.5)) / n;
+    const [qx, qy] = pt(cx, cy, rx + amp * 2, ry + amp * 2, tm);
+    const [x1, y1] = pt(cx, cy, rx, ry, t1);
+    ctx.quadraticCurveTo(qx, qy, x1, y1);
+  }
+}
+
+/** Crown of the head from the left temple over the top to the right temple. */
+function crown(ctx: Ctx, hc: number, grow = 0) {
+  const [lx, ly] = pt(0, hc - 0.3, HEAD_RX + 0.5 + grow, HEAD_RY + 0.45 + grow, Math.PI + 0.1);
+  ctx.moveTo(lx, ly);
+  ctx.ellipse(0, hc - 0.3, HEAD_RX + 0.5 + grow, HEAD_RY + 0.45 + grow, 0, Math.PI + 0.1, Math.PI * 2 - 0.1);
+}
+
+function curls(ctx: Ctx, p: Pal, pts: [number, number][]) {
+  ctx.lineCap = 'round';
+  for (const [x, y] of pts) {
+    ctx.beginPath();
+    ctx.arc(x, y, 0.45, Math.PI * 1.0, Math.PI * 1.9);
+    ctx.strokeStyle = p.hairLight;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 0.25;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function clipHead(ctx: Ctx, cx: number, hc: number) {
+  ctx.beginPath();
+  ctx.ellipse(cx, hc, HEAD_RX, HEAD_RY, 0, 0, Math.PI * 2);
   ctx.clip();
-  ell(ctx, 0, hc - 0.35, HEAD_RX + 0.55, HEAD_RY + 0.4, color);
-  ctx.restore();
+}
+
+/** Hair that hangs behind the head and shoulders (drawn before the body). */
+function hairBehind(ctx: Ctx, look: CharacterLook, p: Pal, hc: number, side: boolean) {
+  const female = look.body === 'female';
+  if (look.hairStyle === 'long') {
+    if (side)
+      shape(ctx, () => {
+        ctx.moveTo(-HEAD_RX + 0.6, hc - 2.4);
+        ctx.quadraticCurveTo(-HEAD_RX - 2.0, hc + 2.5, -HEAD_RX - 0.9, hc + 8.6);
+        ctx.quadraticCurveTo(-HEAD_RX + 0.6, hc + 9.0, -HEAD_RX + 2.2, hc + 8.2);
+        ctx.quadraticCurveTo(-HEAD_RX + 1.6, hc + 3.5, 0.6, hc + 1.2);
+      }, p.hairShade);
+    else
+      shape(ctx, () => {
+        ctx.moveTo(-HEAD_RX - 1.1, hc - 1.2);
+        ctx.quadraticCurveTo(-HEAD_RX - 1.8, hc + 4.5, -HEAD_RX - 1.0, hc + 7.8);
+        ctx.quadraticCurveTo(0, hc + 8.6, HEAD_RX + 1.0, hc + 7.8);
+        ctx.quadraticCurveTo(HEAD_RX + 1.8, hc + 4.5, HEAD_RX + 1.1, hc - 1.2);
+      }, p.hairShade);
+  }
+  if (look.hairStyle === 'curly' && female) {
+    ctx.beginPath();
+    if (side) scallop(ctx, -1.2, hc + 2.4, 3.6, 4.6, Math.PI * 0.4, Math.PI * 1.6, 6, 0.45, true);
+    else scallop(ctx, 0, hc + 1.4, HEAD_RX + 1.1, HEAD_RY + 0.6, Math.PI * -0.05, Math.PI * 1.05, 8, 0.4, true);
+    ctx.closePath();
+    ctx.fillStyle = p.hairShade;
+    ctx.fill();
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = LW;
+    ctx.stroke();
+  }
 }
 
 function hairFront(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
   const H = p.hair;
+  const female = look.body === 'female';
+  const R = HEAD_RX;
   switch (look.hairStyle) {
     case 'short':
-      hairCap(ctx, hc, -1.5, H);
-      // Fringe and sideburns.
-      poly(ctx, [-HEAD_RX + 0.2, hc - 1.8, -0.6, hc - 1.9, -2.2, hc - 0.8], H);
-      poly(ctx, [0.2, hc - 1.9, HEAD_RX - 0.4, hc - 1.8, 2.8, hc - 1.0], H);
-      rrect(ctx, -HEAD_RX - 0.1, hc - 2.2, 1.0, 3.0, 0.4, H, false);
-      rrect(ctx, HEAD_RX - 0.9, hc - 2.2, 1.0, 3.0, 0.4, H, false);
-      line(ctx, -1.6, hc - 3.8, 0.8, hc - 4.5, 0.6, p.hairLight);
+      shape(ctx, () => {
+        crown(ctx, hc);
+        ctx.lineTo(R + 0.25, hc - 0.2);
+        ctx.lineTo(R - 0.55, hc - 0.4);
+        ctx.quadraticCurveTo(R - 1.0, hc - 1.6, 1.2, hc - 2.5);
+        ctx.quadraticCurveTo(0.2, hc - 2.0, -0.6, hc - 2.1);
+        ctx.quadraticCurveTo(-2.6, hc - 1.9, -R + 0.55, hc - 0.4);
+        ctx.lineTo(-R - 0.25, hc - 0.2);
+      }, H);
+      line(ctx, -1.8, hc - 3.9, 0.6, hc - 4.5, 0.55, p.hairLight);
       break;
     case 'buzz':
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      hairCap(ctx, hc, -2.3, mix(H, look.skin, 0.25));
-      ctx.restore();
-      break;
-    case 'long':
-      hairCap(ctx, hc, -1.1, H);
-      rrect(ctx, -HEAD_RX - 1.0, hc - 2.6, 1.9, 8.2, 0.9, H);
-      rrect(ctx, HEAD_RX - 0.9, hc - 2.6, 1.9, 8.2, 0.9, H);
-      line(ctx, 0.3, hc - HEAD_RY - 0.1, -0.2, hc - 1.5, 0.45, p.hairShade);
-      line(ctx, -2.6, hc - 3.6, -1.0, hc - 4.4, 0.6, p.hairLight);
+      shape(ctx, () => {
+        crown(ctx, hc, -0.25);
+        ctx.quadraticCurveTo(R - 0.5, hc - 1.3, 0, hc - 2.9);
+        ctx.quadraticCurveTo(-R + 0.5, hc - 1.3, -R - 0.05, hc - 0.9);
+      }, mix(H, look.skin, 0.3));
       break;
     case 'ponytail':
-      hairCap(ctx, hc, -1.4, H);
-      line(ctx, -2.4, hc - 3.4, 0.4, hc - 4.4, 0.55, p.hairLight);
+    case 'bun':
+      if (look.hairStyle === 'bun') ell(ctx, 0, hc - HEAD_RY - 0.9, 2.0, 1.8, H);
+      shape(ctx, () => {
+        crown(ctx, hc);
+        ctx.quadraticCurveTo(R - 0.3, hc - 1.1, R - 1.2, hc - 1.6);
+        ctx.quadraticCurveTo(0, hc - 3.2, -R + 1.2, hc - 1.6);
+        ctx.quadraticCurveTo(-R + 0.3, hc - 1.1, -R - 0.4, hc - 0.7);
+      }, H);
+      // Combed-back strands.
+      line(ctx, -1.6, hc - 2.6, -1.1, hc - 4.4, 0.25, p.hairShade);
+      line(ctx, 1.4, hc - 2.6, 0.9, hc - 4.4, 0.25, p.hairShade);
+      line(ctx, -2.4, hc - 3.6, -0.6, hc - 4.6, 0.5, p.hairLight);
+      break;
+    case 'long':
+      shape(ctx, () => {
+        ctx.moveTo(0, hc - HEAD_RY - 0.75);
+        ctx.bezierCurveTo(-R - 1.0, hc - HEAD_RY - 0.6, -R - 1.6, hc - 2.5, -R - 1.3, hc + 1.5);
+        ctx.quadraticCurveTo(-R - 1.2, hc + 5, -R - 0.6, hc + 6.8);
+        ctx.quadraticCurveTo(-R + 0.3, hc + 6.6, -R + 0.6, hc + 5.6);
+        ctx.quadraticCurveTo(-R + 0.2, hc + 1.0, -R + 1.0, hc - 1.3);
+        ctx.quadraticCurveTo(-2.0, hc - 2.6, -0.3, hc - 2.5);
+        ctx.lineTo(0.2, hc - 3.1);
+        ctx.quadraticCurveTo(2.4, hc - 2.5, R - 1.0, hc - 1.3);
+        ctx.quadraticCurveTo(R - 0.2, hc + 1.0, R - 0.6, hc + 5.6);
+        ctx.quadraticCurveTo(R - 0.3, hc + 6.6, R + 0.6, hc + 6.8);
+        ctx.quadraticCurveTo(R + 1.2, hc + 5, R + 1.3, hc + 1.5);
+        ctx.bezierCurveTo(R + 1.6, hc - 2.5, R + 1.0, hc - HEAD_RY - 0.6, 0, hc - HEAD_RY - 0.75);
+      }, H);
+      line(ctx, 0.2, hc - 3.1, 0.1, hc - HEAD_RY - 0.5, 0.3, p.hairShade);
+      line(ctx, -R - 0.4, hc + 1.0, -R, hc + 5.0, 0.25, p.hairShade);
+      line(ctx, R + 0.4, hc + 1.0, R, hc + 5.0, 0.25, p.hairShade);
+      line(ctx, -2.6, hc - 3.8, -1.0, hc - 4.6, 0.55, p.hairLight);
       break;
     case 'curly': {
-      for (let a = Math.PI * 0.95; a <= Math.PI * 2.05; a += Math.PI / 7) {
-        ell(ctx, Math.cos(a) * (HEAD_RX + 0.4), hc - 0.6 + Math.sin(a) * (HEAD_RY + 0.2), 1.8, 1.7, H);
-      }
-      hairCap(ctx, hc, -1.2, H);
-      if (look.body === 'female') {
-        for (let y = 0; y < 3; y++) {
-          ell(ctx, -HEAD_RX - 0.4, hc + y * 1.8, 1.5, 1.4, H);
-          ell(ctx, HEAD_RX + 0.4, hc + y * 1.8, 1.5, 1.4, H);
-        }
-      }
-      for (let i = 0; i < 4; i++) ell(ctx, -2.2 + i * 1.5, hc - 3.4 - (i % 2) * 0.6, 0.5, 0.4, p.hairLight, false);
+      const low = female ? 0.7 : 0.15;
+      shape(ctx, () => {
+        scallop(ctx, 0, hc - 0.7, R + 0.9, HEAD_RY + 0.7, Math.PI - low, Math.PI * 2 + low, female ? 12 : 9, 0.45, true);
+        // Hairline: little curls along the forehead.
+        const [rx, ry] = pt(0, hc - 0.7, R + 0.9, HEAD_RY + 0.7, Math.PI * 2 + low);
+        ctx.lineTo(rx - 1.1, ry);
+        if (female) ctx.quadraticCurveTo(R - 0.4, hc - 0.6, R - 1.2, hc - 1.6);
+        const xs = [R - 1.2, 1.4, -0.2, -1.8, -R + 1.2];
+        for (let i = 1; i < xs.length; i++) ctx.quadraticCurveTo((xs[i - 1] + xs[i]) / 2, hc - 0.9, xs[i], hc - 1.7);
+        const [lx, ly] = pt(0, hc - 0.7, R + 0.9, HEAD_RY + 0.7, Math.PI - low);
+        if (female) ctx.quadraticCurveTo(-R + 0.4, hc - 0.6, lx + 1.1, ly);
+        else ctx.lineTo(lx + 1.1, ly);
+      }, H);
+      curls(ctx, p, [[-2.4, hc - 3.2], [0.2, hc - 3.9], [2.5, hc - 3.0], [-0.9, hc - 2.4], [1.4, hc - 2.3]]);
+      if (female) curls(ctx, p, [[-R - 0.2, hc + 1.5], [R + 0.2, hc + 1.5], [-R + 0.2, hc + 3.6], [R - 0.2, hc + 3.6]]);
       break;
     }
-    case 'bun':
-      ell(ctx, 0, hc - HEAD_RY - 0.9, 2.1, 1.9, H);
-      hairCap(ctx, hc, -1.6, H);
-      line(ctx, -2.6, hc - 3.4, -0.6, hc - 4.3, 0.5, p.hairLight);
-      break;
     case 'bald':
       ell(ctx, -1.4, hc - 3.0, 1.4, 0.8, shade(look.skin, 0.25), false);
       if (look.hairColor !== look.skin) {
-        ell(ctx, -HEAD_RX + 0.2, hc + 0.2, 0.7, 1.6, mix(H, look.skin, 0.3), false);
-        ell(ctx, HEAD_RX - 0.2, hc + 0.2, 0.7, 1.6, mix(H, look.skin, 0.3), false);
+        ctx.save();
+        clipHead(ctx, 0, hc);
+        ell(ctx, -R + 0.1, hc - 0.1, 0.55, 1.4, mix(H, look.skin, 0.45), false);
+        ell(ctx, R - 0.1, hc - 0.1, 0.55, 1.4, mix(H, look.skin, 0.45), false);
+        ctx.restore();
       }
       break;
   }
@@ -229,16 +341,36 @@ function hairFront(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
 
 function hairBack(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
   const H = p.hair;
+  const female = look.body === 'female';
   if (look.hairStyle === 'bald') {
-    ell(ctx, 0, hc, HEAD_RX, HEAD_RY, look.skin);
     ell(ctx, -1.2, hc - 2.6, 1.6, 0.9, shade(look.skin, 0.22), false);
-    if (look.hairColor !== look.skin) ell(ctx, 0, hc + 1.6, HEAD_RX - 0.4, 1.6, mix(H, look.skin, 0.35), false);
+    if (look.hairColor !== look.skin) {
+      ctx.save();
+      clipHead(ctx, 0, hc);
+      ell(ctx, 0, hc + 2.4, HEAD_RX, 1.5, mix(H, look.skin, 0.45), false);
+      ctx.restore();
+    }
     return;
   }
-  const c = look.hairStyle === 'buzz' ? mix(H, look.skin, 0.25) : H;
-  if (look.hairStyle === 'curly') {
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) ell(ctx, Math.cos(a) * (HEAD_RX + 0.2), hc + Math.sin(a) * HEAD_RY, 1.8, 1.7, H);
+  if (look.hairStyle === 'long') {
+    shape(ctx, () => {
+      ctx.moveTo(0, hc - HEAD_RY - 0.7);
+      ctx.bezierCurveTo(-HEAD_RX - 1.0, hc - HEAD_RY - 0.6, -HEAD_RX - 1.5, hc - 2.0, -HEAD_RX - 1.3, hc + 1.0);
+      ctx.quadraticCurveTo(-HEAD_RX - 1.4, hc + 6.0, -HEAD_RX - 0.4, hc + 8.6);
+      ctx.quadraticCurveTo(0, hc + 9.3, HEAD_RX + 0.4, hc + 8.6);
+      ctx.quadraticCurveTo(HEAD_RX + 1.4, hc + 6.0, HEAD_RX + 1.3, hc + 1.0);
+      ctx.bezierCurveTo(HEAD_RX + 1.5, hc - 2.0, HEAD_RX + 1.0, hc - HEAD_RY - 0.6, 0, hc - HEAD_RY - 0.7);
+    }, H);
+    for (const x of [-2.2, 0, 2.2]) line(ctx, x * 0.6, hc - 1, x, hc + 7.6, 0.25, p.hairShade);
+    line(ctx, -1.8, hc - 2.8, 0.6, hc - 3.6, 0.6, p.hairLight);
+    return;
   }
+  if (look.hairStyle === 'curly') {
+    shape(ctx, () => scallop(ctx, 0, hc + (female ? 1.2 : -0.2), HEAD_RX + 0.8, HEAD_RY + (female ? 2.2 : 0.6), 0, Math.PI * 2, female ? 14 : 12, 0.45, true), H);
+    curls(ctx, p, [[-2, hc - 2.4], [1.4, hc - 3.2], [0, hc - 0.6], [-2.4, hc + 1.2], [2.2, hc + 0.8]]);
+    return;
+  }
+  const c = look.hairStyle === 'buzz' ? mix(H, look.skin, 0.3) : H;
   ell(ctx, 0, hc - 0.2, HEAD_RX + 0.45, HEAD_RY + 0.3, c);
   line(ctx, -1.8, hc - 2.8, 0.6, hc - 3.6, 0.6, p.hairLight);
   if (look.hairStyle === 'bun') ell(ctx, 0, hc - 1.4, 2.1, 1.9, H);
@@ -250,28 +382,92 @@ function hairBack(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
 
 function hairSide(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
   const H = p.hair;
+  const female = look.body === 'female';
   if (look.hairStyle === 'bald') {
     ell(ctx, -0.6, hc - 3.0, 1.6, 0.8, shade(look.skin, 0.25), false);
-    if (look.hairColor !== look.skin) ell(ctx, -1.8, hc + 1.0, 1.6, 1.6, mix(H, look.skin, 0.35), false);
+    if (look.hairColor !== look.skin) {
+      ctx.save();
+      clipHead(ctx, 0.4, hc);
+      ell(ctx, -3.3, hc + 0.9, 0.9, 1.4, mix(H, look.skin, 0.55), false);
+      ctx.restore();
+    }
     return;
   }
-  const c = look.hairStyle === 'buzz' ? mix(H, look.skin, 0.25) : H;
   if (look.hairStyle === 'curly') {
-    for (let a = Math.PI * 0.6; a <= Math.PI * 2.0; a += Math.PI / 6) ell(ctx, 0.3 + Math.cos(a) * (HEAD_RX + 0.3), hc - 0.4 + Math.sin(a) * HEAD_RY, 1.7, 1.6, H);
+    shape(ctx, () => {
+      scallop(ctx, 0.2, hc - 0.5, HEAD_RX + 0.8, HEAD_RY + 0.6, Math.PI * (female ? 0.5 : 0.62), Math.PI * 2 - 0.4, female ? 11 : 9, 0.45, true);
+      ctx.lineTo(2.2, hc - 1.7);
+      ctx.quadraticCurveTo(1.0, hc - 1.4, 0.6, hc - 0.4);
+      ctx.lineTo(-0.9, hc + 2.0);
+    }, H);
+    curls(ctx, p, [[-1.8, hc - 2.4], [0.6, hc - 3.4], [-2.6, hc + 0.6]]);
+    return;
   }
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(-10, hc - 10, 20, 8.4 + (look.hairStyle === 'buzz' ? -0.8 : 0));
-  ctx.rect(-10, hc - 10, 9.6, 13 + (look.hairStyle === 'short' || look.hairStyle === 'buzz' ? 0 : 1.5));
-  ctx.clip();
-  ell(ctx, 0.3, hc - 0.35, HEAD_RX + 0.5, HEAD_RY + 0.4, c);
-  ctx.restore();
-  if (look.hairStyle === 'short' || look.hairStyle === 'long' || look.hairStyle === 'ponytail') {
-    poly(ctx, [1.0, hc - 2.0, 3.8, hc - 2.1, 2.2, hc - 0.9], H);
+  const c = look.hairStyle === 'buzz' ? mix(H, look.skin, 0.3) : H;
+  const fringe = look.hairStyle === 'short' || look.hairStyle === 'long';
+  shape(ctx, () => {
+    const [sx, sy] = pt(0.3, hc - 0.35, HEAD_RX + 0.5, HEAD_RY + 0.4, Math.PI * 0.62);
+    ctx.moveTo(sx, sy);
+    ctx.ellipse(0.3, hc - 0.35, HEAD_RX + 0.5, HEAD_RY + 0.4, 0, Math.PI * 0.62, Math.PI * 1.97);
+    if (look.hairStyle === 'buzz') {
+      ctx.quadraticCurveTo(2.6, hc - 2.0, 1.2, hc - 1.6);
+    } else if (fringe) {
+      ctx.lineTo(HEAD_RX + 0.3, hc - 1.9);
+      ctx.quadraticCurveTo(2.8, hc - 1.4, 1.6, hc - 1.9);
+    } else {
+      ctx.quadraticCurveTo(3.0, hc - 2.6, 1.4, hc - 2.0);
+    }
+    // Hairline down past the ear to the nape.
+    ctx.quadraticCurveTo(0.6, hc - 1.0, 0.6, hc + 0.4);
+    ctx.quadraticCurveTo(-0.6, hc + 1.6, -1.6, hc + 3.0);
+  }, c);
+  if (look.hairStyle !== 'buzz') line(ctx, -1.6, hc - 3.6, 1.0, hc - 4.4, 0.55, p.hairLight);
+  if (look.hairStyle === 'bun') ell(ctx, -2.8, hc - HEAD_RY + 0.6, 2.0, 1.8, H);
+  if (look.hairStyle === 'ponytail') {
+    capsule(ctx, -HEAD_RX + 0.2, hc - 0.6, -HEAD_RX - 1.4, hc + 5.6, 2.1, H);
+    rrect(ctx, -HEAD_RX - 0.6, hc - 0.9, 1.4, 1.0, 0.3, '#2a2a33', false);
   }
-  line(ctx, -1.6, hc - 3.6, 1.0, hc - 4.4, 0.55, p.hairLight);
-  if (look.hairStyle === 'bun') ell(ctx, -2.6, hc - HEAD_RY + 0.6, 2.0, 1.8, H);
-  if (look.hairStyle === 'ponytail') capsule(ctx, -HEAD_RX + 0.4, hc - 0.4, -HEAD_RX - 1.4, hc + 5.6, 2.1, H);
+  if (look.hairStyle === 'long') line(ctx, -1.0, hc - 0.5, -2.6, hc + 6.0, 0.25, p.hairShade);
+}
+
+/** Beard color: the hair color, a touch warmer. */
+const beardColor = (look: CharacterLook, p: Pal) => mix(p.hair, shade(look.skin, -0.35), 0.18);
+
+function beardFrontShape(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
+  const B = beardColor(look, p);
+  const R = HEAD_RX;
+  shape(ctx, () => {
+    // Along the jaw from sideburn to sideburn.
+    const a0 = -0.12;
+    const [x0, y0] = pt(0, hc, R + 0.15, HEAD_RY + 0.35, a0);
+    ctx.moveTo(x0, y0);
+    ctx.ellipse(0, hc, R + 0.15, HEAD_RY + 0.35, 0, a0, Math.PI - a0);
+    // Up the left cheek, the moustache over the mouth, down the right cheek.
+    ctx.quadraticCurveTo(-R + 0.6, hc + 1.4, -2.0, hc + 1.9);
+    ctx.quadraticCurveTo(-1.4, hc + 1.75, -0.5, hc + 2.1);
+    ctx.quadraticCurveTo(0, hc + 1.95, 0.5, hc + 2.1);
+    ctx.quadraticCurveTo(1.4, hc + 1.75, 2.0, hc + 1.9);
+    ctx.quadraticCurveTo(R - 0.6, hc + 1.4, x0, y0);
+  }, B, false);
+  // The lips show through the beard.
+  ell(ctx, 0, hc + 3.0, 1.0, 0.45, mix(p.lip, B, 0.3), false);
+  ctx.globalAlpha = 0.5;
+  for (const [x, y] of [[-2.6, hc + 3.0], [2.5, hc + 3.2], [-1.2, hc + 4.4], [1.0, hc + 4.5], [0, hc + 3.9]] as const)
+    line(ctx, x, y, x + 0.25, y + 0.6, 0.22, shade(B, 0.25));
+  ctx.globalAlpha = 1;
+}
+
+function beardSideShape(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
+  const B = beardColor(look, p);
+  shape(ctx, () => {
+    ctx.moveTo(-0.2, hc - 0.3);
+    ctx.quadraticCurveTo(-0.3, hc + 4.0, 2.0, hc + HEAD_RY + 0.35);
+    ctx.quadraticCurveTo(HEAD_RX + 0.2, hc + 4.6, HEAD_RX + 0.25, hc + 3.6);
+    ctx.lineTo(HEAD_RX + 0.4, hc + 2.2);
+    ctx.quadraticCurveTo(3.4, hc + 1.9, 2.4, hc + 2.0);
+    ctx.quadraticCurveTo(1.2, hc + 1.6, 0.9, hc + 0.4);
+  }, B, false);
+  line(ctx, 3.0, hc + 2.85, 3.9, hc + 2.75, 0.45, mix(p.lip, B, 0.3));
 }
 
 /* ------------------------------------------------------------------ */
@@ -352,18 +548,6 @@ function glassesFront(ctx: Ctx, hc: number) {
     line(ctx, s * 2.85, hc + 0.3, s * (HEAD_RX - 0.1), hc + 0.1, 0.35, '#1f222a');
   }
   line(ctx, -0.45, hc + 0.3, 0.45, hc + 0.3, 0.35, '#1f222a');
-}
-
-function beardFront(ctx: Ctx, look: CharacterLook, p: Pal, hc: number) {
-  const B = mix(p.hair, shade(look.skin, -0.3), 0.15);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(-HEAD_RX - 1, hc + 0.9, HEAD_RX * 2 + 2, 6);
-  ctx.clip();
-  ell(ctx, 0, hc + 0.3, HEAD_RX - 0.05, HEAD_RY + 0.2, B);
-  ctx.restore();
-  ell(ctx, 0, hc + 2.3, 1.7, 0.5, B, false);
-  ell(ctx, 0, hc + 2.95, 0.8, 0.25, shade(B, -0.35), false);
 }
 
 function capFront(ctx: Ctx, hc: number, back: boolean) {
@@ -516,7 +700,7 @@ function drawFrontBack(ctx: Ctx, look: CharacterLook, p: Pal, s: number, bob: nu
   const shortSl = !longSleeves(look.outfit);
 
   // Long hair falls behind the shoulders.
-  if (hasLongHairBack(look) && !back) rrect(ctx, -HEAD_RX - 1.1, hc - 1, HEAD_RX * 2 + 2.2, 9.6, 2.4, p.hairShade);
+  if (!back) hairBehind(ctx, look, p, hc, false);
 
   // Legs: the lifted foot rises a little.
   const legX = female ? 1.8 : 2.15;
@@ -564,7 +748,7 @@ function drawFrontBack(ctx: Ctx, look: CharacterLook, p: Pal, s: number, bob: nu
   ctx.fillStyle = 'rgba(40,20,20,0.10)';
   ctx.fillRect(HEAD_RX - 1.3, hc - HEAD_RY, 2, HEAD_RY * 2);
   ctx.restore();
-  if (look.beard) beardFront(ctx, look, p, hc);
+  if (look.beard) beardFrontShape(ctx, look, p, hc);
   faceFront(ctx, look, p, hc, pose);
   hairFront(ctx, look, p, hc);
   if (look.glasses) glassesFront(ctx, hc);
@@ -582,7 +766,7 @@ function drawSide(ctx: Ctx, look: CharacterLook, p: Pal, s: number, bob: number,
   const a = s * 0.5;
   const legLen = -hy - 1.3;
 
-  if (hasLongHairBack(look)) rrect(ctx, -HEAD_RX - 1.3, hc - 1.2, 3.6, 10, 1.6, p.hairShade);
+  hairBehind(ctx, look, p, hc, true);
 
   // Far arm (behind the body).
   const armA = -a * 0.9;
@@ -648,21 +832,20 @@ function drawSide(ctx: Ctx, look: CharacterLook, p: Pal, s: number, bob: number,
   else ell(ctx, 2.5, hc + 0.4, 0.42, 0.55, '#1c1a22', false);
   line(ctx, 1.8, hc - 0.8, 3.2, hc - 0.9, female ? 0.35 : 0.5, look.hairStyle === 'bald' ? shade(look.skin, -0.4) : p.hairShade);
   line(ctx, 2.9, hc + 2.85, 3.8, hc + 2.75, female ? 0.5 : 0.4, p.lip);
-  if (look.beard) {
-    const B = mix(p.hair, shade(look.skin, -0.3), 0.15);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(-1, hc + 1.0, 7, 6);
-    ctx.clip();
-    ell(ctx, 1.2, hc + 0.8, 3.4, HEAD_RY - 0.2, B);
-    ctx.restore();
-    line(ctx, 2.7, hc + 2.8, 3.9, hc + 2.7, 0.4, shade(B, -0.35));
-  }
+  if (look.beard) beardSideShape(ctx, look, p, hc);
   hairSide(ctx, look, p, hc);
   // The ear sits in front of the hair line.
   if (look.hairStyle !== 'long' && !(look.hairStyle === 'curly' && female)) {
-    ell(ctx, -0.1, hc + 0.8, 0.85, 1.15, look.skin);
-    ell(ctx, -0.05, hc + 0.85, 0.32, 0.5, p.skinShade, false);
+    ctx.beginPath();
+    ctx.ellipse(-0.2, hc + 0.8, 0.8, 1.15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = look.skin;
+    ctx.fill();
+    ctx.strokeStyle = p.skinShade;
+    ctx.lineWidth = 0.3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-0.15, hc + 0.85, 0.42, Math.PI * 0.6, Math.PI * 1.6);
+    ctx.stroke();
   }
   if (look.glasses) {
     ctx.beginPath();

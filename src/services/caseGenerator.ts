@@ -4,7 +4,12 @@
 // structure always holds together: the culprit is tied by four pieces of
 // evidence (a lab item and a camera are the key ones), each innocent suspect
 // draws one or two false leads and has an alibi that clears them.
+import { citySpots, placeName, prepareCity, type Spot } from '../data/citySpots';
+import { MAPS, SCENE_MAP_IDS } from '../data/maps';
 import type { CaseFile, CharacterLook, CharacterRef, Clue, MapHotspot, Suspect } from '../types/investigation';
+
+// The open places and extra residents are part of the world from the start.
+prepareCity();
 
 /* ------------------------------------------------------------------ */
 /* Deterministic randomness                                            */
@@ -75,6 +80,8 @@ interface Person {
   look: CharacterLook;
   /** "קפוצ׳ון אדום" - what a witness would remember. */
   clothes: string;
+  /** Grammatical gender of that garment. */
+  clothesFemale: boolean;
 }
 
 function person(r: Rand, used: Set<string>, outfits: CharacterLook['outfit'][], female = r() < 0.4): Person {
@@ -100,7 +107,7 @@ function person(r: Rand, used: Set<string>, outfits: CharacterLook['outfit'][], 
     beard: !female && r() < 0.35,
     glasses: r() < 0.25,
   };
-  return { name, female, look, clothes: `${garment.name} ${garment.female ? color.f : color.m}` };
+  return { name, female, look, clothes: `${garment.name} ${garment.female ? color.f : color.m}`, clothesFemale: garment.female };
 }
 
 const ref = (p: Person, role: string): CharacterRef => ({ name: p.name, role, look: p.look });
@@ -203,7 +210,7 @@ const TEMPLATES: Template[] = [
     when: 'באותו ערב',
     roles: [
       { occupation: 'נער{|ה} מהשכונה', age: [16, 19], outfits: ['hoodie', 'tshirt'], motive: 'בשכונה מספרים ש{name} מסתובב{|ת} עם חבורה שחוטפת טלפונים ברחובות האלה.', alibi: 'המאמן של {name} מאשר: באותה שעה היה אימון כדורגל במגרש, עם עשרים ילדים ותמונות.', alibiSource: 'testimony', confession: ['חייבים כסף לאנשים לא טובים. אמרו לי להביא עד סוף השבוע.', 'לא רציתי לדחוף. {v:הוא פשוט לא עזב|היא פשוט לא עזבה} את התיק.'], opening: 'כל פעם שמשהו קורה ברחוב - הילדים מהשכונה אשמים. נמאס.' },
-      { occupation: 'שליח{|ה}', outfits: ['vest', 'hoodie'], motive: '{name} {נראה|נראתה} באזור כמה פעמים באותו ערב, ולפי השכנים "מסתכל{|ת} על אנשים יותר מעל משלוחים".', alibi: 'האפליקציה של חברת המשלוחים מראה ש{name} {היה|הייתה} באמצע משלוח בבת ים בשעת השוד.', alibiSource: 'document', confession: ['האפליקציה הורידה לי את המשכורת בחצי. היו לי חובות.', 'ראיתי את התיק פתוח, ראיתי את המזומנים. זה לקח שנייה.'], opening: 'אני עובד{|ת} כל היום על קורקינט. אין לי זמן לשדוד אף אחד.' },
+      { occupation: 'שליח{|ה}', outfits: ['vest', 'hoodie'], motive: '{name} {נראה|נראתה} באזור כמה פעמים באותו ערב, ולפי השכנים "{מסתכל|מסתכלת} על אנשים יותר מאשר על משלוחים".', alibi: 'האפליקציה של חברת המשלוחים מראה ש{name} {היה|הייתה} באמצע משלוח בבת ים בשעת השוד.', alibiSource: 'document', confession: ['האפליקציה הורידה לי את המשכורת בחצי. היו לי חובות.', 'ראיתי את התיק פתוח, ראיתי את המזומנים. זה לקח שנייה.'], opening: 'אני עובד{|ת} כל היום על קורקינט. אין לי זמן לשדוד אף אחד.' },
       { occupation: 'מכר{|ה} של הקורבן שחייב{|ת} כסף', outfits: ['leather', 'blazer'], motive: '{name} חייב{|ת} ל{victim} שמונת אלפים שקל, והחוב תפח לוויכוחים בטלפון.', alibi: 'הבוס של {name} מראה את דו״ח הנוכחות: {name} עבד{|ה} במשמרת ערב במסעדה ברמת גן עד אחת עשרה.', alibiSource: 'document', confession: ['{v:הוא לא הפסיק|היא לא הפסיקה} לדרוש את הכסף. {v:איים|איימה} להגיד לכולם.', 'לקחתי את התיק כי ידעתי שהכסף בפנים. רציתי שזה ייגמר.'], opening: 'אני חייב{|ת} {v:לו|לה} כסף, זה נכון. מכאן ועד לשדוד? אתם רציניים?' },
     ],
   },
@@ -316,37 +323,161 @@ const ARCHIVE_CLERK: CharacterRef = {
   look: { body: 'female', skin: '#e5b48f', hairStyle: 'bun', hairColor: '#6b4423', outfit: 'uniform', topColor: '#8fb0d4', pantsColor: '#1d2633', glasses: true },
 };
 
+/** A fourth possible suspect for each crime, used in some cases. */
+const FOURTH_ROLES: Record<string, Role> = {
+  burglary: { occupation: 'מנקה בעסק', outfits: ['apron', 'tshirt'], motive: '{name} מנקה את העסק פעמיים בשבוע ומחזיק{|ה} מפתח לדלת האחורית. לאחרונה {ביקש|ביקשה} מקדמה על המשכורת, ו{victim} {v:סירב|סירבה}.', alibi: 'בעלת הבית ש{name} מנקה אצלה בלילות מאשרת: {name} {היה|הייתה} אצלה ברמת גן עד הבוקר, ויש הודעות עם שעות.', alibiSource: 'testimony', confession: ['ביקשתי מקדמה של אלף שקל. אלף! {v:הוא צחק|היא צחקה} עליי.', 'היה לי מפתח. נכנסתי רק לקחת את מה ש{v:הוא חייב|היא חייבת} לי.'], opening: 'אני מנקה שם שלוש שנים. אם הייתי רוצה לגנוב, הייתי עושה את זה מזמן.' },
+  robbery: { occupation: 'מוכר{|ת} בדוכן ממול', outfits: ['apron', 'vest'], motive: '{name} ו{victim} רבו בשבוע שעבר על מקום חניה, והשכנים שמעו את {name} {צועק|צועקת}: "עוד {v:תראה|תראי}".', alibi: 'הקופה של הדוכן מראה עסקאות של {name} כל הערב, כולל בשעת השוד. גם הלקוחות זוכרים.', alibiSource: 'document', confession: ['{v:הוא לקח|היא לקחה} לי את החניה, את הלקוחות, את הכל.', 'רציתי רק להפחיד. לא חשבתי שזה ייגמר בבית חולים.'], opening: 'רבנו על חניה. זה תל אביב, כולם רבים על חניה.' },
+  assault: { occupation: 'שכ{ן|נה} מהקומה למטה', outfits: ['tshirt', 'hoodie'], motive: '{name} {הגיש|הגישה} נגד {victim} שתי תלונות על רעש, ובפעם האחרונה זה נגמר בדחיפות במדרגות.', alibi: '{name} {ביקר|ביקרה} את {אמו|אמה} בבית האבות עד אחרי חצות. יש רישום בכניסה ומצלמה בלובי.', alibiSource: 'document', confession: ['שנה שלמה של רעש עד שלוש בלילה. שנה!', 'ירדתי לבקש שקט, {v:והוא צחק|והיא צחקה} עליי. משהו נשבר.'], opening: 'כן, התלוננתי על רעש. זה לא פשע, זה הלילה שלי.' },
+  carTheft: { occupation: 'סוחר{|ת} רכבים משומשים', outfits: ['blazer', 'leather'], motive: '{name} {הציע|הציעה} ל{victim} לקנות את הרכב לפני חודש, {v:והוא סירב|והיא סירבה}. מאז {נראה|נראתה} {name} כמה פעמים ליד החניה.', alibi: 'רישומי מכירה פומבית של רכבים באשדוד: {name} {היה|הייתה} שם עד הבוקר, עם קבלות ותמונות.', alibiSource: 'document', confession: ['הייתה לי קונה מוכנה. רק היה צריך רכב בדיוק כזה.', '{v:הוא לא רצה|היא לא רצתה} למכור. אז מצאתי דרך אחרת.'], opening: 'אני קונה ומוכר{|ת} רכבים. בשביל זה יש חוזה, לא מגבר.' },
+  workTheft: { occupation: 'מנהל{|ת} החשבונות של העסק', outfits: ['suit', 'blazer'], motive: '{name} {גילה|גילתה} לפני חודש "פער" בספרים, ומאז {מתנהג|מתנהגת} מוזר. העובדים בטוחים ש{הוא מכסה|היא מכסה} על משהו.', alibi: 'בשעת הגניבה {name} {ישב|ישבה} בדיון בבית המשפט המחוזי, בתיק אחר לגמרי. יש פרוטוקול.', alibiSource: 'document', confession: ['ראיתי כמה כסף עובר שם, וכמה אני מרוויח{|ה}.', 'הקוד היה כתוב אצלי ביומן. זה כל הסיפור.'], opening: 'אני זה שגילה את הפער. למה שאגנוב ואז אדווח?' },
+  rentalScam: { occupation: 'סטודנט{|ית} שגר{|ה} בדירה קודם', outfits: ['hoodie', 'tshirt'], motive: '{name} {עזב|עזבה} את הדירה לפני חודשיים ו"{שכח|שכחה}" להחזיר מפתח. {הוא|היא} גם {מכיר|מכירה} את בעל הבית ואת כל הבניין.', alibi: 'רשות ההגירה מאשרת: {name} {יצא|יצאה} לטיול בדרום אמריקה ועוד לא {חזר|חזרה}. הטלפון מחובר בפרו.', alibiSource: 'document', confession: ['היה לי מפתח והיה לי חוב. זה הכל.', 'חשבתי שזה רק פעם אחת. אחר כך הגיעו עוד פניות.'], opening: 'עזבתי את הדירה הזאת. מה לי ולה?' },
+};
+
+/** What the victim tells the detective. */
+const VICTIM_STATEMENTS: Record<string, string> = {
+  burglary: 'הגעתי בבוקר והדלת הייתה סגורה כרגיל. רק הקופה הייתה ריקה. מי שעשה את זה הכיר את המקום.',
+  robbery: 'זה קרה בשנייה. דחיפה, משיכה, וכבר לא היה אף אחד. לא ראיתי פנים, רק את הבגד.',
+  assault: 'שמעתי קול מאחוריי, ואז הכל נהיה שחור. אני {בטוח|בטוחה} שאני {מכיר|מכירה} את הקול הזה.',
+  carTheft: 'חניתי כמו כל ערב. בבוקר - מקום ריק. האזעקה לא צפצפה בכלל.',
+  workTheft: 'רק מעט אנשים יודעים את הקוד. אני לא רוצה להאמין שזה אחד מהם.',
+  rentalScam: 'שילמתי במזומן, קיבלתי חוזה וחיוך. אפילו הראו לי איפה לשים את מכונת הכביסה.',
+};
+
+const VICTIM_OPENERS = ['סוף סוף. חיכיתי לכם מהבוקר.', 'אתם מהמשטרה? תודה שבאתם. אני עוד לא {מעכל|מעכלת}.', 'שאלו מה שאתם רוצים. רק תמצאו מי שעשה את זה.'];
+const VISIT_OPENERS = [
+  'משטרה? אצלי? מה עשיתי עכשיו?',
+  'אם זה בקשר ל{victim} - שמעתי. מה אתם רוצים ממני?',
+  'שתי דקות, אני באמצע משהו. טוב, שאלו.',
+  'ידעתי שתגיעו. כולם פה כבר מדברים.',
+];
+const NEIGHBOR_ROLES = ['שכ{ן|נה} ותיק{|ה} מהרחוב', 'בעל{|ת} הדוכן הקרוב', 'יושב{|ת} קבוע{|ה} על הספסל', 'שליח{|ה} שעובר{|ת} פה כל יום'];
+const AUTO_CAMERA_OWNERS = ['בעל{|ת} החנות הסמוכה', 'ועד הבית של הבניין ממול', 'בעל{|ת} הקיוסק הקרוב', 'מנהל{|ת} הסניף ממול', 'השכ{ן|נה} עם המצלמה במרפסת'];
+
 const cache = new Map<number, CaseFile>();
+
+interface Places {
+  mapId: string;
+  place: string;
+  scene: string;
+  w1: string;
+  w2: string;
+  neighbor: string;
+  victim: string;
+  camera: string;
+  cameraOwner: string;
+}
+
+const dist = (a: Spot, b: Spot) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** The n-th generated case (n starts at 1). Always the same for the same n. */
 export function generateCase(n: number): CaseFile {
   const hit = cache.get(n);
   if (hit) return hit;
+  // Places used by the cases just before this one stay theirs.
+  const taken = new Set<string>();
+  for (let k = Math.max(1, n - 4); k < n; k++) for (const h of generateCase(k).hotspots) taken.add(`${h.mapId}:${h.anchor}`);
+  const free = (s: Spot) => !taken.has(`${s.mapId}:${s.anchor}`);
+
   const r = rng(n * 7919 + 17);
   const tpl = TEMPLATES[(n - 1 + Math.floor(r() * 3)) % TEMPLATES.length];
-  const site = SITES[(n - 1) % SITES.length];
   const used = new Set<string>();
+  const usedSpots = new Set<string>();
+  const take = (s: Spot) => {
+    usedSpots.add(s.anchor);
+    return s.anchor;
+  };
+  const near = (from: Spot, min: number, max: number) =>
+    shuffle(r, citySpots(from.mapId).filter((s) => free(s) && !usedSpots.has(s.anchor) && dist(s, from) >= min && dist(s, from) <= max));
+
+  // Where it happened: odd cases use a hand-placed site, even cases any open
+  // place in the city - so the scenes keep moving around.
+  let places: Places | null = null;
+  if (n % 2 === 0) {
+    const mapId = pick(r, SCENE_MAP_IDS);
+    const scenes = shuffle(r, citySpots(mapId).filter(free));
+    for (const scene of scenes) {
+      usedSpots.clear();
+      usedSpots.add(scene.anchor);
+      const around = near(scene, 2.5, 10);
+      if (around.length < 5) continue;
+      const [w1, w2, neighbor, victim] = around;
+      const cam = around[4];
+      places = {
+        mapId,
+        place: placeName(scene),
+        scene: take(scene),
+        w1: take(w1),
+        w2: take(w2),
+        neighbor: take(neighbor),
+        victim: take(victim),
+        camera: take(cam),
+        cameraOwner: pick(r, AUTO_CAMERA_OWNERS),
+      };
+      break;
+    }
+  }
+  if (!places) {
+    usedSpots.clear();
+    const site = SITES[Math.floor((n - 1) / 2) % SITES.length];
+    const sceneAnchor = MAPS[site.mapId].anchors[site.scene];
+    const from: Spot = { anchor: site.scene, mapId: site.mapId, x: sceneAnchor.x, y: sceneAnchor.y, street: '' };
+    // The victim waits close to the scene: the nearest open place.
+    const victim = near(from, 1.8, 99).sort((a, b) => dist(a, from) - dist(b, from))[0];
+    places = {
+      mapId: site.mapId,
+      place: site.place,
+      scene: site.scene,
+      w1: site.witness1,
+      w2: site.witness2,
+      neighbor: site.alibi,
+      victim: take(victim),
+      camera: site.camera,
+      cameraOwner: site.cameraOwner,
+    };
+  }
+  /** An open place on another map than the scene (homes, alibis). */
+  const visited = new Set<string>([places.mapId]);
+  const elsewhere = () => {
+    // Prefer a neighbourhood the case hasn't been to yet.
+    const others = SCENE_MAP_IDS.filter((m) => m !== places!.mapId);
+    const maps = [...shuffle(r, others.filter((m) => !visited.has(m))), ...shuffle(r, others.filter((m) => visited.has(m)))];
+    for (const m of maps) {
+      const s = shuffle(r, citySpots(m).filter((x) => free(x) && !usedSpots.has(x.anchor)))[0];
+      if (s) {
+        take(s);
+        visited.add(m);
+        return s;
+      }
+    }
+    throw new Error('no free place left in the city');
+  };
+
   const victim = person(r, used, ['tshirt', 'blazer', 'apron']);
-  const roles = shuffle(r, [0, 1, 2]);
-  const people = roles.map((ri) => {
-    const role = tpl.roles[ri];
-    return { role, p: person(r, used, role.outfits) };
-  });
-  const culpritIdx = Math.floor(r() * 3);
+  const count = r() < 0.5 ? 4 : 3;
+  const roleList = [...tpl.roles, FOURTH_ROLES[tpl.id]];
+  const people = shuffle(r, [0, 1, 2, 3])
+    .slice(0, count)
+    .map((ri) => {
+      const role = roleList[ri];
+      return { role, p: person(r, used, role.outfits) };
+    });
+  const culpritIdx = Math.floor(r() * count);
   const id = `gen-${n}`;
   const sid = (i: number) => `${id}-s${i}`;
   const culprit = people[culpritIdx];
-  const innocents = [0, 1, 2].filter((i) => i !== culpritIdx);
-  const [inA, inB] = innocents;
+  const innocents = people.map((_, i) => i).filter((i) => i !== culpritIdx);
+  const [inA, inB, inC] = innocents;
   const w1 = person(r, used, ['tshirt', 'vest', 'blazer']);
   const w2 = person(r, used, ['tshirt', 'apron', 'hoodie']);
-  const camOwner = person(r, used, ['vest', 'apron', 'tshirt'], site.cameraOwner.includes('{') ? undefined : false);
-  const owner = g(site.cameraOwner, camOwner.female);
+  const neighbor = person(r, used, ['tshirt', 'vest', 'apron', 'blazer']);
+  const camOwner = person(r, used, ['vest', 'apron', 'tshirt'], places.cameraOwner.includes('{') ? undefined : false);
+  const owner = g(places.cameraOwner, camOwner.female);
   const alibiWitness = person(r, used, ['blazer', 'tshirt']);
+  const alibiWitnessC = person(r, used, ['blazer', 'vest', 'tshirt']);
 
   const vars = (p?: Person): Record<string, string> => ({
     victim: victim.name,
-    place: site.place,
+    place: places!.place,
     culprit: culprit.p.name,
     clothes: culprit.p.clothes,
     name: p?.name ?? '',
@@ -363,7 +494,7 @@ export function generateCase(n: number): CaseFile {
   const aboutVictim = (t: string) => txt(t, victim);
   const aboutCulprit = (t: string) => txt(t, culprit.p);
   const about = (i: number, t: string) => txt(t, people[i].p);
-  
+
   const suspects: Suspect[] = people.map(({ role, p }, i) => ({
     id: sid(i),
     name: p.name,
@@ -383,62 +514,113 @@ export function generateCase(n: number): CaseFile {
     lines: { pressure: [], trust: [], evidenceHit: [], evidenceKey: [], evidenceMiss: [], confrontFail: [], confrontSuccess: [], wavering: [] },
     confession: culprit.role.confession.map((t) => aboutCulprit(t)),
     lawyer: aboutCulprit('זהו. אני לא אומר{|ת} מילה בלי עורך דין.'),
-    silence: 'אני שומר על זכות השתיקה.',
+    silence: g('אני שומר{|ת} על זכות השתיקה.', culprit.p.female),
   };
 
+  const hangs = culprit.p.clothesFemale ? 'תלויה' : 'תלוי';
   const clues: Clue[] = [
     { id: `${id}-lab`, title: tpl.item, description: aboutVictim(tpl.itemFound), category: 'clue', source: 'physical', requiresLab: true, labResult: aboutCulprit(tpl.labResult), implicates: [sid(culpritIdx)], clears: [] },
-    { id: `${id}-cam`, title: `מצלמת ${owner}`, description: aboutVictim(aboutCulprit(tpl.cameraText)), category: 'clue', source: 'cctv', implicates: [sid(culpritIdx)], clears: [] },
+    { id: `${id}-cam`, title: `מצלמת ${owner}`, description: aboutCulprit(tpl.cameraText), category: 'clue', source: 'cctv', implicates: [sid(culpritIdx)], clears: [] },
     { id: `${id}-saw`, title: `עדות ${w1.name}`, description: aboutCulprit(tpl.sawText), category: 'clue', source: 'testimony', implicates: [sid(culpritIdx)], clears: [] },
-    { id: `${id}-motive`, title: `המניע של ${culprit.p.name}`, description: aboutVictim(aboutCulprit(culprit.role.motive)), category: 'motive', source: 'testimony', implicates: [sid(culpritIdx)], clears: [] },
-    { id: `${id}-motiveA`, title: `המניע של ${people[inA].p.name}`, description: aboutVictim(about(inA, people[inA].role.motive)), category: 'motive', source: 'testimony', implicates: [sid(inA)], clears: [] },
+    { id: `${id}-motive`, title: `המניע של ${culprit.p.name}`, description: aboutCulprit(culprit.role.motive), category: 'motive', source: 'testimony', implicates: [sid(culpritIdx)], clears: [] },
+    { id: `${id}-clothes`, title: `ביקור אצל ${culprit.p.name}`, description: aboutCulprit(`בכניסה ${hangs} {clothes} - בדיוק כמו בתיאור של העדים. {name} {התעקש|התעקשה} שזה "של מישהו אחר".`), category: 'clue', source: 'physical', implicates: [sid(culpritIdx)], clears: [] },
+    { id: `${id}-victim`, title: `עדות ${victim.name}`, description: aboutVictim(VICTIM_STATEMENTS[tpl.id]), category: 'clue', source: 'testimony', implicates: [], clears: [] },
+    { id: `${id}-motiveA`, title: `המניע של ${people[inA].p.name}`, description: about(inA, people[inA].role.motive), category: 'motive', source: 'testimony', implicates: [sid(inA)], clears: [] },
     { id: `${id}-rumorA`, title: `שמועה על ${people[inA].p.name}`, description: about(inA, tpl.rumor), category: 'clue', source: 'testimony', implicates: [sid(inA)], clears: [] },
-    { id: `${id}-motiveB`, title: `המניע של ${people[inB].p.name}`, description: aboutVictim(about(inB, people[inB].role.motive)), category: 'motive', source: 'testimony', implicates: [sid(inB)], clears: [] },
-    { id: `${id}-alibiA`, title: `האליבי של ${people[inA].p.name}`, description: aboutVictim(about(inA, people[inA].role.alibi)), category: 'alibi', source: people[inA].role.alibiSource, implicates: [], clears: [sid(inA)] },
-    { id: `${id}-alibiB`, title: `האליבי של ${people[inB].p.name}`, description: aboutVictim(about(inB, people[inB].role.alibi)), category: 'alibi', source: 'document', implicates: [], clears: [sid(inB)] },
+    { id: `${id}-motiveB`, title: `המניע של ${people[inB].p.name}`, description: about(inB, people[inB].role.motive), category: 'motive', source: 'testimony', implicates: [sid(inB)], clears: [] },
+    { id: `${id}-alibiA`, title: `האליבי של ${people[inA].p.name}`, description: about(inA, people[inA].role.alibi), category: 'alibi', source: people[inA].role.alibiSource, implicates: [], clears: [sid(inA)] },
+    { id: `${id}-alibiB`, title: `האליבי של ${people[inB].p.name}`, description: about(inB, people[inB].role.alibi), category: 'alibi', source: 'document', implicates: [], clears: [sid(inB)] },
   ];
+  if (inC !== undefined) {
+    clues.push(
+      { id: `${id}-motiveC`, title: `המניע של ${people[inC].p.name}`, description: about(inC, people[inC].role.motive), category: 'motive', source: 'testimony', implicates: [sid(inC)], clears: [] },
+      { id: `${id}-alibiC`, title: `האליבי של ${people[inC].p.name}`, description: about(inC, people[inC].role.alibi), category: 'alibi', source: people[inC].role.alibiSource, implicates: [], clears: [sid(inC)] },
+    );
+  }
+  // Each innocent suspect's own version, heard at their door.
+  for (const i of innocents)
+    clues.push({ id: `${id}-ver${i}`, title: `הגרסה של ${people[i].p.name}`, description: about(i, '{name} {מכחיש|מכחישה} כל קשר ו{טוען|טוענת} ש{היה|הייתה} במקום אחר בזמן האירוע. {הוא|היא} {מפנה|מפנה} אתכם למי שיכול לאשר.'), category: 'clue', source: 'testimony', implicates: [], clears: [] });
 
+  const P = places;
   const witnessRole = (p: Person) => g(pick(r, WITNESS_ROLES), p.female);
   const hotspots: MapHotspot[] = [
     {
-      id: `${id}-h-scene`, mapId: site.mapId, anchor: site.scene, kind: 'collect', label: 'איסוף ראיה', title: `הזירה - ${site.place}`,
+      id: `${id}-h-scene`, mapId: P.mapId, anchor: P.scene, kind: 'collect', label: 'איסוף ראיה', title: `הזירה - ${P.place}`,
       dialogue: [{ speaker: 'יומן חקירה', text: aboutVictim(tpl.itemFound) }], evidenceIds: [`${id}-lab`],
     },
     {
-      id: `${id}-h-w1`, mapId: site.mapId, anchor: site.witness1, kind: 'witness', label: 'תשאול עד', title: `${w1.name} - עד{|ה} ראייה`.replace('{|ה}', w1.female ? 'ה' : ''),
+      id: `${id}-h-victim`, mapId: P.mapId, anchor: P.victim, kind: 'witness', label: 'שיחה עם הקורבן', title: g(`${victim.name} - {המתלונן|המתלוננת}`, victim.female),
+      character: ref(victim, g('{המתלונן|המתלוננת}', victim.female)),
+      dialogue: [
+        { speaker: victim.name, text: g(pick(r, VICTIM_OPENERS), victim.female) },
+        { speaker: victim.name, text: aboutVictim(VICTIM_STATEMENTS[tpl.id]) },
+        { speaker: victim.name, text: `ועוד משהו שכדאי שתדעו: ${about(inB, people[inB].role.motive)}` },
+      ],
+      evidenceIds: [`${id}-victim`, `${id}-motiveB`],
+    },
+    {
+      id: `${id}-h-w1`, mapId: P.mapId, anchor: P.w1, kind: 'witness', label: 'תשאול עד', title: g(`${w1.name} - עד{|ה} ראייה`, w1.female),
       character: ref(w1, witnessRole(w1)),
       dialogue: [
         { speaker: w1.name, text: g(pick(r, W1_OPENERS), w1.female) },
         { speaker: w1.name, text: aboutCulprit(tpl.sawText) },
-        { speaker: w1.name, text: `ועוד דבר שכולם פה יודעים: ${about(inA, people[inA].role.motive)}` },
       ],
-      evidenceIds: [`${id}-saw`, `${id}-motiveA`],
+      evidenceIds: [`${id}-saw`],
     },
     {
-      id: `${id}-h-w2`, mapId: site.mapId, anchor: site.witness2, kind: 'witness', label: 'תשאול עד', title: `${w2.name} - מכיר{|ה} את כולם`.replace('{|ה}', w2.female ? 'ה' : ''),
+      id: `${id}-h-w2`, mapId: P.mapId, anchor: P.w2, kind: 'witness', label: 'תשאול עד', title: g(`${w2.name} - מכיר{|ה} את כולם`, w2.female),
       character: ref(w2, witnessRole(w2)),
       dialogue: [
-        { speaker: w2.name, text: aboutVictim(aboutCulprit(culprit.role.motive)) },
-        { speaker: w2.name, text: `${about(inA, tpl.rumor)} ${g(pick(r, ['מוזר, לא?', 'אני רק אומר{|ת}.', 'תעשו עם זה מה שאתם רוצים.']), w2.female)}` },
-        { speaker: w2.name, text: aboutVictim(about(inB, people[inB].role.motive)) },
+        { speaker: w2.name, text: aboutCulprit(culprit.role.motive) },
+        { speaker: w2.name, text: `${about(inA, people[inA].role.motive)} ${g(pick(r, ['מוזר, לא?', 'אני רק אומר{|ת}.', 'תעשו עם זה מה שאתם רוצים.']), w2.female)}` },
       ],
-      evidenceIds: [`${id}-motive`, `${id}-rumorA`, `${id}-motiveB`],
+      evidenceIds: [`${id}-motive`, `${id}-motiveA`],
     },
     {
-      id: `${id}-h-cam`, mapId: site.mapId, anchor: site.camera, kind: 'cctv', label: 'בדיקת מצלמות אבטחה', title: `המצלמה של ${owner}`,
+      id: `${id}-h-neighbor`, mapId: P.mapId, anchor: P.neighbor, kind: 'witness', label: 'תשאול עד', title: g(`${neighbor.name} - ${pick(r, NEIGHBOR_ROLES)}`, neighbor.female),
+      character: ref(neighbor, g('תושב{|ת} השכונה', neighbor.female)),
+      dialogue: [
+        { speaker: neighbor.name, text: g('אני לא אוהב{|ת} לדבר על אנשים. אבל מה שראיתי - ראיתי.', neighbor.female) },
+        { speaker: neighbor.name, text: about(inA, tpl.rumor) },
+        ...(inC !== undefined ? [{ speaker: neighbor.name, text: `ושמעתי עוד משהו: ${about(inC, people[inC].role.motive)}` }] : []),
+      ],
+      evidenceIds: [`${id}-rumorA`, ...(inC !== undefined ? [`${id}-motiveC`] : [])],
+    },
+    {
+      id: `${id}-h-cam`, mapId: P.mapId, anchor: P.camera, kind: 'cctv', label: 'בדיקת מצלמות אבטחה', title: `המצלמה של ${owner}`,
       character: ref(camOwner, owner),
       dialogue: [
         { speaker: camOwner.name, text: g(pick(r, CAMERA_OPENERS), camOwner.female) },
-        { speaker: 'יומן חקירה', text: aboutVictim(aboutCulprit(tpl.cameraText)) },
+        { speaker: 'יומן חקירה', text: aboutCulprit(tpl.cameraText) },
       ],
       evidenceIds: [`${id}-cam`],
     },
+  ];
+  // A visit to each suspect, wherever they live or work in the city.
+  people.forEach(({ role, p }, i) => {
+    const spot = elsewhere();
+    const isCulprit = i === culpritIdx;
+    hotspots.push({
+      id: `${id}-h-visit${i}`, mapId: spot.mapId, anchor: spot.anchor, kind: 'witness', label: 'שיחה עם חשוד', title: `${p.name} - ${placeName(spot)}`,
+      character: ref(p, g(`חשוד{|ה} - ${txt(role.occupation, p)}`, p.female)),
+      dialogue: [
+        { speaker: p.name, text: txt(pick(r, VISIT_OPENERS), p) },
+        { speaker: p.name, text: txt(role.opening, p) },
+        isCulprit
+          ? { speaker: 'יומן חקירה', text: aboutCulprit(`בכניסה ${hangs} {clothes} - בדיוק כמו בתיאור של העדים. {name} {התעקש|התעקשה} שזה "של מישהו אחר".`) }
+          : { speaker: p.name, text: txt('באותו זמן בכלל לא הייתי שם. יש מי שיכול לאשר. תבדקו.', p) },
+      ],
+      evidenceIds: [isCulprit ? `${id}-clothes` : `${id}-ver${i}`],
+    });
+  });
+  const alibiSpot = elsewhere();
+  hotspots.push(
     {
-      id: `${id}-h-alibiA`, mapId: site.mapId, anchor: site.alibi, kind: 'witness', label: 'תשאול עד', title: `בירור האליבי של ${people[inA].p.name}`,
+      id: `${id}-h-alibiA`, mapId: alibiSpot.mapId, anchor: alibiSpot.anchor, kind: 'witness', label: 'בירור אליבי', title: `בירור האליבי של ${people[inA].p.name}`,
       character: ref(alibiWitness, g('מכיר{|ה} של החשוד', alibiWitness.female)),
       dialogue: [
         { speaker: alibiWitness.name, text: about(inA, `אתם מחפשים את {name}? ${tpl.when}? שבו, אני אסביר.`) },
-        { speaker: alibiWitness.name, text: aboutVictim(about(inA, people[inA].role.alibi)) },
+        { speaker: alibiWitness.name, text: about(inA, people[inA].role.alibi) },
       ],
       evidenceIds: [`${id}-alibiA`],
     },
@@ -447,12 +629,25 @@ export function generateCase(n: number): CaseFile {
       character: ARCHIVE_CLERK,
       dialogue: [
         { speaker: ARCHIVE_CLERK.name, text: `הרצתי את ${people[inB].p.name} בכל המערכות. יש לי משהו בשבילך.` },
-        { speaker: ARCHIVE_CLERK.name, text: aboutVictim(about(inB, people[inB].role.alibi)) },
+        { speaker: ARCHIVE_CLERK.name, text: about(inB, people[inB].role.alibi) },
       ],
       evidenceIds: [`${id}-alibiB`],
     },
-  ];
+  );
+  if (inC !== undefined) {
+    const spotC = elsewhere();
+    hotspots.push({
+      id: `${id}-h-alibiC`, mapId: spotC.mapId, anchor: spotC.anchor, kind: 'witness', label: 'בירור אליבי', title: `בירור האליבי של ${people[inC].p.name}`,
+      character: ref(alibiWitnessC, g('מכיר{|ה} של החשוד', alibiWitnessC.female)),
+      dialogue: [
+        { speaker: alibiWitnessC.name, text: `${g(`${people[inC].p.name}? ${tpl.when}? אני יודע{|ת} בדיוק איפה`, alibiWitnessC.female)} ${g('{הוא|היא} {היה|הייתה}.', people[inC].p.female)}` },
+        { speaker: alibiWitnessC.name, text: about(inC, people[inC].role.alibi) },
+      ],
+      evidenceIds: [`${id}-alibiC`],
+    });
+  }
 
+  const mapIds = [...new Set(hotspots.map((h) => h.mapId))];
   const caseFile: CaseFile = {
     id,
     order: 100 + n,
@@ -460,23 +655,23 @@ export function generateCase(n: number): CaseFile {
     title: aboutVictim(tpl.title),
     shortTitle: `${tpl.crimeType}: ${victim.name}`,
     crimeType: tpl.crimeType,
-    locationName: site.place,
+    locationName: P.place,
     summary: aboutVictim(tpl.summary),
     briefing: [
-      aboutVictim(`תיק חדש מהמשמרת. ${tpl.crimeType} ליד ${site.place}. הקורבן: ${victim.name}.`),
-      'שלושה שמות כבר עולים בשכונה. אל תיתנו לשמועות להחליט בשבילכם - תאספו, תבדקו, תחברו.',
-      'הזירה, המצלמות, העדים. ותבדקו אליבי לפני שאתם מסמנים מישהו.',
+      aboutVictim(`תיק חדש מהמשמרת. ${tpl.crimeType} ליד ${P.place}. הקורבן: ${victim.name}.`),
+      `${count === 4 ? 'ארבעה' : 'שלושה'} שמות כבר עולים בשכונה. אל תיתנו לשמועות להחליט בשבילכם - תאספו, תבדקו, תחברו.`,
+      'הזירה, המצלמות, העדים, ביקור אצל כל חשוד. ותבדקו אליבי לפני שאתם מסמנים מישהו.',
     ],
-    closingStatement: aboutVictim(aboutCulprit(`${culprit.p.name} {הודה|הודתה} ב${tpl.crimeType === 'הונאה' ? 'הונאה' : 'מעשה'}. ${victim.name} {v:קיבל|קיבלה} תשובה, והשכונה - עוד סיבה להאמין שמישהו בודק עד הסוף.`)),
-    mapIds: [site.mapId, 'station'],
+    closingStatement: aboutCulprit(`${culprit.p.name} {הודה|הודתה} ב${tpl.crimeType === 'הונאה' ? 'הונאה' : 'מעשה'}. ${victim.name} {v:קיבל|קיבלה} תשובה, והשכונה - עוד סיבה להאמין שמישהו בודק עד הסוף.`),
+    mapIds,
     culpritId: sid(culpritIdx),
     suspects,
     clues,
     hotspots,
     hints: [
-      `תתחילו מ${site.place}. מה שנשאר בזירה הולך למז״פ.`,
+      `תתחילו מ${P.place}. מה שנשאר בזירה הולך למז״פ, ו${victim.name} מחכה לכם שם.`,
       `${owner} - יש שם מצלמה שמכוונת לרחוב.`,
-      'לכל אחד מהחשודים יש מניע. רק לאחד אין אליבי.',
+      'לכל אחד מהחשודים יש מניע. רק לאחד אין אליבי. ביקור בבית של כל אחד מהם יכול לגלות הרבה.',
     ],
     generated: true,
   };

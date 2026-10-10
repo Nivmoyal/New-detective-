@@ -85,7 +85,7 @@ export function buildNeveShaanan() {
   b.prop('scooter', 33, 19);
   b.prop('stall', 42, 21, { color: '#475569', variant: 3, name: 'דוכן בגדים', examine: 'בגדים יד שנייה, נעלי ספורט ומטעני טלפון.' });
   b.prop('cardboard', 22, 23);
-  b.prop('trash', 46, 23);
+  b.prop('trash', 46, 22);
   b.prop('dumpster', 23, 22, { name: 'הפח של רחוב החנויות' });
   b.anchor('ns-sim-bin', 25.5, 22.6, DIR_LEFT);
   b.anchor('ns-shelter-guard', 48.5, 18.7, DIR_DOWN);

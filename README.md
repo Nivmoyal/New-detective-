@@ -32,9 +32,12 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 - Three cases are open from the first day, and two more arrive as you close cases (a phone scam targeting
   the elderly, and an arson tied to a protection racket in the market).
 - The game doesn't end after the story cases. From the third solved case on, new files keep landing on the
-  desk: generated cases (burglary, street robbery, assault, car theft, theft by an employee, rental scam)
-  set at ten places across the maps, each with three fresh suspects, witnesses, a camera, an alibi to check
-  and an archive lookup at the station. Every case is deterministic (case N is always the same) and is
+  desk: generated cases (burglary, street robbery, assault, car theft, theft by an employee, rental scam).
+  Each one spreads over about twelve places in four or five neighbourhoods: the scene, the victim, two
+  witnesses and a neighbour, a camera, a visit to every suspect's home, the people who confirm alibis and the
+  archive at the station. Three or four suspects, all new people. Scenes alternate between ten hand-placed
+  sites and any open place in the city, found automatically from the map geometry (`src/data/citySpots.ts`),
+  which also puts extra residents on the streets. Every case is deterministic (case N is always the same) and is
   checked by the validator and the simulation like the hand-written ones.
 - Street situations happen around the district - a stolen wallet, a lost child, a parking-chair war, a
   printer that ate a court filing. Someone calls out; you decide whether and how to step in, and the choice
@@ -78,6 +81,7 @@ src/
   data/incidents.ts               street situations with choices and consequences
   services/caseEngine.ts          case loading, evidence, link validation, deduction
   services/caseGenerator.ts       endless generated cases from crime templates, places and people
+  data/citySpots.ts               open standing places found from map geometry; extra street residents
   services/interrogationEngine.ts interrogation tactics and outcome rules
   services/interrogationLines.ts  mood- and evidence-aware line pools for suspects and the detective
   state/gameReducer.ts            game state, actions, localStorage persistence
