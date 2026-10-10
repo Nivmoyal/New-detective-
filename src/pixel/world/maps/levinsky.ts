@@ -1,5 +1,5 @@
 import { MapBuilder, look } from '../builder';
-import { RESIDENT_LINES, STREET_LINES, VENDOR_LINES } from '../lines';
+import { talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -45,7 +45,7 @@ export function buildLevinsky() {
     'קפה ב-14 שקל. כן, אני יודעת. גם אני לא קונה פה.',
     'מישהו הזמין פה פעם "פלאט וייט על חלב שיבולת שועל בלי קצף". הבעלים עדיין בטיפול.',
   ] });
-  b.npc({ x: 6.5, y: 13.5, dir: DIR_LEFT, name: 'לקוח קבוע', role: 'פנסיונר', look: look('male', '#c98f66', 'bald', '#bdb6ad', 'blazer', '#3b3a36'), lines: RESIDENT_LINES });
+  b.npc({ x: 6.5, y: 13.5, dir: DIR_LEFT, name: 'לקוח קבוע', look: look('male', '#c98f66', 'bald', '#bdb6ad', 'blazer', '#3b3a36'), ...talk('resident', false) });
 
   /* Exchange office: crime scene */
   b.building({ id: 'lev-exchange', x: 11, y: 8, w: 9, h: 10, wall: WallStyle.Stone, floor: FloorStyle.Tile, doors: [3], sideDoors: [{ x: 16, y: 8 }], sign: { text: 'חלפנות לוינסקי', color: '#065f46', x: 1, w: 4 } });
@@ -77,9 +77,9 @@ export function buildLevinsky() {
   b.anchor('lev-spice', 23.5, 6.5, DIR_LEFT);
   b.anchor('lev-notes', 23.5, 13.4, DIR_UP);
   b.label(22.9, 0.8, 'שוק לוינסקי');
-  b.npc({ x: 21.5, y: 3.6, dir: DIR_RIGHT, name: 'מוטי', role: 'מוכר פיצוחים', look: look('male', '#c98f66', 'short', '#3b2618', 'tshirt', '#2f5d50', '#22252b', { beard: true }), lines: VENDOR_LINES });
-  b.npc({ x: 21.5, y: 12.6, dir: DIR_RIGHT, name: 'חנה', role: 'מוכרת פירות יבשים', look: look('female', '#e5b48f', 'curly', '#16120f', 'apron', '#9f1239'), lines: VENDOR_LINES.slice(1) });
-  b.npc({ x: 23.5, y: 15.5, dir: DIR_UP, name: 'קונה בשוק', role: 'עוברת אורח', look: look('female', '#9c6644', 'long', '#16120f', 'tshirt', '#6b4a7a'), lines: STREET_LINES, path: [{ x: 22.5, y: 16.5 }, { x: 22.5, y: 1.5 }], speed: 0.8 });
+  b.npc({ x: 21.5, y: 3.6, dir: DIR_RIGHT, name: 'מוטי', look: look('male', '#c98f66', 'short', '#3b2618', 'tshirt', '#2f5d50', '#22252b', { beard: true }), ...talk('vendor', false) });
+  b.npc({ x: 21.5, y: 12.6, dir: DIR_RIGHT, name: 'חנה', look: look('female', '#e5b48f', 'curly', '#16120f', 'apron', '#9f1239'), ...talk('vendor', true) });
+  b.npc({ x: 23.5, y: 15.5, dir: DIR_UP, name: 'קונה בשוק', look: look('female', '#9c6644', 'long', '#16120f', 'tshirt', '#6b4a7a'), ...talk('street', true), path: [{ x: 22.5, y: 16.5 }, { x: 22.5, y: 1.5 }], speed: 0.8 });
 
   /* North side of Levinsky street */
   b.building({ id: 'lev-spices', x: 26, y: 4, w: 10, h: 14, wall: WallStyle.Plaster, sign: { text: 'תבלינים ופיצוחים', color: '#92400e', x: 3, w: 4 } });
@@ -123,8 +123,8 @@ export function buildLevinsky() {
   b.prop('trash', 6, 18);
   b.prop('manhole', 14, 22);
   b.label(12, 22, 'רחוב לוינסקי');
-  b.npc({ x: 5.5, y: 19.6, dir: DIR_RIGHT, name: 'שליח', role: 'שליח וולט', look: look('male', '#9c6644', 'short', '#16120f', 'hoodie', '#0e7490'), lines: STREET_LINES, path: [{ x: 1.5, y: 19.6 }, { x: 62.5, y: 19.6 }], speed: 1.4 });
-  b.npc({ x: 40.5, y: 24.6, dir: DIR_LEFT, name: 'עוברת אורח', role: 'תושבת', look: look('female', '#f3d2b3', 'ponytail', '#a8743f', 'leather', '#1c1c1c'), lines: STREET_LINES, path: [{ x: 62.5, y: 24.6 }, { x: 1.5, y: 24.6 }], speed: 1.1 });
+  b.npc({ x: 5.5, y: 19.6, dir: DIR_RIGHT, name: 'שליח', look: look('male', '#9c6644', 'short', '#16120f', 'hoodie', '#0e7490'), ...talk('street', false), path: [{ x: 1.5, y: 19.6 }, { x: 62.5, y: 19.6 }], speed: 1.4 });
+  b.npc({ x: 40.5, y: 24.6, dir: DIR_LEFT, name: 'עוברת אורח', look: look('female', '#f3d2b3', 'ponytail', '#a8743f', 'leather', '#1c1c1c'), ...talk('street', true), path: [{ x: 62.5, y: 24.6 }, { x: 1.5, y: 24.6 }], speed: 1.1 });
   b.anchor('lev-night-cleaner', 37.5, 25.6, DIR_LEFT);
 
   /* Garden and falafel stand */
@@ -159,7 +159,7 @@ export function buildLevinsky() {
     'אני בפנסיה. התפקיד שלי עכשיו: לשבת פה ולהגיד "פעם זה היה אחרת". {תשאל|תשאלי} אותי משהו.',
     'פעם עם שקל היית קונה פלאפל, קולה ומקבל עודף. היום עם שקל {אתה|את} {מקבל|מקבלת} מבט.',
   ] });
-  b.npc({ x: 9.5, y: 31.5, dir: DIR_RIGHT, name: 'אמא עם עגלה', role: 'תושבת', look: look('female', '#c98f66', 'long', '#3b2618', 'tshirt', '#3d6b8a'), lines: RESIDENT_LINES, path: [{ x: 1.5, y: 31.5 }, { x: 21.5, y: 31.5 }], speed: 0.8 });
+  b.npc({ x: 9.5, y: 31.5, dir: DIR_RIGHT, name: 'דורית', look: look('female', '#c98f66', 'long', '#3b2618', 'tshirt', '#3d6b8a'), ...talk('resident', true), path: [{ x: 1.5, y: 31.5 }, { x: 21.5, y: 31.5 }], speed: 0.8 });
 
   /* Building in the middle and the parking lot */
   b.building({ id: 'lev-mid', x: 22, y: 27, w: 17, h: 10, wall: WallStyle.Plaster, sign: { text: 'מכולת השוק', color: '#1e3a5f', x: 6, w: 3 } });

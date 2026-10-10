@@ -17,20 +17,26 @@ interface Props {
 
 /** A conversation that picks up where the last one ended, in the order the person would tell it. */
 export default function ChatDialog({ npc, heard, annoyed, addressForm, onHeard, onClose }: Props) {
-  const fresh = heard < npc.lines.length;
-  // Nothing new: a grumble, then one thing they already said, to jog the memory.
-  const lines = (fresh ? npc.lines.slice(heard) : [annoyed, npc.lines[npc.lines.length - 1]]).map((l) => genderize(l, addressForm));
+  // Everything is fixed when the conversation opens: the record of what was
+  // heard changes while talking, and must not move the lines under the reader.
+  // Lines only advance when the button is pressed.
+  const [{ start, fresh, lines }] = useState(() => {
+    const isFresh = heard < npc.lines.length;
+    // Nothing new: a grumble, then one thing they already said, to jog the memory.
+    const list = (isFresh ? npc.lines.slice(heard) : [annoyed, npc.lines[npc.lines.length - 1]]).map((l) => genderize(l, addressForm));
+    return { start: heard, fresh: isFresh, lines: list };
+  });
   const [i, setI] = useState(0);
 
   const next = () => {
-    const n = i + 1;
+    const n = Math.min(i + 1, lines.length - 1);
     setI(n);
-    if (fresh) onHeard(heard + n + 1);
+    if (fresh) onHeard(start + n + 1);
   };
 
   // The first line counts as heard as soon as it is shown.
   useEffect(() => {
-    if (fresh) onHeard(heard + 1);
+    if (fresh) onHeard(start + 1);
     // Only once, when the conversation opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

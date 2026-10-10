@@ -98,6 +98,24 @@ function rectDist(px: number, py: number, x: number, y: number, w: number, h: nu
   return Math.hypot(px - cx, py - cy);
 }
 
+/**
+ * Overheard snippets go round the whole list before any of them comes back,
+ * so the street doesn't keep saying the same thing.
+ */
+const overheardQueue: Record<string, string[]> = {};
+function nextOverheardLine(mapId: string): string {
+  let q = overheardQueue[mapId];
+  if (!q?.length) {
+    q = [...OVERHEARD[mapId]];
+    for (let i = q.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [q[i], q[j]] = [q[j], q[i]];
+    }
+    overheardQueue[mapId] = q;
+  }
+  return q.shift()!;
+}
+
 export default function PixelWorld({
   map,
   playerLook,
@@ -177,7 +195,7 @@ export default function PixelWorld({
         leg: 1,
         homeDir: n.dir,
       };
-      npcActors.set(n.id, { actor, npc: { id: n.id, character: { name: n.name, role: n.role, look: n.look }, lines: n.lines } });
+      npcActors.set(n.id, { actor, npc: { id: n.id, character: { name: n.name, role: n.role, look: n.look }, lines: n.lines, done: n.done } });
     }
     const facilityActors = new Map<string, Actor>();
     for (const f of map.facilities) {
@@ -487,7 +505,6 @@ export default function PixelWorld({
     const bubbles = new Map<string, { text: string; until: number; thought: boolean }>();
     const mountedAt = performance.now();
     let nextOverheard = mountedAt + 3500 + Math.random() * 3000;
-    let lastOverheard = '';
     let idleSince = mountedAt;
     let wallTime = 0;
     let lastThoughtAt = mountedAt;
@@ -606,8 +623,7 @@ export default function PixelWorld({
               return sx > 10 && sx < vw - 10 && sy > 30 && sy < vh - 10 && !(a.pauseUntil && a.pauseUntil > now);
             });
           if (onScreen.length) {
-            const text = pick(OVERHEARD[map.id], lastOverheard);
-            lastOverheard = text;
+            const text = nextOverheardLine(map.id);
             bubbles.set(pick(onScreen).key, { text, until: now + 4300, thought: false });
           }
         }

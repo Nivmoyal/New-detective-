@@ -1,5 +1,5 @@
 import { MapBuilder, look } from '../builder';
-import { NIGHT_LINES, RESIDENT_LINES, STREET_LINES } from '../lines';
+import { personaLines, talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -73,12 +73,12 @@ export function buildFlorentin() {
   b.prop('cafeTable', 29, 19);
   b.prop('cafeTable', 32, 19);
   b.prop('rug', 27, 21, { w: 7, h: 2, color: '#1e1b2e' });
-  b.npc({ x: 15.5, y: 13.5, dir: DIR_RIGHT, name: 'רוקדת', role: 'באה כל סוף שבוע', look: look('female', '#f3d2b3', 'long', '#a8743f', 'tshirt', '#be185d'), lines: NIGHT_LINES, path: [{ x: 14.5, y: 13.5 }, { x: 24.5, y: 12.5 }], speed: 0.5 });
-  b.npc({ x: 21.5, y: 10.5, dir: DIR_DOWN, name: 'רוקד', role: 'סטודנט', look: look('male', '#e5b48f', 'curly', '#16120f', 'tshirt', '#7c3aed'), lines: NIGHT_LINES.slice(1) });
+  b.npc({ x: 15.5, y: 13.5, dir: DIR_RIGHT, name: 'רוקדת', look: look('female', '#f3d2b3', 'long', '#a8743f', 'tshirt', '#be185d'), ...talk('night', true), path: [{ x: 14.5, y: 13.5 }, { x: 24.5, y: 12.5 }], speed: 0.5 });
+  b.npc({ x: 21.5, y: 10.5, dir: DIR_DOWN, name: 'רוקד', look: look('male', '#e5b48f', 'curly', '#16120f', 'tshirt', '#7c3aed'), ...talk('night', false) });
   b.npc({ x: 30.5, y: 18.5, dir: DIR_LEFT, name: 'מירי', role: 'מלצרית', look: look('female', '#c98f66', 'ponytail', '#16120f', 'tshirt', '#0f0f10'), lines: [
     'נועה? היא עבדה איתנו בבר בסופי שבוע. היא מצחיקה, חכמה. לא נעלמת סתם.',
     'עידן, הבעלים, היה עצבני כל הלילה ההוא. הלך ובא מהמשרד.',
-    ...NIGHT_LINES.slice(3),
+    ...personaLines('night', true),
   ] });
 
   /* Side alley */
@@ -136,8 +136,8 @@ export function buildFlorentin() {
     'קובי? הוא לא במשמרת היום. אחרי מה שקרה, נתנו לו כמה ימים.',
     'אני רואה כל מי שנכנס. מי שיוצא מאחור - זה כבר לא אצלי.',
   ] });
-  b.npc({ x: 8.5, y: 28.5, dir: DIR_RIGHT, name: 'עוברת אורח', role: 'בדרך למסיבה', look: look('female', '#e5b48f', 'bun', '#16120f', 'leather', '#1c1c1c'), lines: NIGHT_LINES, path: [{ x: 1.5, y: 28.5 }, { x: 56.5, y: 28.5 }], speed: 1.1 });
-  b.npc({ x: 30.5, y: 31.5, dir: DIR_LEFT, name: 'עובר אורח', role: 'תושב השכונה', look: look('male', '#e5b48f', 'short', '#16120f', 'hoodie', '#24324a'), lines: STREET_LINES, path: [{ x: 56.5, y: 31.5 }, { x: 1.5, y: 31.5 }], speed: 1 });
+  b.npc({ x: 8.5, y: 28.5, dir: DIR_RIGHT, name: 'עוברת אורח', look: look('female', '#e5b48f', 'bun', '#16120f', 'leather', '#1c1c1c'), ...talk('night', true), path: [{ x: 1.5, y: 28.5 }, { x: 56.5, y: 28.5 }], speed: 1.1 });
+  b.npc({ x: 30.5, y: 31.5, dir: DIR_LEFT, name: 'עובר אורח', look: look('male', '#e5b48f', 'short', '#16120f', 'hoodie', '#24324a'), ...talk('street', false), path: [{ x: 56.5, y: 31.5 }, { x: 1.5, y: 31.5 }], speed: 1 });
 
   b.npc({ x: 24.5, y: 32.5, dir: DIR_LEFT, name: 'גיא', role: 'סטודנט לקולנוע', look: look('male', '#f3d2b3', 'curly', '#6b4423', 'tshirt', '#1f2937', '#22252b', { glasses: true }), lines: [
     '{אל תזוז|אל תזוזי}! אנחנו מצלמים. טוב, זה טיקטוק. אבל עם חזון.',
@@ -162,7 +162,7 @@ export function buildFlorentin() {
     'המוזיקה מהבונקר לא נותנת לישון. כל לילה. התחלתי לרקוד במיטה, מה לעשות.',
     'מתוק{|ה}, {אתה אוכל|את אוכלת}? {אתה נראה|את נראית} כמו מקל. {תעלה|תעלי}, יש לי קציצות.',
     'בלילה ההוא שמעתי צעקה מהסמטה. אחר כך דלת של אוטו. אחר כך שקט.',
-    ...RESIDENT_LINES.slice(0, 2),
+    ...personaLines('resident', true),
   ] });
   b.fill(32, 33, 26, 9, Tile.Concrete);
   for (let x = 33; x < 57; x += 3) b.set(x, 34, Tile.Parking, 0);

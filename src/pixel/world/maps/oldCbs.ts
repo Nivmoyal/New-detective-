@@ -1,5 +1,5 @@
 import { MapBuilder, look } from '../builder';
-import { STREET_LINES } from '../lines';
+import { talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -116,7 +116,7 @@ export function buildOldCbs() {
   b.building({ id: 'cbs-s1', x: 0, y: 42, w: 20, h: 4, wall: WallStyle.Plaster });
   b.building({ id: 'cbs-s2', x: 20, y: 42, w: 20, h: 4, wall: WallStyle.Brick });
   b.building({ id: 'cbs-s3', x: 40, y: 42, w: 18, h: 4, wall: WallStyle.Concrete });
-  b.npc({ x: 20.5, y: 36.5, dir: DIR_LEFT, name: 'עובר אורח', role: 'עובד במוסך', look: look('male', '#c98f66', 'curly', '#3b2618', 'tshirt', '#2b2b2e'), lines: STREET_LINES, path: [{ x: 1.5, y: 36.5 }, { x: 56.5, y: 36.5 }], speed: 1.1 });
+  b.npc({ x: 20.5, y: 36.5, dir: DIR_LEFT, name: 'עובר אורח', look: look('male', '#c98f66', 'curly', '#3b2618', 'tshirt', '#2b2b2e'), ...talk('street', false), path: [{ x: 1.5, y: 36.5 }, { x: 56.5, y: 36.5 }], speed: 1.1 });
   void DIR_UP;
 
   return b.build({

@@ -1,5 +1,5 @@
 import { MapBuilder, look } from '../builder';
-import { RESIDENT_LINES, STREET_LINES, VENDOR_LINES } from '../lines';
+import { talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -101,9 +101,9 @@ export function buildNeveShaanan() {
   b.anchor('gen-ns-b-cam', 39.5, 20.5, DIR_DOWN);
   b.anchor('gen-ns-b-alibi', 52.5, 33.5, DIR_DOWN);
   b.label(28, 20.5, 'מדרחוב נווה שאנן');
-  b.npc({ x: 43.5, y: 20.5, dir: DIR_DOWN, name: 'סלומון', role: 'מוכר בגדים', look: look('male', '#6b4430', 'curly', '#16120f', 'leather', '#2b2b2e'), lines: VENDOR_LINES });
-  b.npc({ x: 5.5, y: 19.5, dir: DIR_RIGHT, name: 'עובר אורח', role: 'מבקש מקלט', look: look('male', '#6b4430', 'short', '#16120f', 'hoodie', '#5e1f26'), lines: STREET_LINES, path: [{ x: 1.5, y: 19.5 }, { x: 58.5, y: 19.5 }], speed: 1 });
-  b.npc({ x: 50.5, y: 23.6, dir: DIR_LEFT, name: 'עוברת אורח', role: 'מנקה בבית מלון', look: look('female', '#6b4430', 'bun', '#16120f', 'tshirt', '#a3472b'), lines: STREET_LINES.slice(2), path: [{ x: 58.5, y: 23.6 }, { x: 1.5, y: 23.6 }], speed: 0.9 });
+  b.npc({ x: 43.5, y: 20.5, dir: DIR_DOWN, name: 'סלומון', look: look('male', '#6b4430', 'curly', '#16120f', 'leather', '#2b2b2e'), ...talk('vendor', false) });
+  b.npc({ x: 5.5, y: 19.5, dir: DIR_RIGHT, name: 'עובר אורח', look: look('male', '#6b4430', 'short', '#16120f', 'hoodie', '#5e1f26'), ...talk('street', false), path: [{ x: 1.5, y: 19.5 }, { x: 58.5, y: 19.5 }], speed: 1 });
+  b.npc({ x: 50.5, y: 23.6, dir: DIR_LEFT, name: 'עוברת אורח', look: look('female', '#6b4430', 'bun', '#16120f', 'tshirt', '#a3472b'), ...talk('street', true), path: [{ x: 58.5, y: 23.6 }, { x: 1.5, y: 23.6 }], speed: 0.9 });
 
   /* Neighborhood garden */
   b.fill(0, 24, 18, 22, Tile.Grass);
@@ -144,7 +144,7 @@ export function buildNeveShaanan() {
   b.label(36, 39.8, 'רחוב הגדוד העברי');
   b.building({ id: 'ns-b1', x: 22, y: 42, w: 19, h: 4, wall: WallStyle.Brick });
   b.building({ id: 'ns-b2', x: 41, y: 42, w: 19, h: 4, wall: WallStyle.Plaster });
-  b.npc({ x: 25.5, y: 38.5, dir: DIR_RIGHT, name: 'גברת כהן', role: 'תושבת ותיקה', look: look('female', '#f3d2b3', 'bun', '#bdb6ad', 'blazer', '#6b5a4a', '#3b3a36', { glasses: true }), lines: RESIDENT_LINES, path: [{ x: 23.5, y: 38.5 }, { x: 44.5, y: 38.5 }], speed: 0.6 });
+  b.npc({ x: 25.5, y: 38.5, dir: DIR_RIGHT, name: 'גברת כהן', look: look('female', '#f3d2b3', 'bun', '#bdb6ad', 'blazer', '#6b5a4a', '#3b3a36', { glasses: true }), ...talk('resident', true), path: [{ x: 23.5, y: 38.5 }, { x: 44.5, y: 38.5 }], speed: 0.6 });
   void DIR_UP;
 
   return b.build({

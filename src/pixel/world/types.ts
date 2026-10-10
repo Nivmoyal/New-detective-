@@ -124,6 +124,8 @@ export interface AmbientNpc {
   role: string;
   look: CharacterLook;
   lines: string[];
+  /** What they say once they have told everything. */
+  done?: string;
   /** Walking route (tile coordinates); static when absent. */
   path?: { x: number; y: number }[];
   speed?: number;

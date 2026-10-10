@@ -174,4 +174,6 @@ export interface ChatNpc {
   id: string;
   character: CharacterRef;
   lines: string[];
+  /** Their own way of saying there is nothing more to tell. */
+  done?: string;
 }

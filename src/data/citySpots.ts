@@ -6,7 +6,7 @@ import { MAPS, SCENE_MAP_IDS } from './maps';
 import { INCIDENTS } from './incidents';
 import { hashString, seeded } from '../pixel/color';
 import { look } from '../pixel/world/builder';
-import { NIGHT_LINES, RESIDENT_LINES, STREET_LINES, VENDOR_LINES } from '../pixel/world/lines';
+import { nextPersona } from '../pixel/world/personas';
 import { Tile, WALKABLE, type PixelMap } from '../pixel/world/types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, type Dir } from '../pixel/person';
 
@@ -106,10 +106,6 @@ const EXTRA_NAMES = {
   male: ['אבי', 'שמעון', 'יגאל', 'רפי', 'דוד', 'אלי', 'ניסים', 'קובי', 'גבי', 'עמית', 'אסף', 'ליאור'],
   female: ['שושי', 'אורנה', 'מזל', 'ציפי', 'חני', 'ורד', 'רינה', 'אתי', 'נעמה', 'הילה', 'קרן', 'מלכה'],
 };
-const EXTRA_ROLES = {
-  male: ['שכן מהבניין', 'פנסיונר עם עיתון', 'שליח בהפסקה', 'סטודנט', 'מוכר לוטו', 'נהג מונית בהפסקה'],
-  female: ['שכנה מהבניין', 'פנסיונרית עם עגלת קניות', 'שליחה בהפסקה', 'סטודנטית', 'אמא עם עגלה', 'מוכרת פרחים'],
-};
 const SKINS = ['#f3d2b3', '#e5b48f', '#c98f66', '#9c6644', '#6b4430'];
 const HAIRS = ['#16120f', '#3b2618', '#6b4423', '#a8743f', '#bdb6ad'];
 const TOPS = ['#7a1f25', '#1e3a8a', '#3d5a3a', '#6b7280', '#a16207', '#5a2d4a', '#0f766e', '#c2410c'];
@@ -140,10 +136,10 @@ export function prepareCity() {
     const list: Spot[] = [];
     picked.forEach((p, i) => {
       if (i % 7 === 3) {
-        const female = rnd() < 0.5;
-        const g = female ? 'female' : 'male';
-        const hair = female ? (['long', 'bun', 'ponytail', 'curly'] as const) : (['short', 'buzz', 'bald', 'curly'] as const);
-        const pools = [RESIDENT_LINES, STREET_LINES, VENDOR_LINES, NIGHT_LINES];
+        // Each resident is their own person, with their own things to say.
+        const who = nextPersona(rnd() < 0.55 ? 'resident' : 'street', undefined, () => rnd() < 0.5);
+        const g = who.female ? 'female' : 'male';
+        const hair = who.female ? (['long', 'bun', 'ponytail', 'curly'] as const) : (['short', 'buzz', 'bald', 'curly'] as const);
         const dirs: Dir[] = [DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP];
         m.npcs.push({
           id: `${mapId}-resident-${i}`,
@@ -151,9 +147,10 @@ export function prepareCity() {
           y: p.y,
           dir: dirs[Math.floor(rnd() * 3)],
           name: EXTRA_NAMES[g][Math.floor(rnd() * EXTRA_NAMES[g].length)],
-          role: EXTRA_ROLES[g][Math.floor(rnd() * EXTRA_ROLES[g].length)],
-          look: look(g, SKINS[Math.floor(rnd() * SKINS.length)], hair[Math.floor(rnd() * hair.length)], HAIRS[Math.floor(rnd() * HAIRS.length)], (['tshirt', 'hoodie', 'blazer', 'apron', 'vest'] as const)[Math.floor(rnd() * 5)], TOPS[Math.floor(rnd() * TOPS.length)], '#22252b', { glasses: rnd() < 0.2, beard: !female && rnd() < 0.3 }),
-          lines: pools[Math.floor(rnd() * pools.length)],
+          role: who.role,
+          look: look(g, SKINS[Math.floor(rnd() * SKINS.length)], hair[Math.floor(rnd() * hair.length)], HAIRS[Math.floor(rnd() * HAIRS.length)], (['tshirt', 'hoodie', 'blazer', 'apron', 'vest'] as const)[Math.floor(rnd() * 5)], TOPS[Math.floor(rnd() * TOPS.length)], '#22252b', { glasses: rnd() < 0.2, beard: !who.female && rnd() < 0.3 }),
+          lines: who.lines,
+          done: who.done,
         });
         return;
       }

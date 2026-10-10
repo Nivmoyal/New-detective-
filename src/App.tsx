@@ -136,12 +136,17 @@ export default function App() {
   }, []);
   const handleChat = useCallback(
     (npc: ChatNpc) => {
+      // Their own last word first; after that the grumbles, starting at a
+      // different one for every person.
       const lines = chatAnnoyed((m, f) => (profile?.addressForm === 'female' ? f : m));
-      let annoyed = lines[0];
+      const own = npc.done ? [npc.done] : [];
+      let offset = 0;
+      for (const ch of npc.id) offset = (offset * 31 + ch.charCodeAt(0)) >>> 0;
+      let annoyed = own[0] ?? lines[offset % lines.length];
       if ((chatHeard.get(npc.id) ?? 0) >= npc.lines.length) {
         const n = chatPestered.get(npc.id) ?? 0;
         chatPestered.set(npc.id, n + 1);
-        annoyed = lines[n % lines.length];
+        annoyed = n < own.length ? own[n] : lines[(offset + n - own.length) % lines.length];
       }
       setModal({ type: 'chat', npc, annoyed });
     },

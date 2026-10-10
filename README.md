@@ -45,6 +45,9 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 - All open cases run at once. Every witness, scene and camera of every case is in the world from the
   start; evidence you find is filed automatically under its own case, whichever case you are focused on.
 - Every person can be talked to (staff, witnesses, vendors, passers-by) and every object can be examined.
+  Conversations move on only when you press the button. Nobody repeats anyone else: every passer-by and
+  resident is a persona of their own (`src/pixel/world/personas.ts`) with their own role, three lines in
+  order and their own last word, and the validator fails if two people share a line.
 - Some leads stay closed until you have a reason to follow them (a storage unit needs a search warrant, the
   intelligence desk needs a name to run) - the person tells you so in their own words.
 - You can ask the commander for a warrant at any time. Without three validated links on the board she refuses,

@@ -1,6 +1,6 @@
 import { DESK_SERGEANT, MENTOR } from '../../../data/characters';
 import { MapBuilder, look } from '../builder';
-import { COP_LINES } from '../lines';
+import { talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -127,7 +127,7 @@ export function buildStation() {
   b.prop('bench', 28, 11);
   b.prop('cooler', 10, 11);
   b.facility('f-interrogation', 'interrogation', 'חדר חקירות באזהרה', 6.5, 12.5, DIR_DOWN);
-  b.npc({ x: 40.5, y: 12.5, dir: DIR_LEFT, name: 'רס״ר דודי אוחנה', role: 'שוטר סיור', look: look('male', '#c98f66', 'buzz', '#16120f', 'uniform', '#8fb0d4', '#1d2633'), lines: COP_LINES, path: [{ x: 40.5, y: 12.5 }, { x: 12.5, y: 12.5 }], speed: 1.2 });
+  b.npc({ x: 40.5, y: 12.5, dir: DIR_LEFT, name: 'רס״ר דודי אוחנה', look: look('male', '#c98f66', 'buzz', '#16120f', 'uniform', '#8fb0d4', '#1d2633'), ...talk('cop', false), path: [{ x: 40.5, y: 12.5 }, { x: 12.5, y: 12.5 }], speed: 1.2 });
 
   b.npc({ x: 31.5, y: 11.5, dir: DIR_DOWN, name: 'רס״ב שמעון גבאי', role: 'עוד 212 ימים לפנסיה', look: look('male', '#e5b48f', 'bald', '#8d877f', 'uniform', '#8fb0d4', '#1d2633', { beard: true }), lines: [
     'עוד 212 ימים לפנסיה. לא שאני סופר. 211 וחצי.',
@@ -178,7 +178,7 @@ export function buildStation() {
   b.prop('table', 32, 18);
   b.prop('chair', 31, 18);
   b.prop('chair', 34, 19);
-  b.npc({ x: 34.5, y: 21.5, dir: DIR_UP, name: 'רס״מ אלון ביטון', role: 'חוקר, צוות רכוש', look: look('male', '#9c6644', 'short', '#16120f', 'blazer', '#3d4a3a'), lines: COP_LINES.slice(1) });
+  b.npc({ x: 34.5, y: 21.5, dir: DIR_UP, name: 'רס״מ אלון ביטון', look: look('male', '#9c6644', 'short', '#16120f', 'blazer', '#3d4a3a'), ...talk('cop', false) });
 
   /* Evidence room */
   b.prop('evidenceShelf', 37, 18);

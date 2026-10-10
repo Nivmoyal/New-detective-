@@ -210,6 +210,21 @@ for (const m of Object.values(MAPS)) {
   }
 }
 
+// Nobody in the city repeats someone else's words.
+{
+  const said = new Map<string, string>();
+  for (const m of Object.values(MAPS))
+    for (const n of m.npcs)
+      for (const line of [...n.lines, ...(n.done ? [n.done] : [])]) {
+        const who = `${m.id}/${n.name}`;
+        const other = said.get(line);
+        if (other && other !== who) errors.push(`${who} repeats a line of ${other}: ${line}`);
+        said.set(line, who);
+        if (/\{s:/.test(line)) errors.push(`${who}: unresolved speaker marker in "${line}"`);
+      }
+  for (const m of Object.values(MAPS)) for (const n of m.npcs) if (n.lines.length < 2) errors.push(`${m.id}/${n.name} has almost nothing to say`);
+}
+
 if (errors.length) {
   console.error(errors.join('\n'));
   process.exit(1);

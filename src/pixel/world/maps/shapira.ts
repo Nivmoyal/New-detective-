@@ -1,5 +1,5 @@
 import { MapBuilder, look } from '../builder';
-import { RESIDENT_LINES, STREET_LINES } from '../lines';
+import { personaLines, talk } from '../personas';
 import { FloorStyle, Tile, WallStyle } from '../types';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP } from '../../person';
 
@@ -31,7 +31,7 @@ export function buildShapira() {
   b.npc({ x: 20.5, y: 10.5, dir: DIR_DOWN, name: 'שושנה', role: 'שכנה', look: look('female', '#c98f66', 'bun', '#bdb6ad', 'tshirt', '#7c2d12', '#3b3a36'), lines: [
     'גלינה מסכנה. מאז שאלכס השתחרר, כל פעם שמשהו קורה - באים אליהם.',
     'אלכס עובד אצל המוסכניק ברחוב הבא. ילד טוב עכשיו, באמת.',
-    ...RESIDENT_LINES.slice(2),
+    ...personaLines('resident', true),
   ] });
 
   b.building({ id: 'sh-rent', x: 29, y: 1, w: 12, h: 8, wall: WallStyle.White, floor: FloorStyle.Tile, doors: [6], roof: '#6b6f73', sign: { text: 'להשכרה', color: '#b45309', x: 2, w: 2 } });
@@ -68,7 +68,7 @@ export function buildShapira() {
   b.prop('tree', 8, 19);
   b.prop('tree', 30, 19);
   b.label(18, 17, 'רחוב מסילת ישרים');
-  b.npc({ x: 10.5, y: 15.6, dir: DIR_RIGHT, name: 'עובר אורח', role: 'מוסכניק', look: look('male', '#9c6644', 'buzz', '#16120f', 'vest', '#3f3f46'), lines: STREET_LINES, path: [{ x: 1.5, y: 15.6 }, { x: 56.5, y: 15.6 }], speed: 1.1 });
+  b.npc({ x: 10.5, y: 15.6, dir: DIR_RIGHT, name: 'עובר אורח', look: look('male', '#9c6644', 'buzz', '#16120f', 'vest', '#3f3f46'), ...talk('street', false), path: [{ x: 1.5, y: 15.6 }, { x: 56.5, y: 15.6 }], speed: 1.1 });
 
   /* Storage units */
   b.fill(0, 20, 58, 12, Tile.Concrete);
@@ -123,7 +123,7 @@ export function buildShapira() {
   b.prop('lamp', 27, 37);
   b.prop('lamp', 13, 37);
   b.label(36, 39, 'גינת שפירא');
-  b.npc({ x: 31.5, y: 37.3, dir: DIR_DOWN, name: 'דודה רינה', role: 'תושבת השכונה', look: look('female', '#9c6644', 'curly', '#3b2618', 'blazer', '#7c2d12', '#3b3a36'), lines: RESIDENT_LINES });
+  b.npc({ x: 31.5, y: 37.3, dir: DIR_DOWN, name: 'דודה רינה', look: look('female', '#9c6644', 'curly', '#3b2618', 'blazer', '#7c2d12', '#3b3a36'), ...talk('resident', true) });
   b.npc({ x: 46.5, y: 38.5, dir: DIR_LEFT, name: 'ילד מהשכונה', role: 'משחק כדור', look: look('male', '#c98f66', 'short', '#16120f', 'tshirt', '#15803d', '#2d3440'), lines: ['{אתה שוטר אמיתי|את שוטרת אמיתית}? איפה האקדח? איפה הניידת? למה {אתה הולך|את הולכת} ברגל?', 'אמא שלי אומרת לא לדבר עם זרים. אבל שוטר זה לא זר, נכון? נכון?!', 'כשאני אהיה גדול אני אהיה שוטר. או יוטיובר. עוד לא החלטתי.'], path: [{ x: 36.5, y: 38.5 }, { x: 56.5, y: 38.5 }], speed: 1.6 });
   void DIR_RIGHT;
 
