@@ -3,10 +3,12 @@ import '../index.css';
 import PixelWorld from '../components/PixelWorld';
 import { MAPS } from '../data/maps';
 import { defaultPlayerLook } from '../data/characters';
-import { loadCases } from '../services/caseEngine';
+import { loadCases, syncCaseHorizon } from '../services/caseEngine';
 import { activeIncident } from '../data/incidents';
 
 const params = new URLSearchParams(location.search);
+// ?gen=N shows the first N generated cases on the map.
+syncCaseHorizon(Number(params.get('gen') ?? 0) + 2);
 const map = MAPS[params.get('map') ?? 'station'];
 const x = Number(params.get('x') ?? map.spawn.x);
 const y = Number(params.get('y') ?? map.spawn.y);

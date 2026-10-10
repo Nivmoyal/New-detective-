@@ -23,7 +23,7 @@ npm install
 npm run dev            # local dev server (world.html opens a single map: ?map=levinsky&x=20&y=20; person.html shows every character)
 npm run build          # typecheck + production build
 npm run validate:data  # every person, place and object reachable; case-file integrity
-npm run test:sim       # headless playthrough of all three cases through the real reducer
+npm run test:sim       # headless playthrough of 25 cases (story + generated) through the real reducer
 ```
 
 ## Freedom of play
@@ -31,6 +31,11 @@ npm run test:sim       # headless playthrough of all three cases through the rea
 - Nothing is assigned and nothing points the way: no markers, beacons, guide lines or objective lists.
 - Three cases are open from the first day, and two more arrive as you close cases (a phone scam targeting
   the elderly, and an arson tied to a protection racket in the market).
+- The game doesn't end after the story cases. From the third solved case on, new files keep landing on the
+  desk: generated cases (burglary, street robbery, assault, car theft, theft by an employee, rental scam)
+  set at ten places across the maps, each with three fresh suspects, witnesses, a camera, an alibi to check
+  and an archive lookup at the station. Every case is deterministic (case N is always the same) and is
+  checked by the validator and the simulation like the hand-written ones.
 - Street situations happen around the district - a stolen wallet, a lost child, a parking-chair war, a
   printer that ate a court filing. Someone calls out; you decide whether and how to step in, and the choice
   has consequences for your reliability.
@@ -45,7 +50,7 @@ npm run test:sim       # headless playthrough of all three cases through the rea
 ## Gameplay loop
 
 1. **Arrival.** Type your name and design your detective in the pixel character creator (body, skin tone,
-   hairstyle, hair colour, outfit, colours, glasses, beard) and pick a specialization.
+   hairstyle, hair colour, outfit, colours, glasses, beard).
 2. **The streets.** Six large maps: the station, שוק לוינסקי, נווה שאנן, התחנה המרכזית הישנה, פלורנטין
    and שכונת שפירא. Buildings open up when you walk in. Move with WASD/arrow keys, drag anywhere as a
    joystick, or tap to walk; tap a person or object to walk over and interact. Travel with the patrol car.
@@ -54,7 +59,12 @@ npm run test:sim       # headless playthrough of all three cases through the rea
    that clears. Wrong links cost reliability.
 5. **Interrogation.** Tension and cooperation gauges; tactics are psychological pressure, presenting evidence,
    building trust and confrontation. Push too hard and a lawyer is requested; mistakes lead to silence.
-6. **Promotion.** Each solved case promotes you: מפקח משנה, then מפקח, then פקד, then רפ״ד.
+   The suspect never says the same sentence twice: answers depend on their mood (calm, nervous, cracking),
+   the kind of evidence (camera, lab, testimony, document), whether it points at them, clears them, or points
+   at another suspect (they jump on it, or get rattled when someone else is cleared), and on repetition -
+   the same tactic over and over stops working.
+6. **Promotion.** מפקח משנה, מפקח, פקד and רפ״ד over the first cases, then סנ״צ (6 solved), נצ״מ (10) and
+   תנ״צ (15).
 
 ## Project layout
 
@@ -62,20 +72,25 @@ npm run test:sim       # headless playthrough of all three cases through the rea
 src/
   App.tsx                         root: views, modals, game wiring
   types/investigation.ts          domain types
-  data/cases/cases.json           the three case files (Hebrew); hotspots sit on named map anchors
+  data/cases/cases.json           the five story cases (Hebrew); hotspots sit on named map anchors
   data/maps.ts                    the six maps
   data/characters.ts              station staff and creator palettes
   data/incidents.ts               street situations with choices and consequences
   services/caseEngine.ts          case loading, evidence, link validation, deduction
+  services/caseGenerator.ts       endless generated cases from crime templates, places and people
   services/interrogationEngine.ts interrogation tactics and outcome rules
+  services/interrogationLines.ts  mood- and evidence-aware line pools for suspects and the detective
   state/gameReducer.ts            game state, actions, localStorage persistence
   pixel/
     color.ts                      colour helpers and a tiny pixel buffer
     person.ts                     smooth characters: 4 directions, fluid walk cycle, outfits, hair, glasses,
                                   expressions; the same drawing frames the conversation close-ups
-    upscale.ts                    EPX / Scale2x edge smoothing for the pixel-art city
+    upscale.ts                    EPX / Scale2x edge smoothing for the remaining pixel-art details
+    audio.ts                      procedural ambience (street, rain, station, club) with Web Audio
     world/types.ts                tiles, props, buildings, lights
-    world/tiles.ts                floors, roads, sidewalks, two-storey facades, walls
+    world/smooth.ts               the city painted with vector shapes and gradients: roads, curbs, sidewalks,
+                                  floors, facades, roofs, cars, trees, lamps and street furniture
+    world/tiles.ts                tile lookup and wall colours
     world/props.ts                furniture, stalls, vehicles, street furniture, signs - each with examine text
     world/builder.ts              map-building DSL (buildings, roads, anchors, people)
     world/maps/*.ts               the six maps

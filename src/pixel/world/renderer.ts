@@ -1,7 +1,7 @@
 // Draws a PixelMap: cached ground layer, y-sorted props and characters,
 // building roofs that open when the player walks in, and night lighting.
-import { seeded, shade } from '../color';
-import { drawTile } from './tiles';
+
+import { drawGroundOverlay, drawRoofHD, drawTileHD, VECTOR_PROPS, type VectorDraw } from './smooth';
 import { PROPS, propDef } from './props';
 import { upscaleCanvas } from '../upscale';
 import { hashString } from '../color';
@@ -22,131 +22,6 @@ function canvas(w: number, h: number): [HTMLCanvasElement, Ctx] {
   const ctx = c.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
   return [c, ctx];
-}
-
-function paintRoof(b: Building): HTMLCanvasElement {
-  const w = b.w * T;
-  const h = (b.h - 2) * T;
-  const [c, ctx] = canvas(w, h);
-  const rnd = seeded(b.seed);
-  const base = b.roof;
-  const r = (x: number, y: number, ww: number, hh: number, col: string) => {
-    ctx.fillStyle = col;
-    ctx.fillRect(Math.round(x), Math.round(y), ww, hh);
-  };
-  // Bitumen/plaster surface with a faint slab grid.
-  r(0, 0, w, h, base);
-  const seam = shade(base, -0.1);
-  for (let x = 8; x < w; x += 16) r(x, 4, 1, h - 8, seam);
-  for (let y = 8; y < h; y += 16) r(4, y, w - 8, 1, seam);
-  for (let i = 0; i < (w * h) / 14; i++) r(Math.floor(rnd() * w), Math.floor(rnd() * h), 1, 1, rnd() < 0.5 ? shade(base, -0.14) : shade(base, 0.1));
-  for (let i = 0; i < (w * h) / 1400; i++) {
-    ctx.fillStyle = 'rgba(0,0,0,0.13)';
-    ctx.fillRect(Math.floor(rnd() * w), Math.floor(rnd() * h), 8 + Math.floor(rnd() * 18), 5 + Math.floor(rnd() * 9));
-  }
-  // Parapet wall around the roof.
-  const par = shade(base, 0.2);
-  r(0, 0, w, 4, par);
-  r(0, 0, 4, h, par);
-  r(w - 4, 0, 4, h, shade(base, -0.05));
-  r(0, h - 4, w, 4, shade(base, -0.25));
-  r(4, 4, w - 8, 1, shade(base, -0.3));
-  r(4, 4, 1, h - 8, shade(base, -0.3));
-
-  const placed: [number, number, number, number][] = [];
-  const free = (x: number, y: number, iw: number, ih: number) =>
-    x >= 6 && y >= 6 && x + iw <= w - 6 && y + ih <= h - 6 && !placed.some(([px, py, pw, ph]) => x < px + pw + 3 && x + iw + 3 > px && y < py + ph + 3 && y + ih + 3 > py);
-  const place = (iw: number, ih: number, tries = 30): [number, number] | null => {
-    for (let i = 0; i < tries; i++) {
-      const x = 6 + Math.floor(rnd() * Math.max(1, w - iw - 12));
-      const y = 6 + Math.floor(rnd() * Math.max(1, h - ih - 12));
-      if (free(x, y, iw, ih)) {
-        placed.push([x, y, iw, ih]);
-        return [x, y];
-      }
-    }
-    return null;
-  };
-  const drop = (x: number, y: number, iw: number, ih: number) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.32)';
-    ctx.fillRect(x + 3, y + 3, iw, ih);
-  };
-
-  // Stairwell head-house with its own little roof and door.
-  if (b.w * b.h > 50) {
-    const pos = place(26, 22);
-    if (pos) {
-      const [x, y] = pos;
-      drop(x, y, 26, 22);
-      r(x, y, 26, 12, shade(base, 0.12));
-      r(x, y, 26, 1, shade(base, 0.3));
-      r(x, y + 12, 26, 10, shade(base, -0.12));
-      r(x + 9, y + 13, 8, 9, '#3b2f27');
-      r(x + 15, y + 17, 1, 1, '#c9a54a');
-    }
-  }
-  // Rows of solar water heaters - the classic Tel Aviv roof.
-  const heaters = Math.max(1, Math.floor((b.w * b.h) / 60));
-  for (let k = 0; k < heaters; k++) {
-    const n = 1 + Math.floor(rnd() * 3);
-    const pos = place(n * 22, 18);
-    if (!pos) continue;
-    const [x0, y] = pos;
-    for (let i = 0; i < n; i++) {
-      const x = x0 + i * 22;
-      drop(x, y, 20, 17);
-      r(x, y + 6, 9, 11, '#1b2a44');
-      r(x + 10, y + 6, 9, 11, '#1b2a44');
-      for (let j = 0; j < 3; j++) {
-        r(x + 1, y + 7 + j * 3, 7, 1, '#36547f');
-        r(x + 11, y + 7 + j * 3, 7, 1, '#36547f');
-      }
-      r(x - 1, y, 21, 6, '#dcdad3');
-      r(x - 1, y, 21, 1, '#f3f1ea');
-      r(x + 19, y + 1, 1, 5, '#9a978f');
-      r(x + 3, y + 5, 1, 2, '#6b6b6b');
-    }
-  }
-  // Black water tanks.
-  for (let k = 0; k < Math.floor((b.w * b.h) / 90); k++) {
-    const pos = place(13, 13);
-    if (!pos) continue;
-    const [x, y] = pos;
-    drop(x, y, 13, 13);
-    r(x + 2, y, 9, 13, '#1f2328');
-    r(x, y + 2, 13, 9, '#1f2328');
-    r(x + 3, y + 2, 4, 2, '#3a3f47');
-  }
-  // AC compressors.
-  for (let k = 0; k < Math.floor((b.w * b.h) / 25); k++) {
-    const pos = place(11, 9);
-    if (!pos) continue;
-    const [x, y] = pos;
-    drop(x, y, 11, 9);
-    r(x, y, 11, 9, '#cfccc4');
-    r(x, y, 11, 1, '#eceae4');
-    r(x + 1, y + 2, 6, 6, '#7a776f');
-    r(x + 2, y + 3, 4, 4, '#5f5c56');
-    r(x + 8, y + 3, 2, 1, '#8a8780');
-    r(x + 8, y + 5, 2, 1, '#8a8780');
-  }
-  // Satellite dish or antenna.
-  if (rnd() < 0.7) {
-    const pos = place(10, 10);
-    if (pos) {
-      const [x, y] = pos;
-      if (rnd() < 0.5) {
-        r(x + 1, y + 1, 8, 8, '#d6d3cc');
-        r(x + 2, y + 2, 6, 6, '#bdb9b0');
-        r(x + 4, y + 4, 2, 2, '#55524c');
-      } else {
-        r(x + 4, y, 2, 10, '#2b2f35');
-        r(x, y + 2, 10, 1, '#2b2f35');
-        r(x + 1, y + 5, 8, 1, '#2b2f35');
-      }
-    }
-  }
-  return c;
 }
 
 function lightSprite(): HTMLCanvasElement {
@@ -174,6 +49,11 @@ function glowSprite(color: string): HTMLCanvasElement {
   c = cv;
   return c;
 }
+
+/** Internal resolution of the painted ground and roofs (device pixels per world pixel). */
+const K = 3;
+/** Vector props are painted at this many pixels per world pixel. */
+const PROP_K = 4;
 
 const PAD_X = 16;
 const PAD_TOP = 48;
@@ -204,11 +84,11 @@ function animFrame(type: string, t: number): [number, number] {
 }
 
 export class WorldRenderer {
-  readonly ground: HTMLCanvasElement;
-  /** Edge-smoothed 2x copies, drawn scaled to the screen. */
+  /** Ground painted with vector shapes at K pixels per world pixel. */
   private groundHD: HTMLCanvasElement;
   readonly roofs = new Map<string, HTMLCanvasElement>();
-  private propCache = new Map<string, HTMLCanvasElement>();
+  /** Cached prop images and how many image pixels make one world pixel. */
+  private propCache = new Map<string, { c: HTMLCanvasElement; f: number }>();
   private dark: HTMLCanvasElement;
   private darkCtx: Ctx;
   private light = lightSprite();
@@ -216,15 +96,29 @@ export class WorldRenderer {
   readonly dynamicProps: Prop[];
 
   constructor(readonly map: PixelMap) {
-    const [g, gctx] = canvas(map.w * T, map.h * T);
-    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) drawTile(gctx, map, x, y);
-    // Flat props: ground decals first, wall decorations after.
+    const [g, gctx] = canvas(map.w * T * K, map.h * T * K);
+    gctx.imageSmoothingEnabled = true;
+    gctx.imageSmoothingQuality = 'high';
+    gctx.scale(K, K);
+    for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) drawTileHD(gctx, map, x, y);
+    drawGroundOverlay(gctx, map);
+    // Flat props: ground decals first, wall decorations after. Each is
+    // edge-smoothed on its own and laid onto the painted ground.
     const flats = map.props.filter((p) => propDef(p).flat);
-    for (const p of flats.filter((p) => !propDef(p).wall)) propDef(p).draw(gctx, p.x * T, p.y * T, p, 0);
-    for (const p of flats.filter((p) => propDef(p).wall)) propDef(p).draw(gctx, p.x * T, p.y * T, p, 0);
-    this.ground = g;
-    this.groundHD = upscaleCanvas(g, 1);
-    for (const b of map.buildings) this.roofs.set(b.id, upscaleCanvas(paintRoof(b), 1));
+    for (const p of [...flats.filter((p) => !propDef(p).wall), ...flats.filter((p) => propDef(p).wall)]) {
+      const pad = 4;
+      const [raw, rctx] = canvas(p.w * T + pad * 2, p.h * T + pad * 2);
+      propDef(p).draw(rctx, pad, pad, p, 0);
+      gctx.drawImage(upscaleCanvas(raw, 2), p.x * T - pad, p.y * T - pad, raw.width, raw.height);
+    }
+    this.groundHD = g;
+    for (const b of map.buildings) {
+      const [rc, rctx] = canvas(b.w * T * K, (b.h - 2) * T * K);
+      rctx.imageSmoothingEnabled = true;
+      rctx.scale(K, K);
+      drawRoofHD(rctx, b);
+      this.roofs.set(b.id, rc);
+    }
     this.dynamicProps = map.props.filter((p) => !PROPS[p.type]?.flat);
     [this.dark, this.darkCtx] = canvas(1, 1);
   }
@@ -238,17 +132,30 @@ export class WorldRenderer {
     return null;
   }
 
-  private propImage(p: Prop, t: number): HTMLCanvasElement {
+  private propImage(p: Prop, t: number): { c: HTMLCanvasElement; f: number } {
     const [f, tf] = animFrame(p.type, t);
-    const key = `${p.type}|${p.w}|${p.h}|${p.color ?? hashString(p.id) % 9}|${p.variant ?? ''}|${f}`;
-    let c = this.propCache.get(key);
-    if (!c) {
-      const [raw, rctx] = canvas(p.w * T + PAD_X * 2, p.h * T + PAD_TOP + PAD_BOTTOM);
-      propDef(p).draw(rctx, PAD_X, PAD_TOP, p, tf);
-      c = upscaleCanvas(raw, 1);
-      this.propCache.set(key, c);
+    const vector = VECTOR_PROPS[p.type] as VectorDraw | undefined;
+    // Vector props with their own shape (trees, plants, palms) are cached per prop.
+    const own = vector && (p.type === 'tree' || p.type === 'lemonTree' || p.type === 'palm' || p.type === 'plant');
+    const key = `${p.type}|${p.w}|${p.h}|${p.color ?? hashString(p.id) % 9}|${p.variant ?? ''}|${f}${own ? `|${p.id}` : ''}`;
+    let img = this.propCache.get(key);
+    if (!img) {
+      const w = p.w * T + PAD_X * 2;
+      const h = p.h * T + PAD_TOP + PAD_BOTTOM;
+      if (vector) {
+        const [c, ctx] = canvas(w * PROP_K, h * PROP_K);
+        ctx.imageSmoothingEnabled = true;
+        ctx.scale(PROP_K, PROP_K);
+        vector(ctx, PAD_X, PAD_TOP, p, tf);
+        img = { c, f: PROP_K };
+      } else {
+        const [raw, rctx] = canvas(w, h);
+        propDef(p).draw(rctx, PAD_X, PAD_TOP, p, tf);
+        img = { c: upscaleCanvas(raw, 2), f: 4 };
+      }
+      this.propCache.set(key, img);
     }
-    return c;
+    return img;
   }
 
   /**
@@ -268,7 +175,7 @@ export class WorldRenderer {
     const gy = Math.max(0, Math.floor(camY));
     const gw = Math.min(map.w * T - gx, Math.ceil(vw) + 2);
     const gh = Math.min(map.h * T - gy, Math.ceil(vh) + 2);
-    if (gw > 0 && gh > 0) ctx.drawImage(this.groundHD, gx * 2, gy * 2, gw * 2, gh * 2, gx, gy, gw, gh);
+    if (gw > 0 && gh > 0) ctx.drawImage(this.groundHD, gx * K, gy * K, gw * K, gh * K, gx, gy, gw, gh);
 
     const x0 = camX - 64;
     const x1 = camX + vw + 64;
@@ -282,8 +189,8 @@ export class WorldRenderer {
       list.push({
         base: (p.y + p.h) * T - 1,
         draw: (c) => {
-          const img = this.propImage(p, t);
-          c.drawImage(img, px - PAD_X, py - PAD_TOP, img.width / 2, img.height / 2);
+          const { c: img, f } = this.propImage(p, t);
+          c.drawImage(img, px - PAD_X, py - PAD_TOP, img.width / f, img.height / f);
         },
       });
     }
@@ -292,8 +199,8 @@ export class WorldRenderer {
       const roof = this.roofs.get(b.id)!;
       const bx = b.x * T;
       const by = b.y * T;
-      const rw = roof.width / 2;
-      const rh = roof.height / 2;
+      const rw = roof.width / K;
+      const rh = roof.height / K;
       if (bx > x1 || bx + rw < x0 || by > y1 || by + rh < y0) continue;
       list.push({ base: (b.y + b.h - 2) * T - 0.5, draw: (c) => c.drawImage(roof, bx, by, rw, rh) });
     }
