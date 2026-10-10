@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { connectCloud, type CloudSave } from './state/cloudSave';
 import { Compass, Crosshair, Folder, Lock, ShieldAlert } from 'lucide-react';
 import type { View } from './types/investigation';
 import { MAPS, STATION_MAP_ID } from './data/maps';
@@ -11,6 +12,8 @@ import {
   gameReducer,
   knownCaseIds,
   loadState,
+  localSavedAt,
+  parseState,
   saveState,
   warrantJustified,
 } from './state/gameReducer';
@@ -50,7 +53,90 @@ export default function App() {
   const [state, dispatch] = useReducer(gameReducer, undefined, loadState);
   const [modal, setModal] = useState<ModalState>(null);
 
-  useEffect(() => saveState(state), [state]);
+  /* ---------------- Saving ---------------- */
+  // Every change is saved in the browser at once and, when the player has a
+  // claude.ai space, in the cloud a moment later. On open, the newer copy wins.
+  const [cloudStatus, setCloudStatus] = useState<'connecting' | 'cloud' | 'local'>('connecting');
+  const lastSaved = useRef<string | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const cloud = useRef<CloudSave | null>(null);
+  const pending = useRef<{ json: string; at: number } | null>(null);
+  const writing = useRef(false);
+  const timer = useRef<number | undefined>(undefined);
+
+  const flushCloud = useCallback(async () => {
+    window.clearTimeout(timer.current);
+    const c = cloud.current;
+    const next = pending.current;
+    if (!c || !next || writing.current) return;
+    writing.current = true;
+    pending.current = null;
+    const ok = await c.save(next.json, next.at);
+    writing.current = false;
+    if (!ok) {
+      // This viewer can't keep a cloud save; the browser save carries on.
+      cloud.current = null;
+      setCloudStatus('local');
+      return;
+    }
+    if (pending.current) void flushCloud();
+  }, []);
+
+  useEffect(() => {
+    const json = JSON.stringify(state);
+    // The game as it was loaded is not a new save.
+    if (lastSaved.current === null) {
+      lastSaved.current = json;
+      return;
+    }
+    if (json === lastSaved.current) return;
+    lastSaved.current = json;
+    const at = Date.now();
+    saveState(state, at);
+    pending.current = { json, at };
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => void flushCloud(), 1500);
+  }, [state, flushCloud]);
+
+  useEffect(() => {
+    let alive = true;
+    void connectCloud().then(async (c) => {
+      if (!alive) return;
+      if (!c) {
+        setCloudStatus('local');
+        return;
+      }
+      const remote = await c.load().catch(() => null);
+      if (!alive) return;
+      const localAt = localSavedAt();
+      if (remote && remote.savedAt > localAt) {
+        const loaded = parseState(remote.raw);
+        if (loaded) {
+          lastSaved.current = JSON.stringify(loaded);
+          saveState(loaded, remote.savedAt);
+          dispatch({ type: 'LOAD_GAME', state: loaded });
+        }
+      } else if (stateRef.current.profile && (!remote || localAt > remote.savedAt)) {
+        // This device has the newer game: send it up.
+        pending.current = { json: JSON.stringify(stateRef.current), at: localAt || Date.now() };
+      }
+      cloud.current = c;
+      setCloudStatus('cloud');
+      void flushCloud();
+    });
+    // Leaving the page: don't wait for the pause.
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void flushCloud();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      alive = false;
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+    };
+  }, [flushCloud]);
 
   const { profile, arrivalStep } = state;
   const caseFile = state.activeCaseId ? getCase(state.activeCaseId) : null;
@@ -201,7 +287,7 @@ export default function App() {
   return (
     <div dir="rtl" className="flex h-full flex-col overflow-hidden bg-noir-bg font-sans text-slate-100">
       {state.view !== 'interrogation' && (
-        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} onReset={() => dispatch({ type: 'RESET' })} />
+        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} cloudSaved={cloudStatus === 'cloud'} onReset={() => dispatch({ type: 'RESET' })} />
       )}
 
       <main className="relative min-h-0 flex-1">

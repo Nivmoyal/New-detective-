@@ -6,6 +6,8 @@ import { RANKS, RANK_TITLES } from '../services/caseEngine';
 interface Props {
   profile: DetectiveProfile;
   activeCaseTitle: string | null;
+  /** The game is also kept in the player's claude.ai space. */
+  cloudSaved: boolean;
   onReset: () => void;
 }
 
@@ -21,7 +23,7 @@ function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: stri
   );
 }
 
-export default function PoliceHeader({ profile, activeCaseTitle, onReset }: Props) {
+export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, onReset }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const reliabilityTone =
@@ -55,7 +57,10 @@ export default function PoliceHeader({ profile, activeCaseTitle, onReset }: Prop
             <Stat icon={<Activity className="h-3.5 w-3.5" />} label="ניקוד מודיעיני" value={profile.intelPoints} tone="text-sky-300" />
           </div>
           <div className="mb-2 text-xs text-steel">
-            התקדמות נשמרת אוטומטית במכשיר. איפוס יתחיל את המשמרת הראשונה מחדש.
+            {cloudSaved
+              ? 'המשחק נשמר אוטומטית בחשבון שלך, וממשיך מאותה נקודה גם אחרי סגירה או ממכשיר אחר.'
+              : 'המשחק נשמר אוטומטית בדפדפן הזה.'}{' '}
+            איפוס יתחיל את המשמרת הראשונה מחדש.
           </div>
           {confirming ? (
             <div className="space-y-2">

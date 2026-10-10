@@ -56,6 +56,7 @@ export interface GameState {
 }
 
 export type GameAction =
+  | { type: 'LOAD_GAME'; state: GameState }
   | { type: 'CREATE_PROFILE'; name: string; specialization: Specialization; addressForm: AddressForm; look: CharacterLook }
   | { type: 'ARRIVAL_COMMANDER_DONE' }
   | { type: 'OPEN_CASE_FILES' }
@@ -99,17 +100,34 @@ export function initialState(): GameState {
   };
 }
 
+/** A saved game (from this device or from the cloud), or null if it can't be used. */
+export function parseState(raw: string): GameState | null {
+  try {
+    const parsed = JSON.parse(raw) as GameState;
+    if (parsed.version !== 2) return null;
+    const state = { ...initialState(), ...parsed };
+    if (!MAPS[state.currentMapId]) state.currentMapId = STATION_MAP_ID;
+    syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+/** When this device last saved a change (ms), to compare with the cloud copy. */
+const SAVED_AT_KEY = 'precinct-tlv-saved-at';
+export function localSavedAt(): number {
+  try {
+    return Number(localStorage.getItem(SAVED_AT_KEY) ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function loadState(): GameState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as GameState;
-      if (parsed.version !== 2) return initialState();
-      const state = { ...initialState(), ...parsed };
-      if (!MAPS[state.currentMapId]) state.currentMapId = STATION_MAP_ID;
-      syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
-      return state;
-    }
+    if (raw) return parseState(raw) ?? initialState();
     // Older saves: keep the detective and the case work, restart on the new maps.
     const legacy = localStorage.getItem(LEGACY_KEY);
     if (legacy) {
@@ -129,9 +147,10 @@ export function loadState(): GameState {
   return initialState();
 }
 
-export function saveState(state: GameState) {
+export function saveState(state: GameState, savedAt = Date.now()) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(SAVED_AT_KEY, String(savedAt));
   } catch {
     // Storage unavailable (private mode) - the game still works in memory.
   }
@@ -188,6 +207,10 @@ function firstOpenCase(state: GameState, exclude?: string): string | null {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
   switch (action.type) {
+    case 'LOAD_GAME':
+      syncCaseHorizon(action.state.profile?.solvedCases.length ?? 0);
+      return action.state;
+
     case 'CREATE_PROFILE':
       return {
         ...state,
