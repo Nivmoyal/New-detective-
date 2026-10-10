@@ -63,6 +63,13 @@ for (const m of Object.values(MAPS)) {
             errors.push(`${m.id}: walker ${n.name} crosses a blocked tile at ${x},${y}`);
             break;
           }
+          const px = a.x + (b.x - a.x) * t;
+          const py = a.y + (b.y - a.y) * t;
+          const standing = m.npcs.find((o) => !o.path && Math.hypot(o.x - px, o.y - py) < 0.7);
+          if (standing) {
+            errors.push(`${m.id}: walker ${n.name} walks through ${standing.name}`);
+            break;
+          }
         }
       }
   }

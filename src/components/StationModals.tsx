@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { STAFF_QUIPS, genderize } from '../pixel/world/humor';
 import {
   Activity,
   Award,
@@ -31,6 +32,10 @@ import {
   loadCases,
   pendingLabClues,
 } from '../services/caseEngine';
+
+function pickQuip(list: string[], form: 'male' | 'female') {
+  return genderize(list[Math.floor(Math.random() * list.length)], form);
+}
 
 export function Modal({
   title,
@@ -84,7 +89,18 @@ export function Modal({
 
 /* ------------------------------------------------------------------ */
 
-export function LabModal({ allProgress, onAnalyze, onClose }: { allProgress: Record<string, CaseProgress>; onAnalyze: () => void; onClose: () => void }) {
+export function LabModal({
+  allProgress,
+  addressForm,
+  onAnalyze,
+  onClose,
+}: {
+  allProgress: Record<string, CaseProgress>;
+  addressForm: 'male' | 'female';
+  onAnalyze: () => void;
+  onClose: () => void;
+}) {
+  const [quip] = useState(() => (Math.random() < 0.6 ? pickQuip(STAFF_QUIPS.lab, addressForm) : null));
   const cases = loadCases();
   const pending = cases.flatMap((c) => (allProgress[c.id] ? pendingLabClues(c, allProgress[c.id]) : []));
   const analyzed = cases.flatMap((c) => {
@@ -98,6 +114,7 @@ export function LabModal({ allProgress, onAnalyze, onClose }: { allProgress: Rec
         {pending.length > 0
           ? `יש לך ${pending.length} פריטים בתור. תנו לי כמה דקות עם המיקרוסקופ.`
           : 'אין כרגע פריטים בתור. תביאו לי משהו מהזירה ואני אגיד לכם מי נגע בו.'}
+        {quip && <span className="mt-1.5 block text-slate-400">{quip}</span>}
       </div>
       {pending.map((c) => (
         <div key={c.id} className="mb-2 rounded-lg border border-evidence/40 bg-evidence/10 p-2.5">
@@ -134,15 +151,19 @@ export function LabModal({ allProgress, onAnalyze, onClose }: { allProgress: Rec
 export function EvidenceRoomModal({
   caseFile,
   progress,
+  addressForm,
   onClose,
 }: {
   caseFile: CaseFile | null;
   progress: CaseProgress | null;
+  addressForm: 'male' | 'female';
   onClose: () => void;
 }) {
+  const [quip] = useState(() => pickQuip(STAFF_QUIPS.clerk, addressForm));
   const clues = caseFile && progress ? collectedClues(caseFile, progress) : [];
   return (
     <Modal title="חדר ראיות" subtitle={caseFile ? caseFile.shortTitle : 'אין תיק פעיל'} icon={<Folder className="h-5 w-5" />} onClose={onClose} tone="gold" character={EVIDENCE_CLERK}>
+      <p className="mb-2 text-sm italic text-slate-400">{quip}</p>
       <p className="mb-3 text-sm text-slate-300">
         {clues.length === 0 ? 'עוד לא הבאתם לי כלום. כל מה שתאספו בשטח - מגיע אליי, מתויג ונעול.' : 'הכל מתויג ונעול. הנה מה שיש לכם בתיק עד עכשיו:'}
       </p>
@@ -169,17 +190,20 @@ export function EvidenceRoomModal({
 
 export function TravelModal({
   currentMapId,
+  addressForm,
   onTravel,
   onClose,
 }: {
   currentMapId: string;
+  addressForm: 'male' | 'female';
   onTravel: (mapId: string) => void;
   onClose: () => void;
 }) {
+  const [quip] = useState(() => pickQuip(STAFF_QUIPS.driver, addressForm));
   const ids = [STATION_MAP_ID, ...SCENE_MAP_IDS];
   return (
     <Modal title="ניידת סיור" subtitle="בחירת יעד במרחב יפתח" icon={<Compass className="h-5 w-5" />} onClose={onClose} character={PATROL_DRIVER}>
-      <p className="mb-3 text-sm text-slate-300">הניידת מונעת. לאן נוסעים?</p>
+      <p className="mb-3 text-sm text-slate-300">{quip}</p>
       <div className="space-y-2">
         {ids.map((id) => {
           const m = MAPS[id];

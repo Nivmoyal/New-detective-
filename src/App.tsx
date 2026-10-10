@@ -19,12 +19,16 @@ import RookieArrivalModal from './components/RookieArrivalModal';
 import PixelWorld, { type WorldHotspot } from './components/PixelWorld';
 import ChatDialog from './components/ChatDialog';
 import { COMMANDER, INTERROGATION_OFFICER, type ChatNpc } from './data/characters';
+import { chatAnnoyed } from './pixel/world/humor';
 import type { CharacterRef } from './types/investigation';
 import EvidenceBoard from './components/EvidenceBoard';
 import InterrogationRoom from './components/InterrogationRoom';
 import StationHub from './components/StationHub';
 import HotspotDialog from './components/HotspotDialog';
 import { CaseClosedModal, CommanderModal, EvidenceRoomModal, LabModal, NoticeModal, TravelModal } from './components/StationModals';
+
+// How many times each background character has been talked to this session.
+const chatVisits = new Map<string, number>();
 
 type ModalState =
   | { type: 'arrivalCommander' }
@@ -34,7 +38,7 @@ type ModalState =
   | { type: 'evidenceRoom' }
   | { type: 'travel' }
   | { type: 'hotspot'; spot: WorldHotspot }
-  | { type: 'chat'; npc: ChatNpc }
+  | { type: 'chat'; npc: ChatNpc; opener?: string }
   | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police' }
   | null;
 
@@ -79,7 +83,7 @@ export default function App() {
       setModal({
         type: 'notice',
         title: 'חדר החקירות ריק',
-        text: `אין לי עצור בשבילך. בלי צו מעצר אני לא מכניס אף אחד לחדר. צו חותמת רק המפקדת.`,
+        text: `אין לי עצור בשבילך. בלי צו מעצר אני לא מכניס אף אחד לחדר. צו חותמת רק המפקדת. ${g('אתה רוצה', 'את רוצה')} לחקור מישהו בינתיים? יש את מכונת הקפה. היא אשמה בהרבה דברים.`,
         character: INTERROGATION_OFFICER,
       });
   };
@@ -124,7 +128,15 @@ export default function App() {
     }
     setModal({ type: 'hotspot', spot });
   }, []);
-  const handleChat = useCallback((npc: ChatNpc) => setModal({ type: 'chat', npc }), []);
+  const handleChat = useCallback(
+    (npc: ChatNpc) => {
+      const visits = (chatVisits.get(npc.id) ?? 0) + 1;
+      chatVisits.set(npc.id, visits);
+      const annoyed = chatAnnoyed((m, f) => (profile?.addressForm === 'female' ? f : m));
+      setModal({ type: 'chat', npc, opener: visits >= 3 ? annoyed[(visits - 3) % annoyed.length] : undefined });
+    },
+    [profile?.addressForm],
+  );
   const handleExamine = useCallback((title: string, text: string) => setModal({ type: 'notice', title, text, tone: 'police' }), []);
 
   /* ---------------- Onboarding: character creation ---------------- */
@@ -182,6 +194,7 @@ export default function App() {
             key={map.id}
             map={map}
             playerLook={profile.look}
+            addressForm={profile.addressForm}
             hotspots={worldHotspots}
             startPosition={state.positions[map.id]}
             paused={modal !== null}
@@ -291,11 +304,12 @@ export default function App() {
       {modal?.type === 'commander' && (
         <CommanderModal profile={profile} caseFile={caseFile} progress={progress} onHint={() => dispatch({ type: 'USE_HINT' })} onClose={() => setModal(null)} />
       )}
-      {modal?.type === 'lab' && <LabModal allProgress={state.progress} onAnalyze={() => dispatch({ type: 'ANALYZE_LAB' })} onClose={() => setModal(null)} />}
-      {modal?.type === 'evidenceRoom' && <EvidenceRoomModal caseFile={caseFile} progress={progress} onClose={() => setModal(null)} />}
+      {modal?.type === 'lab' && <LabModal allProgress={state.progress} addressForm={profile.addressForm} onAnalyze={() => dispatch({ type: 'ANALYZE_LAB' })} onClose={() => setModal(null)} />}
+      {modal?.type === 'evidenceRoom' && <EvidenceRoomModal caseFile={caseFile} progress={progress} addressForm={profile.addressForm} onClose={() => setModal(null)} />}
       {modal?.type === 'travel' && (
         <TravelModal
           currentMapId={map.id}
+          addressForm={profile.addressForm}
           onTravel={(mapId) => {
             dispatch({ type: 'TRAVEL', mapId });
             setModal(null);
@@ -315,7 +329,7 @@ export default function App() {
       {modal?.type === 'notice' && (
         <NoticeModal title={modal.title} text={modal.text} character={modal.character} tone={modal.tone} onClose={() => setModal(null)} />
       )}
-      {modal?.type === 'chat' && <ChatDialog npc={modal.npc} onClose={() => setModal(null)} />}
+      {modal?.type === 'chat' && <ChatDialog npc={modal.npc} opener={modal.opener} addressForm={profile.addressForm} onClose={() => setModal(null)} />}
 
       {promotionCase && state.progress[promotionCase.id] && (
         <CaseClosedModal

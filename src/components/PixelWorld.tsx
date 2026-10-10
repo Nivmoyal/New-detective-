@@ -5,7 +5,8 @@ import type { ChatNpc } from '../data/characters';
 import { FACILITY_CHARACTERS } from '../data/characters';
 import { WorldRenderer, type Drawable } from '../pixel/world/renderer';
 import { T, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
-import { drawEvidenceItem, examineText, propDef, propName } from '../pixel/world/props';
+import { drawEvidenceItem, examineCount, examineVariant, propDef, propName } from '../pixel/world/props';
+import { ARRIVAL_THOUGHTS, OVERHEARD, idleThoughts, repeatExamine, wallThoughts, type G } from '../pixel/world/humor';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, drawCharacter, type Dir } from '../pixel/sprites';
 
 export interface WorldHotspot {
@@ -19,6 +20,7 @@ export interface WorldHotspot {
 interface Props {
   map: PixelMap;
   playerLook: CharacterLook;
+  addressForm: 'male' | 'female';
   hotspots: WorldHotspot[];
   startPosition?: { x: number; y: number };
   paused: boolean;
@@ -52,6 +54,29 @@ type Target =
   | { kind: 'prop'; p: Prop; x: number; y: number; name: string };
 
 const SPEED = 4.2;
+
+// Remembered for the whole session (the world remounts when switching views).
+const examineCounts = new Map<string, number>();
+let lastArrivalMap: string | null = null;
+const pick = <T,>(list: T[], avoid?: T): T => {
+  const options = list.length > 1 && avoid !== undefined ? list.filter((x) => x !== avoid) : list;
+  return options[Math.floor(Math.random() * options.length)];
+};
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const w of words) {
+    const next = line ? `${line} ${w}` : w;
+    if (ctx.measureText(next).width > maxW && line) {
+      lines.push(line);
+      line = w;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 const TALK_RANGE = 2.1;
 const PROP_RANGE = 1.25;
 
@@ -70,6 +95,7 @@ function rectDist(px: number, py: number, x: number, y: number, w: number, h: nu
 export default function PixelWorld({
   map,
   playerLook,
+  addressForm,
   hotspots,
   startPosition,
   paused,
@@ -84,8 +110,9 @@ export default function PixelWorld({
   const [prompt, setPrompt] = useState<{ name: string; verb: string; kind: Target['kind'] } | null>(null);
 
   // Live values used inside the animation loop.
-  const live = useRef({ paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange });
-  live.current = { paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange };
+  const g: G = (m, f) => (addressForm === 'female' ? f : m);
+  const live = useRef({ paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange, g });
+  live.current = { paused, hotspots, onFacility, onHotspot, onChat, onExamine, onPositionChange, g };
   const interactRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -326,7 +353,14 @@ export default function PixelWorld({
             const f = map.facilities.find((ff) => ff.id === t.p.facility);
             if (f) return L.onFacility(f);
           }
-          L.onExamine(propName(t.p), examineText(t.p));
+          {
+            // Every look reveals a little more; past that, the detective starts talking to the furniture.
+            const k = examineCounts.get(t.p.id) ?? 0;
+            examineCounts.set(t.p.id, k + 1);
+            const base = examineCount(t.p);
+            const text = examineVariant(t.p, k) ?? repeatExamine(L.g, propName(t.p))[(k - base) % repeatExamine(L.g, '').length];
+            L.onExamine(propName(t.p), text);
+          }
       }
     };
     interactRef.current = () => {
@@ -423,6 +457,23 @@ export default function PixelWorld({
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
 
+    /* ---------------- Speech and thought bubbles ---------------- */
+    const bubbles = new Map<string, { text: string; until: number; thought: boolean }>();
+    const mountedAt = performance.now();
+    let nextOverheard = mountedAt + 3500 + Math.random() * 3000;
+    let lastOverheard = '';
+    let idleSince = mountedAt;
+    let wallTime = 0;
+    let lastThoughtAt = mountedAt;
+    let lastThought = '';
+    let arrivalPending = lastArrivalMap !== map.id && !!ARRIVAL_THOUGHTS[map.id];
+    lastArrivalMap = map.id;
+    const think = (text: string, now: number) => {
+      bubbles.set('player', { text, until: now + 4200, thought: true });
+      lastThoughtAt = now;
+      lastThought = text;
+    };
+
     /* ---------------- Loop ---------------- */
     let raf = 0;
     let last = performance.now();
@@ -471,7 +522,14 @@ export default function PixelWorld({
           ix = pointer.x - pointer.sx;
           iy = pointer.y - pointer.sy;
         }
-        if (ix || iy) moveActor(player, ix, iy, dt, SPEED, solids);
+        if (ix || iy) {
+          moveActor(player, ix, iy, dt, SPEED, solids);
+          wallTime = player.moving ? 0 : wallTime + dt;
+          if (wallTime > 1.3 && now - lastThoughtAt > 7000) {
+            think(pick(wallThoughts(L.g), lastThought), now);
+            wallTime = 0;
+          }
+        }
         else if (path.length) {
           const wp = path[0];
           const dx = wp.x - player.x;
@@ -492,6 +550,33 @@ export default function PixelWorld({
       } else {
         player.moving = false;
       }
+
+      if (player.moving || L.paused) idleSince = now;
+      if (!L.paused) {
+        if (arrivalPending && now - mountedAt > 1200) {
+          arrivalPending = false;
+          think(pick(ARRIVAL_THOUGHTS[map.id]), now);
+        } else if (now - idleSince > 20000 && now - lastThoughtAt > 20000) {
+          think(pick(idleThoughts(L.g), lastThought), now);
+        }
+        // Someone nearby says something to nobody in particular.
+        if (now > nextOverheard && OVERHEARD[map.id]) {
+          nextOverheard = now + 6000 + Math.random() * 7000;
+          const onScreen = [...npcActors.values()]
+            .map((n) => n.actor)
+            .filter((a) => {
+              const sx = a.x * T - camX;
+              const sy = a.y * T - camY;
+              return sx > 10 && sx < vw - 10 && sy > 30 && sy < vh - 10 && !(a.pauseUntil && a.pauseUntil > now);
+            });
+          if (onScreen.length) {
+            const text = pick(OVERHEARD[map.id], lastOverheard);
+            lastOverheard = text;
+            bubbles.set(pick(onScreen).key, { text, until: now + 4300, thought: false });
+          }
+        }
+      }
+      for (const [k, b] of bubbles) if (b.until < now || L.paused) bubbles.delete(k);
 
       // Walkers.
       for (const { actor } of npcActors.values()) {
@@ -604,6 +689,41 @@ export default function PixelWorld({
         display.fillStyle = l.kind === 'room' ? 'rgba(226,232,240,0.55)' : 'rgba(226,232,240,0.32)';
         display.fillText(l.text, sx, sy);
       }
+      // Speech and thought bubbles.
+      display.font = `600 ${Math.round(4.8 * S)}px Heebo, Arial, sans-serif`;
+      for (const [key, b] of bubbles) {
+        const a = key === 'player' ? player : npcActors.get(key)?.actor;
+        if (!a) continue;
+        const lines = wrapText(display, b.text, 82 * S);
+        const lh = 6 * S;
+        const w = Math.max(...lines.map((l) => display.measureText(l).width)) + 6 * S;
+        const h = lines.length * lh + 3.5 * S;
+        const cx = Math.max(w / 2 + 2 * S, Math.min(canvas.width - w / 2 - 2 * S, (a.x * T - camX) * S));
+        const bottom = ((a.y - 1.75) * T - camY) * S - 2 * S;
+        const top = Math.max(2 * S, bottom - h);
+        display.fillStyle = b.thought ? 'rgba(30,41,59,0.92)' : 'rgba(248,245,236,0.95)';
+        display.strokeStyle = b.thought ? 'rgba(148,163,184,0.7)' : 'rgba(15,23,42,0.85)';
+        display.lineWidth = Math.max(1, S * 0.6);
+        display.beginPath();
+        display.rect(cx - w / 2, top, w, h);
+        display.fill();
+        display.stroke();
+        const tx = (a.x * T - camX) * S;
+        if (b.thought) {
+          display.fillRect(tx - 1.2 * S, top + h + 1.2 * S, 2.2 * S, 2.2 * S);
+          display.fillRect(tx - 0.6 * S, top + h + 4.2 * S, 1.3 * S, 1.3 * S);
+        } else {
+          display.beginPath();
+          display.moveTo(tx - 2 * S, top + h);
+          display.lineTo(tx + 2 * S, top + h);
+          display.lineTo(tx, top + h + 3 * S);
+          display.closePath();
+          display.fill();
+        }
+        display.fillStyle = b.thought ? '#cbd5e1' : '#0f172a';
+        lines.forEach((l, i) => display.fillText(l, cx, top + 2 * S + lh * (i + 0.5)));
+      }
+
       // Name tag over whatever is in reach.
       const near = L.paused ? null : nearest();
       if (near) {

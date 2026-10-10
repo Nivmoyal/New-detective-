@@ -116,7 +116,7 @@ export const PROPS: Record<string, PropDef> = {
   /* ---------------- Office & station ---------------- */
   desk: {
     w: 2, h: 1, solid: true, name: 'שולחן עבודה',
-    examine: ['ערימת תיקים, כוס קפה קרה ומדבקות צהובות עם מספרי טלפון.', 'שולחן עמוס טפסים. על אחד מהם כתוב בטוש: "לא לגעת - בטיפול".', 'מקלדת שחוקה, עט לעיסה, ותמונה של ילדים בחוף הים.'],
+    examine: ['ערימת תיקים, כוס קפה קרה ופתק: "לא לגעת - בטיפול". הפתק משנת 2017.', 'מקלדת שאחד המקשים בה בכלל ממקלדת אחרת. אף אחד לא שואל שאלות.', 'מגנט "אבא הכי טוב בעולם". מישהו הוסיף בטוש: "חוץ מבימי ראשון".', 'בתוך המגירה: שלושה מטענים, אף אחד מהם לא מתאים לשום טלפון שקיים.'],
     draw(ctx, px, py, p) {
       shadow(ctx, px + 1, py + 12, 31, 3);
       r(ctx, px, py + 2, 32, 9, '#5a3f2a');
@@ -138,7 +138,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   chair: {
-    w: 1, h: 1, solid: false, minor: true, name: 'כיסא משרדי', examine: ['כיסא משרדי עם גלגל אחד שחורק.', 'כיסא שמישהו שכח עליו מעיל.'],
+    w: 1, h: 1, solid: false, minor: true, name: 'כיסא משרדי', examine: ['כיסא משרדי עם גלגל אחד שחורק. מסורת מפוארת של התחנה.', 'על הכיסא תלוי מעיל מהחורף. של מי? אף אחד לא יודע. הוא פשוט חלק מהצוות.', 'כיסא שמסתובב רק שמאלה. כמו חצי מהמשמרת.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 4, py + 12, 9, 2);
       r(ctx, px + 4, py + 1, 8, 6, '#22262e');
@@ -148,7 +148,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cabinet: {
-    w: 1, h: 1, solid: true, name: 'ארון תיוק', examine: ['ארון תיוק מתכתי. המגירה העליונה נעולה.', 'תיקים ישנים משנות התשעים. מישהו עוד מתייק פה בנייר.'],
+    w: 1, h: 1, solid: true, name: 'ארון תיוק', examine: ['ארון תיוק. המפתח של המגירה העליונה אצל מישהו שיצא לפנסיה ב-2009.', 'תיקים משנות התשעים, מתויקים לפי צבע כתם הקפה.', 'על הארון מדבקה: "לא לשים כאן חפצים". על המדבקה - חפצים.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 13, 13, 3);
       r(ctx, px + 2, py - 8, 12, 21, '#6b7280');
@@ -160,7 +160,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   bookshelf: {
-    w: 2, h: 1, solid: true, name: 'מדף קלסרים', examine: ['שורות של קלסרים: "נוהלי חקירה", "פקודות מטא״ר", "תיקי 2019".', 'מדף עם ספרי חוק העונשין עמוסי פתקים.'],
+    w: 2, h: 1, solid: true, name: 'מדף קלסרים', examine: ['"פקודות מטא״ר", כרך 3 מתוך 7. כרכים 4 עד 7 בהשאלה מאז ומעולם.', 'ספר חוק העונשין, עמוס פתקים צהובים. אחד מהם: "לקנות חלב".', 'בין הקלסרים מסתתרת חבילת ופלים. זה הסוד הכי שמור בתחנה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 31, 3);
       r(ctx, px + 1, py - 10, 30, 23, '#4a3424');
@@ -172,7 +172,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   table: {
-    w: 2, h: 2, solid: true, name: 'שולחן', examine: ['שולחן ישיבות. כתמי קפה בצורת טבעות.', 'שולחן עם מפה של דרום העיר, מסומנת בטושים.'],
+    w: 2, h: 2, solid: true, name: 'שולחן', examine: ['שולחן ישיבות עם טבעות קפה בצורת סמל האולימפיאדה.', 'מפה של דרום העיר עם עיגולים בטוש אדום. אחד העיגולים הוא בעצם חומוסייה.', 'מתחת לשולחן: שקית במבה ריקה ונעל אחת. רק אחת.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 26, 29, 4);
       r(ctx, px + 1, py + 4, 30, 20, '#6b4a30');
@@ -184,7 +184,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   sofa: {
-    w: 2, h: 1, solid: true, name: 'ספה', examine: ['ספה מרופטת. מישהו ישן עליה במשמרת לילה.', 'ספת עור סדוקה. ריח של סיגריות ישנות.'],
+    w: 2, h: 1, solid: true, name: 'ספה', examine: ['ספה מרופטת. מישהו ישן עליה במשמרת לילה, ומכחיש בתוקף.', 'בין הכריות: שקל, מצית ושלושה עטים של התחנה. זה עונה על הרבה שאלות.', 'ריח של סיגריות, בורקס וייאוש קל.'],
     draw(ctx, px, py, p) {
       const c = p.color ?? '#5e1f26';
       shadow(ctx, px + 1, py + 13, 31, 3);
@@ -197,7 +197,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   bench: {
-    w: 2, h: 1, solid: true, name: 'ספסל', examine: ['ספסל עץ. חרוטים עליו שמות ותאריכים.', 'ספסל ציבורי. מישהו השאיר עליו עיתון של אתמול.'],
+    w: 2, h: 1, solid: true, name: 'ספסל', examine: ['חרוט על הספסל: "דנה + אבי". מתחת, בכתב אחר: "אבי, תחזיר את הכסף".', 'עיתון של אתמול. כותרת ראשית: "חום כבד צפוי". כל יום מחדש.', 'ספסל ציבורי. לפי המדבקה, הוא נתרם "לזכר הימים שהיה פה שקט".'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 12, 29, 3);
       r(ctx, px + 2, py + 2, 28, 3, '#7a5537');
@@ -208,7 +208,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   plant: {
-    w: 1, h: 1, solid: true, name: 'עציץ', examine: ['פיקוס במשרד. השקו אותו בקפה, ונראה שזה עובד.', 'עציץ עם בדלי סיגריות באדמה.'],
+    w: 1, h: 1, solid: true, name: 'עציץ', examine: ['פיקוס משרדי שמשקים אותו בשאריות קפה. הוא היחיד במשמרת שלא מתלונן.', 'עציץ עם בדלי סיגריות באדמה. הצמח לא מעשן, הוא מעשן פסיבי.', 'צמח פלסטיק. מישהו משקה אותו כל יום. אף אחד לא מעז להגיד לו.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 3, py + 13, 11, 2);
       r(ctx, px + 4, py + 7, 8, 6, '#8a4b2a');
@@ -220,7 +220,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cooler: {
-    w: 1, h: 1, solid: true, name: 'מתקן מים', examine: ['מתקן מים קרים. הבקבוק כמעט ריק.', 'מעל המתקן תלוי שלט: "מי שמסיים - מחליף!".'],
+    w: 1, h: 1, solid: true, name: 'מתקן מים', examine: ['מתקן מים. הבקבוק ריק. לפי חוקי התחנה - מי שמגלה, מחליף. לא גיליתי כלום.', 'כוס חד פעמית עם שם בטוש: "יוסי - לא לזרוק!!!". שלושה סימני קריאה. זה רציני.', 'הכפתור של המים החמים מסומן "חם". הוא פושר. כמו כל ההבטחות פה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 3, py + 13, 11, 2);
       r(ctx, px + 4, py - 1, 8, 14, '#d4d7dc');
@@ -231,7 +231,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   coffee: {
-    w: 1, h: 1, solid: true, name: 'מכונת קפה', examine: ['מכונת קפה שמשמיעה רעש של מטוס. הקפה עצמו - בינוני.', 'פתק על המכונה: "קפסולות על חשבון רס״ב חדד. תודה, ניסים".'],
+    w: 1, h: 1, solid: true, name: 'מכונת קפה', examine: ['מכונת קפה שמשמיעה רעש של מטוס קרב. הקפה עצמו - טיסת לואו-קוסט.', 'פתק על המכונה: "מי שגמר את הקפסולות - אנחנו יודעים מי אתה". חתום: כל המשמרת.', 'הקפה פה כל כך חזק שאפשר להעיד אותו בבית משפט.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 13, 13, 2);
       r(ctx, px + 1, py + 4, 14, 9, '#5a3f2a');
@@ -242,7 +242,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   copier: {
-    w: 1, h: 1, solid: true, name: 'מדפסת', examine: ['מדפסת משולבת. על המסך: "תקלה E-27". כמו תמיד.', 'ערימת דפים מודפסים שאף אחד לא אסף.'],
+    w: 1, h: 1, solid: true, name: 'מדפסת', examine: ['המדפסת מציגה "תקלה E-27". גוגל טוען שאין דבר כזה. היא המציאה אותו.', 'ערימת דפים שאף אחד לא אסף. אחד מהם קורות חיים של מישהו מהמשמרת. מעניין.', 'בעיטה קלה בצד, והיא מתחילה להדפיס. ככה עובדת טכנולוגיה בשירות הציבורי.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 15, 2);
       r(ctx, px + 1, py - 2, 14, 15, '#c9ccd1');
@@ -252,7 +252,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   fridge: {
-    w: 1, h: 1, solid: true, name: 'מקרר משקאות', examine: ['מקרר זכוכית עם פחיות. הזמזום שלו ממלא את החדר.', 'מקרר עם שלט "שתייה קרה 5 ש״ח".'],
+    w: 1, h: 1, solid: true, name: 'מקרר משקאות', examine: ['יוגורט עם פתק: "של מירב. אני סופרת". לידו - יוגורט חצי אכול. מישהו חי על הקצה.', 'מקרר שהזמזום שלו בסול דיאז. אחרי חצי שעה זה נכנס לך לחלומות.', 'קופסת אוכל עם פתק "אל תפתחו". מישהו פתח. ומיד סגר.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 13, 13, 2);
       r(ctx, px + 2, py - 12, 12, 25, '#b9bec6');
@@ -262,7 +262,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   counter: {
-    w: 3, h: 1, solid: true, name: 'דלפק', examine: ['דלפק קבלה. פעמון מתכת ופנקס תורים.', 'דלפק מצופה פורמייקה, שחוק במקום שבו אנשים נשענים.'],
+    w: 3, h: 1, solid: true, name: 'דלפק', examine: ['פעמון קבלה. צלצלתי. אף אחד לא בא. צלצלתי שוב. עכשיו מסתכלים עליי.', 'פורמייקה שחוקה בדיוק בצורת מרפק של מישהו שמחכה בתור מאז 2012.', 'על הדלפק צנצנת סוכריות ריקה ושלט "קחו אחת". לקחו את כולן.'],
     draw(ctx, px, py, p) {
       const w = p.w * T;
       const c = p.color ?? '#4a3a2c';
@@ -274,7 +274,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   labBench: {
-    w: 2, h: 1, solid: true, name: 'שולחן מעבדה', examine: ['מיקרוסקופ, מבחנות וערכת אבקה לטביעות אצבע.', 'שקיות ראיות מסומנות בברקוד, מחכות לבדיקה.'],
+    w: 2, h: 1, solid: true, name: 'שולחן מעבדה', examine: ['מבחנות מסודרות לפי צבע. ד״ר שטרן מסודרת ברמה מפחידה.', 'שקית ראיות עם סנדוויץ׳ בפנים. אני מאוד מקווה שזו ראיה.', 'ערכת אבקה לטביעות אצבע. על הכוס של ד״ר שטרן - אפס טביעות. היא בודקת.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 31, 3);
       r(ctx, px, py + 2, 32, 9, '#e5e7eb');
@@ -288,7 +288,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   evidenceShelf: {
-    w: 2, h: 1, solid: true, name: 'מדף ראיות', examine: ['קופסאות ראיות חתומות, כל אחת עם מספר תיק ושרשרת משמורת.', 'שקית עם סכין חלודה מתיק משנת 2011. אף אחד לא בא לקחת.'],
+    w: 2, h: 1, solid: true, name: 'מדף ראיות', examine: ['קופסת ראיות משנת 2011 עם קלטת וידאו. מי עוד יודע איך מפעילים את זה?', 'שקית עם סכין חלודה שאף אחד לא בא לקחת. גם היא כבר לא מחכה.', 'מדבקה על המדף: "שרשרת משמורת - לא שרשרת חברים". ניסים לא צוחק עם זה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 31, 3);
       r(ctx, px + 1, py - 10, 30, 23, '#3f4650');
@@ -302,7 +302,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   lockers: {
-    w: 2, h: 1, solid: true, name: 'לוקרים', examine: ['לוקרים של שוטרי הסיור. על אחד מדבקה של בית״ר.', 'לוקר פתוח: מדים מגוהצים ונעליים מצוחצחות.'],
+    w: 2, h: 1, solid: true, name: 'לוקרים', examine: ['לוקר עם מדבקה של בית״ר, ומתחתיה מדבקה של הפועל. יש פה סיפור.', 'לוקר פתוח: מדים מגוהצים, נעליים מבריקות וחצי חבילת במבה.', 'לוקר נעול עם שלט "לא לפתוח - מלאי לשבת". אף אחד לא שואל מה זה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 31, 3);
       for (let i = 0; i < 4; i++) {
@@ -315,7 +315,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   interrogationTable: {
-    w: 2, h: 1, solid: true, name: 'שולחן חקירות', examine: ['שולחן מתכת מוברג לרצפה. טבעת לאזיקים בצד אחד.', 'מיקרופון קטן מודבק לשולחן. כל מילה מוקלטת.'],
+    w: 2, h: 1, solid: true, name: 'שולחן חקירות', examine: ['שולחן מתכת מוברג לרצפה. אחרי מה שקרה ב-2014 - כל דבר פה מוברג.', 'מיקרופון קטן מודבק לשולחן. כל מילה מוקלטת. גם "אוף".', 'חרוט על השולחן: "לא אני". הרבה אנשים כתבו את זה פה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 12, 29, 3);
       r(ctx, px + 2, py + 2, 28, 9, '#6b7280');
@@ -326,7 +326,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   safe: {
-    w: 1, h: 1, solid: true, name: 'כספת', examine: ['כספת פלדה כבדה. הדלת שלה פתוחה לרווחה.', 'כספת ישנה עם חוגה מספרית.'],
+    w: 1, h: 1, solid: true, name: 'כספת', examine: ['כספת פלדה כבדה. הדלת פתוחה לרווחה. כספת פתוחה זה כמו משפט בלי סוף.', 'כספת ישנה עם חוגה. הקוד הוא כנראה 1234. הוא תמיד 1234.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 13, 15, 2);
       r(ctx, px + 1, py - 4, 14, 17, '#3f4650');
@@ -336,7 +336,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   pokerTable: {
-    w: 2, h: 1, solid: true, name: 'שולחן קלפים', examine: ['שולחן לבד ירוק עם כתמי בירה. ז׳יטונים פזורים על הרצפה.', 'קלפים מפוזרים, מאפרה מלאה ומגירה שנשלפה בחופזה.'],
+    w: 2, h: 1, solid: true, name: 'שולחן קלפים', examine: ['לבד ירוק עם כתמי בירה וז׳יטונים על הרצפה. מישהו עזב כשהוא מוביל.', 'קלפים, מאפרה ומגירה שנשלפה בחופזה. הכל מריח כמו הפסד.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 31, 3);
       r(ctx, px + 1, py + 1, 30, 11, '#3b2a1c');
@@ -351,26 +351,26 @@ export const PROPS: Record<string, PropDef> = {
   /* ---------------- Street ---------------- */
   car: {
     w: 3, h: 2, solid: true, name: 'רכב חונה',
-    examine: ['רכב חונה. על השמשה דו״ח חניה מקומט.', 'מכונית עם שריטה ארוכה לאורך הדלת.', 'רכב מאובק. מישהו כתב באצבע "תשטוף אותי".', 'רכב עם מושב ילדים מאחור וכדורגל על הרצפה.'],
+    examine: ['על השמשה דו״ח חניה, ועליו עוד דו״ח חניה. אקו-סיסטם שלם.', 'רכב מאובק. מישהו כתב באצבע "תשטוף אותי". מישהו אחר הוסיף מתחת: "גם אותך".', 'בתוך הרכב: מושב ילדים, ארבעה בקבוקי מים פתוחים וחמש מאות מטבעות של שקל.', 'הרכב חונה על המדרכה, בחניית נכים ועל מעבר חצייה. במקביל. זה כמעט אמנות.'],
     draw(ctx, px, py, p, t) {
       drawCarH(ctx, px, py, p.color ?? pick(p, CAR_COLORS), false, t, (p.variant ?? 0) === 1);
     },
   },
   carV: {
     w: 2, h: 3, solid: true, name: 'רכב חונה',
-    examine: ['רכב חונה בחניה. הגלגל הקדמי על המדרכה.', 'רכב מסחרי קטן עם שם של חברת הובלות.'],
+    examine: ['רכב בחניה, עם הגלגל הקדמי על המדרכה. בתל אביב זה נחשב "בתוך הקווים".', 'על המראה תלוי עץ ריח בטעם "ניו קאר". הרכב משנת 2004.'],
     draw(ctx, px, py, p) {
       drawCarV(ctx, px, py, p.color ?? pick(p, CAR_COLORS));
     },
   },
   policeCar: {
-    w: 3, h: 2, solid: true, name: 'ניידת משטרה', examine: ['ניידת משטרה. המנוע עדיין חם.', 'ניידת סיור עם פנס כחול-אדום על הגג.'],
+    w: 3, h: 2, solid: true, name: 'ניידת משטרה', examine: ['ניידת. המנוע עוד חם, ועל הכיסא שקית במבה פתוחה.', 'ניידת עם 340 אלף קילומטר. היא ראתה דברים שאתה לא תאמין.', 'על לוח המחוונים מדבקה: "מי שנוסע ראשון - קונה קפה". מתחת: "ליאת, את חייבת לנו 40 קפה".'],
     draw(ctx, px, py, p, t) {
       drawCarH(ctx, px, py, '#e7e5df', true, t, (p.variant ?? 0) === 1);
     },
   },
   van: {
-    w: 4, h: 2, solid: true, name: 'טנדר', examine: ['טנדר מסחרי עם דלתות אחוריות. על הדופן שם של חברת ניקיון.', 'טנדר ישן. בפנים קרטונים ושמיכה.'],
+    w: 4, h: 2, solid: true, name: 'טנדר', examine: ['טנדר מסחרי. על הדופן כתוב "הובלות - מהיר, זול, אמין". בחרו שניים.', 'טנדר עם שמיכה וקרטונים מאחור. או שמישהו עובר דירה, או שמישהו גר פה.'],
     draw(ctx, px, py, p) {
       const c = p.color ?? '#9aa3ad';
       const x = px + 2;
@@ -393,7 +393,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   bus: {
-    w: 8, h: 3, solid: true, name: 'אוטובוס נטוש', examine: ['אוטובוס עירוני ישן בלי גלגלים. השלט עוד מראה "קו 4".', 'בפנים מושבים קרועים, שמיכות ובקבוקים ריקים.'],
+    w: 8, h: 3, solid: true, name: 'אוטובוס נטוש', examine: ['אוטובוס נטוש. השלט מראה "קו 4 - מיוחד". הוא מיוחד כבר עשר שנים.', 'בפנים, על מושב הנהג: כרטיסייה עם שתי נסיעות. מישהו פספס הזדמנות.'],
     draw(ctx, px, py) {
       const x = px + 2;
       const w = 124;
@@ -413,7 +413,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   lamp: {
-    w: 1, h: 1, solid: true, name: 'פנס רחוב', examine: ['פנס רחוב. נורה צהובה מהבהבת קלות.', 'עמוד תאורה עם מודעות מודבקות: "דירה להשכרה", "שיעורי תופים".'],
+    w: 1, h: 1, solid: true, name: 'פנס רחוב', examine: ['פנס שמהבהב. העירייה הבטיחה לתקן לפני הבחירות. לפני אילו בחירות - לא צוין.', 'מודעה על העמוד: "דירת 2 חדרים, 7,800 ש״ח, מתאימה לזוג, סטודנטים או ארון גדול".', 'מודעה: "נמצא חתול. רוצים אותו? גם אנחנו לא".'],
     draw(ctx, px, py) {
       shadow(ctx, px + 5, py + 12, 7, 2);
       r(ctx, px + 7, py - 22, 2, 35, '#3a3f46');
@@ -424,7 +424,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   tree: {
-    w: 1, h: 1, solid: true, name: 'עץ', examine: ['פיקוס ותיק. השורשים הרימו את המרצפות מסביב.', 'עץ עם עלווה צפופה. ציפורים מצייצות גם בלילה.'],
+    w: 1, h: 1, solid: true, name: 'עץ', examine: ['פיקוס ותיק. השורשים הרימו את המדרכה. העירייה מתקנת, הפיקוס מנצח. 14 לאפס.', 'הציפורים על העץ מצייצות גם בלילה. גם הן לא ישנות בתל אביב.', 'מתחת לעץ: חתול, שקית וכיסא פלסטיק. מישהו הקים פה סלון.'],
     draw(ctx, px, py, p) {
       shadow(ctx, px - 4, py + 10, 24, 5);
       r(ctx, px + 6, py - 4, 4, 17, '#4a3221');
@@ -439,7 +439,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   palm: {
-    w: 1, h: 1, solid: true, name: 'דקל', examine: ['דקל וושינגטוניה גבוה. כמה ענפים יבשים עומדים ליפול.'],
+    w: 1, h: 1, solid: true, name: 'דקל', examine: ['דקל וושינגטוניה. אחד הענפים "עומד ליפול" כבר שלוש שנים. כולם עוברים מהר.'],
     draw(ctx, px, py) {
       shadow(ctx, px - 2, py + 10, 20, 4);
       for (let i = 0; i < 30; i += 3) r(ctx, px + 6, py + 10 - i, 4, 3, i % 6 ? '#6b5236' : '#5a442c');
@@ -452,7 +452,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   lemonTree: {
-    w: 1, h: 1, solid: true, name: 'עץ לימון', examine: ['עץ לימון בחצר. לימונים על הענפים ועל הרצפה.'],
+    w: 1, h: 1, solid: true, name: 'עץ לימון', examine: ['עץ לימון עם שלט: "לא לקטוף! - ציונה". השאלה המשפטית: מה עם לימונים שנפלו למדרכה?', 'הלימונים פה כל כך צהובים שהם נראים חשודים.'],
     draw(ctx, px, py) {
       shadow(ctx, px - 2, py + 10, 20, 4);
       r(ctx, px + 6, py - 2, 3, 15, '#4a3221');
@@ -463,7 +463,7 @@ export const PROPS: Record<string, PropDef> = {
   },
   stall: {
     w: 2, h: 1, solid: true, name: 'דוכן בשוק',
-    examine: ['דוכן עם שקי יוטה מלאים. הריח חזק.', 'דוכן מכוסה ברזנט. המוכר משחק שש-בש בצד.'],
+    examine: ['המוכר אומר שהזעתר "מהגליל". על השק כתוב באותיות קטנות: Made in Turkey.', 'דוכן מכוסה ברזנט. המוכר משחק שש-בש לבד. ומפסיד.', 'שלט מחיר: 20 ש״ח. המוכר, כשראה תעודה: "בשבילך? 25".', 'המוכר נותן לטעום מכל דבר. אחרי עשר דקות פה כבר אין צורך בארוחת צהריים.'],
     draw(ctx, px, py, p) {
       const awn = p.color ?? '#b91c1c';
       shadow(ctx, px, py + 12, 33, 4);
@@ -483,7 +483,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   crate: {
-    w: 1, h: 1, solid: true, name: 'ארגז', examine: ['ארגז פירות ריק. מדבקה: "תוצרת הארץ".', 'ארגזי בירה ריקים, ערומים זה על זה.'],
+    w: 1, h: 1, solid: true, name: 'ארגז', examine: ['ארגז פירות ריק עם מדבקה "תוצרת הארץ". הארגז עצמו - תוצרת סין.', 'ארגזי בירה ריקים, ערומים בצורה כמעט אדריכלית.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 12, 13, 3);
       r(ctx, px + 2, py + 1, 12, 11, '#8a6a3f');
@@ -495,7 +495,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   trash: {
-    w: 1, h: 1, solid: true, name: 'פח אשפה', examine: ['פח עירוני ירוק. החתולים כבר עברו פה.', 'פח מלא עד אפס מקום. ריח של דגים.'],
+    w: 1, h: 1, solid: true, name: 'פח אשפה', examine: ['פח ירוק. החתולים של השכונה כבר עשו פה סריקה ראשונית. יסודית יותר משלנו.', 'פח מלא עד אפס מקום. מישהו השאיר לידו ספה. בתל אביב זה נחשב תרומה.', 'שלט על הפח: "אסור להשליך פסולת בניין". בתוך הפח: חצי מקלחת.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 3, py + 12, 11, 3);
       r(ctx, px + 3, py, 10, 12, '#2f5a3a');
@@ -505,7 +505,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   dumpster: {
-    w: 2, h: 1, solid: true, name: 'מכולת אשפה', examine: ['מכולת אשפה גדולה. המכסה פתוח, שקיות זרוקות מסביב.', 'מכולה מתכתית עם גרפיטי וריח חמוץ.'],
+    w: 2, h: 1, solid: true, name: 'מכולת אשפה', examine: ['מכולה עם מזרן, אופניים ושלט "אסור לזרוק פסולת". אירוניה בדרגה אומנותית.', 'ריח חמוץ, גרפיטי ושני חתולים שמסתכלים עליי כאילו אני פולש. וכנראה שאני.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 31, 3);
       r(ctx, px + 1, py - 4, 30, 16, '#24543b');
@@ -517,7 +517,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   barrel: {
-    w: 1, h: 1, solid: true, name: 'חבית', examine: ['חבית מתכת חלודה. בפנים מים שחורים.'],
+    w: 1, h: 1, solid: true, name: 'חבית', examine: ['חבית מתכת חלודה עם מים שחורים. לא נוגעים. גם לא מריחים.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 3, py + 12, 11, 3);
       r(ctx, px + 3, py - 2, 10, 14, '#7c2d12');
@@ -527,7 +527,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   busStop: {
-    w: 3, h: 1, solid: true, name: 'תחנת אוטובוס', examine: ['תחנת אוטובוס. לוח הזמנים מראה קו שבוטל לפני שנתיים.', 'על הספסל מישהו ישן תחת מעיל.'],
+    w: 3, h: 1, solid: true, name: 'תחנת אוטובוס', examine: ['לוח הזמנים מבטיח אוטובוס כל 12 דקות. לוח הזמנים אופטימי.', 'מודעה בתחנה: "נעלם חתול ג׳ינג׳י בשם שמשון". שמשון, אם אתה שומע - כולם דואגים.', 'על הספסל ישן מישהו תחת מעיל. הוא מחכה לאוטובוס, או לחיים. מה שיגיע קודם.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 47, 3);
       r(ctx, px + 1, py - 14, 46, 3, '#2c3e50');
@@ -540,7 +540,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   pillar: {
-    w: 1, h: 1, solid: true, name: 'עמוד בטון', examine: ['עמוד בטון עם ברזלים חשופים. גרפיטי: "התחנה מתה".', 'עמוד עם סימני מים בגובה הברך מהחורף שעבר.'],
+    w: 1, h: 1, solid: true, name: 'עמוד בטון', examine: ['גרפיטי על העמוד: "התחנה מתה". מתחת, בכתב אחר: "אבל השירותים עוד פתוחים".', 'סימני מים בגובה הברך מהחורף שעבר. וגם מהחורף שלפניו.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 15, 4);
       r(ctx, px + 2, py - 18, 12, 31, '#6e7073');
@@ -551,7 +551,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   fence: {
-    w: 1, h: 1, solid: true, name: 'גדר', examine: ['גדר רשת עם חור בפינה, בגודל של אדם.', 'גדר איסכורית חלודה.'],
+    w: 1, h: 1, solid: true, name: 'גדר', examine: ['גדר רשת עם חור בפינה בגודל של אדם. מישהו פה ממש רצה לעבור.', 'גדר איסכורית חלודה עם שלט "שמור". מה שמור - לא ברור. הגדר כבר מזמן לא.'],
     draw(ctx, px, py) {
       r(ctx, px, py - 6, 16, 1, '#6b7280');
       r(ctx, px, py + 8, 16, 1, '#6b7280');
@@ -560,14 +560,14 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   fenceV: {
-    w: 1, h: 1, solid: true, name: 'גדר', examine: ['גדר רשת. מעבר לה, חצר מוזנחת.'],
+    w: 1, h: 1, solid: true, name: 'גדר', examine: ['גדר רשת. מעבר לה חצר עם כביסה, עציצים ותרנגולת אחת שמסתכלת בבוז.'],
     draw(ctx, px, py) {
       r(ctx, px + 7, py - 8, 2, 22, '#4b5563');
       for (let y = -8; y < 14; y += 3) r(ctx, px + 6, py + y, 4, 1, '#6b7280');
     },
   },
   hydrant: {
-    w: 1, h: 1, solid: true, name: 'ברז כיבוי', examine: ['ברז כיבוי אש צהוב. מישהו קשר אליו אופניים.'],
+    w: 1, h: 1, solid: true, name: 'ברז כיבוי', examine: ['ברז כיבוי. מישהו קשר אליו אופניים. מישהו אחר גנב את האופניים והשאיר את המנעול. כבוד.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 4, py + 11, 9, 2);
       r(ctx, px + 6, py + 1, 5, 11, '#d4a017');
@@ -576,7 +576,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   planter: {
-    w: 1, h: 1, solid: true, name: 'אדנית', examine: ['אדנית בטון עם צמחים יבשים ובדלים.'],
+    w: 1, h: 1, solid: true, name: 'אדנית', examine: ['אדנית בטון עם צמחים יבשים. העירייה קוראת לזה "התחדשות עירונית".'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 15, 3);
       r(ctx, px + 1, py + 3, 14, 10, '#7b7d80');
@@ -586,7 +586,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cafeTable: {
-    w: 1, h: 1, solid: true, name: 'שולחן בית קפה', examine: ['שולחן פלסטיק עם מאפרה וכוסות תה ריקות.', 'שני כיסאות, שולחן קטן, וקלפי שש-בש.'],
+    w: 1, h: 1, solid: true, name: 'שולחן בית קפה', examine: ['שולחן עם שתי כוסות תה ושש-בש פתוח. מישהו עזב באמצע. או שהוא הפסיד ובורח.', 'על השולחן מאפרה, סוכריות נענע וקבלה של 80 שקל על שני קפה. ברוכים הבאים לתל אביב.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 12, 13, 3);
       r(ctx, px + 3, py + 2, 10, 6, '#e5e7eb');
@@ -596,8 +596,41 @@ export const PROPS: Record<string, PropDef> = {
       r(ctx, px + 5, py + 3, 2, 2, '#92400e');
     },
   },
+  cat: {
+    w: 1, h: 1, solid: false, name: 'חתול רחוב',
+    examine: ['חתול רחוב. מסתכל עליי כאילו אני החשוד.', 'החתול פיהק לי בפנים. גם המפקדת עושה את זה לפעמים.', 'ניסיתי בניית אמון עם החתול. הוא דרש עורך דין.', 'החתול ישב פה כל הלילה. הוא העד הכי טוב ברחוב, והכי לא משתף פעולה.'],
+    draw(ctx, px, py, p, t) {
+      const c = p.color ?? '#3f3f46';
+      const d = shade(c, -0.3);
+      const tail = Math.round(Math.sin(t * 2 + p.x) * 1.5);
+      shadow(ctx, px + 4, py + 13, 9, 2);
+      r(ctx, px + 5, py + 8, 7, 5, c);
+      r(ctx, px + 6, py + 4, 5, 5, c);
+      r(ctx, px + 6, py + 3, 1, 1, c);
+      r(ctx, px + 10, py + 3, 1, 1, c);
+      r(ctx, px + 7, py + 6, 1, 1, '#a3e635');
+      r(ctx, px + 9, py + 6, 1, 1, '#a3e635');
+      r(ctx, px + 12, py + 9 + tail, 2, 1, d);
+      r(ctx, px + 13, py + 7 + tail, 1, 2, d);
+      r(ctx, px + 6, py + 12, 2, 1, d);
+      r(ctx, px + 9, py + 12, 2, 1, d);
+    },
+  },
+  plasticChair: {
+    w: 1, h: 1, solid: true, name: 'כיסא פלסטיק',
+    examine: ['כיסא פלסטיק ששומר על מקום חניה. בתל אביב זה נחשב חוזה מחייב.', 'פתק על הכיסא: "תפוס! - משה מקומה 3". משה לא מתבדח.', 'הכיסא שומר על החניה טוב יותר מהמצלמות של העירייה.'],
+    draw(ctx, px, py) {
+      shadow(ctx, px + 3, py + 12, 11, 3);
+      r(ctx, px + 4, py + 1, 8, 6, '#e7e5df');
+      r(ctx, px + 4, py + 1, 8, 1, '#ffffff');
+      r(ctx, px + 3, py + 7, 10, 3, '#d6d3cc');
+      r(ctx, px + 3, py + 10, 1, 3, '#b8b4ab');
+      r(ctx, px + 12, py + 10, 1, 3, '#b8b4ab');
+      r(ctx, px + 6, py + 3, 4, 1, '#fde68a');
+    },
+  },
   sacks: {
-    w: 1, h: 1, solid: true, name: 'שקי תבלינים', examine: ['שקי יוטה: כמון, כורכום, פפריקה. האבקה צובעת את הידיים.', 'שקים של פיצוחים ושקדים.'],
+    w: 1, h: 1, solid: true, name: 'שקי תבלינים', examine: ['שקי כמון, כורכום ופפריקה. אחרי דקה פה, אני מתובל לגמרי.', 'שקי פיצוחים. המוכר מכריז שהגרעינים "קלויים היום". היום של איזו שנה?'],
     draw(ctx, px, py, p) {
       const c = p.color ?? '#c2410c';
       shadow(ctx, px + 1, py + 12, 15, 3);
@@ -608,7 +641,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   speaker: {
-    w: 1, h: 1, solid: true, name: 'רמקול', examine: ['רמקול ענק. הרצפה רועדת מהבס.'],
+    w: 1, h: 1, solid: true, name: 'רמקול', examine: ['רמקול ענק. הבס כל כך חזק שהדופק שלי עבר ל-128 BPM.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 15, 3);
       r(ctx, px + 2, py - 10, 12, 23, '#111114');
@@ -619,7 +652,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   djBooth: {
-    w: 2, h: 1, solid: true, name: 'עמדת די-ג׳יי', examine: ['עמדת די-ג׳יי. פלייליסט על פתק: טכנו, טכנו, עוד טכנו.'],
+    w: 2, h: 1, solid: true, name: 'עמדת די-ג׳יי', examine: ['פלייליסט כתוב על פתק: טכנו, טכנו, עוד טכנו, ו"אולי עומר אדם בסוף".'],
     draw(ctx, px, py, _p, t) {
       shadow(ctx, px + 1, py + 12, 31, 3);
       r(ctx, px + 1, py + 2, 30, 11, '#1c1a22');
@@ -631,7 +664,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   stool: {
-    w: 1, h: 1, solid: false, minor: true, name: 'כיסא בר', examine: ['כיסא בר גבוה עם ריפוד קרוע.'],
+    w: 1, h: 1, solid: false, minor: true, name: 'כיסא בר', examine: ['כיסא בר עם ריפוד קרוע. מישהו ניסה לתקן עם סלוטייפ. הסלוטייפ ניצח.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 5, py + 12, 7, 2);
       r(ctx, px + 4, py + 2, 8, 3, '#7f1d1d');
@@ -639,7 +672,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   scooter: {
-    w: 1, h: 1, solid: false, name: 'קורקינט חשמלי', examine: ['קורקינט שכור זרוק על המדרכה. הסוללה ריקה.', 'אופנוע משלוחים עם ארגז תרמי.'],
+    w: 1, h: 1, solid: false, name: 'קורקינט חשמלי', examine: ['קורקינט שכור באמצע המדרכה. מיקום חוקי לפי האפליקציה: "בערך".', 'אופנוע משלוחים עם ארגז תרמי. בפנים ריח של פיצה ותקווה.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 15, 2);
       r(ctx, px + 2, py + 9, 12, 2, '#1f2937');
@@ -651,7 +684,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cctvBox: {
-    w: 1, h: 1, solid: true, name: 'מערכת הקלטה', examine: ['מסך מחולק לשש מצלמות ומקליט דיגיטלי עם נורה ירוקה.'],
+    w: 1, h: 1, solid: true, name: 'מערכת הקלטה', examine: ['מסך מחולק לשש מצלמות. חמש מראות קיר. אחת מראה חתול. החתול רואה הכל.'],
     draw(ctx, px, py, _p, t) {
       shadow(ctx, px + 1, py + 12, 15, 3);
       r(ctx, px + 1, py + 3, 14, 10, '#3f2c1d');
@@ -662,7 +695,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   terminal: {
-    w: 1, h: 1, solid: true, name: 'מסוף מחשב', examine: ['מסוף של מערכת פל״א. צריך כרטיס חכם וסיסמה.'],
+    w: 1, h: 1, solid: true, name: 'מסוף מחשב', examine: ['מסוף פל״א. הסיסמה מודבקת על פתק למסך: "Police123". אבטחת מידע ברמה הגבוהה ביותר.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 1, py + 12, 15, 3);
       r(ctx, px + 1, py + 4, 14, 9, '#4b5563');
@@ -674,7 +707,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   pinboard: {
-    w: 2, h: 1, solid: true, name: 'לוח חקירה', examine: ['לוח שעם על חצובה, עם תמונות, פתקים וחוטים אדומים.'],
+    w: 2, h: 1, solid: true, name: 'לוח חקירה', examine: ['לוח שעם עם תמונות, פתקים וחוטים אדומים. בפינה, פתק: "לקנות סוללות לשלט".'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 12, 28, 3);
       r(ctx, px + 4, py - 16, 24, 18, '#7a5a3a');
@@ -688,7 +721,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   sandbox: {
-    w: 2, h: 2, solid: true, name: 'מתקן משחקים', examine: ['מגלשה ישנה בגינה הציבורית. ילדי השכונה עוד משחקים פה.'],
+    w: 2, h: 2, solid: true, name: 'מתקן משחקים', examine: ['מגלשה ישנה בגינה. ניסיתי. נתקעתי באמצע. אף אחד לא ראה. נראה לי.', 'על המגלשה כתוב "עד גיל 12". אף אחד לא בודק תעודות.'],
     draw(ctx, px, py) {
       shadow(ctx, px + 2, py + 26, 28, 4);
       r(ctx, px + 2, py + 6, 28, 20, '#a68a5b');
@@ -710,7 +743,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   puddle: {
-    w: 2, h: 1, solid: false, minor: true, flat: true, name: 'שלולית', examine: ['שלולית שמשקפת את אור הפנסים.'],
+    w: 2, h: 1, solid: false, minor: true, flat: true, name: 'שלולית', examine: ['שלולית שמשקפת את אור הפנסים. בתל אביב שלולית היא אטרקציה.'],
     draw(ctx, px, py) {
       ctx.fillStyle = 'rgba(120,150,190,0.25)';
       ctx.fillRect(px + 4, py + 5, 22, 6);
@@ -720,7 +753,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   mattress: {
-    w: 2, h: 1, solid: false, flat: true, name: 'מזרן', examine: ['מזרן מוכתם וקרטונים. מישהו גר פה.', 'שמיכה, בקבוק מים ושקית עם בגדים.'],
+    w: 2, h: 1, solid: false, flat: true, name: 'מזרן', examine: ['מזרן מוכתם וקרטונים. מישהו גר פה. יש לו אפילו שטיח כניסה.', 'שמיכה, בקבוק מים ושקית בגדים מקופלת בקפידה. מסודר יותר מהדירה שלי.'],
     draw(ctx, px, py) {
       r(ctx, px + 2, py + 2, 28, 12, '#8b7d6b');
       r(ctx, px + 2, py + 2, 28, 1, '#a39581');
@@ -729,14 +762,14 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cardboard: {
-    w: 1, h: 1, solid: false, minor: true, flat: true, name: 'קרטונים', examine: ['קרטונים פרוסים על הרצפה.'],
+    w: 1, h: 1, solid: false, minor: true, flat: true, name: 'קרטונים', examine: ['קרטונים פרוסים על הרצפה. בתל אביב גם זה כבר עולה 3,000 בחודש.'],
     draw(ctx, px, py) {
       r(ctx, px + 1, py + 3, 13, 10, '#9a7b52');
       r(ctx, px + 3, py + 5, 9, 1, '#7a5f3c');
     },
   },
   manhole: {
-    w: 1, h: 1, solid: false, minor: true, flat: true, name: 'מכסה ביוב', examine: ['מכסה ביוב עם סמל עיריית תל אביב-יפו.'],
+    w: 1, h: 1, solid: false, minor: true, flat: true, name: 'מכסה ביוב', examine: ['מכסה ביוב עם סמל העירייה. מתחתיו עולם שלם שאני לא ממהר לחקור.'],
     draw(ctx, px, py) {
       r(ctx, px + 3, py + 4, 10, 8, '#1f2125');
       r(ctx, px + 4, py + 3, 8, 10, '#1f2125');
@@ -745,7 +778,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   stain: {
-    w: 1, h: 1, solid: false, flat: true, name: 'כתם', examine: ['כתם כהה על הרצפה. אולי שמן, אולי לא.'],
+    w: 1, h: 1, solid: false, flat: true, name: 'כתם', examine: ['כתם כהה על הרצפה. אולי שמן, אולי לא. מז״פ יגידו. בעוד שבועיים.'],
     draw(ctx, px, py) {
       ctx.fillStyle = 'rgba(40,10,10,0.45)';
       ctx.fillRect(px + 3, py + 5, 9, 5);
@@ -755,7 +788,7 @@ export const PROPS: Record<string, PropDef> = {
 
   /* ---------------- Wall decorations (on the wall face) ---------------- */
   window: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'חלון', examine: ['חלון עם סורגים. מבפנים נשמעת טלוויזיה.', 'חלון מואר. וילון זז ונעצר.', 'חלון סגור בתריס פלסטיק.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'חלון', examine: ['מבפנים נשמעת טלוויזיה. "האח הגדול". מישהו פה צריך חקירה.', 'מישהו מנגן בפסנתר את אותה שורה כבר רבע שעה. הוא יגיע לשורה השנייה. יום אחד.', 'וילון זז ונעצר. בעוד דקה כל הבניין יודע שיש פה שוטר.', 'על אדן החלון: עציץ, חתול ומשקפת. הסבתא של הרחוב. העדה הכי טובה שתהיה לך.'],
     draw(ctx, px, py, p) {
       const lit = (p.variant ?? hashString(p.id)) % 3 !== 0;
       r(ctx, px + 3, py + 5, 10, 8, '#22252b');
@@ -766,7 +799,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   ac: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מזגן', examine: ['מנוע מזגן מטפטף על המדרכה.', 'מזגן ישן שמרעיש כמו טרקטור.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מזגן', examine: ['מנוע מזגן מטפטף על המדרכה. בדיוק על המקום שבו עמדתי.', 'מזגן משנת 1994 שמרעיש כמו טרקטור וממשיך לעבוד. כמו הדודה שלי.'],
     draw(ctx, px, py) {
       r(ctx, px + 2, py + 5, 12, 8, '#d6d3cc');
       r(ctx, px + 3, py + 6, 6, 6, '#8a8780');
@@ -776,7 +809,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   shutter: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'תריס חנות', examine: ['תריס גלילה מוגף. ריסוס: "להשכרה".', 'תריס מתכת סגור עם מנעול תלייה.'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'תריס חנות', examine: ['תריס מוגף עם ריסוס: "להשכרה". מתחתיו, בכתב אחר: "לא, תודה".', 'תריס עם מנעול תלייה ופתק: "סגור עקב אבל". הפתק מלפני שלוש שנים.'],
     draw(ctx, px, py, p) {
       const w = p.w * T;
       r(ctx, px + 1, py + 4, w - 2, 11, '#6b7075');
@@ -785,7 +818,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   storageDoor: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'דלת מחסן', examine: ['דלת גלילה של מחסן, נעולה במנעול תלייה.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'דלת מחסן', examine: ['דלת גלילה של מחסן, נעולה במנעול תלייה. מה יש בפנים? רק השוכר וצו חיפוש יודעים.'],
     draw(ctx, px, py) {
       r(ctx, px + 1, py + 3, 14, 12, '#7c8187');
       for (let y = 4; y < 15; y += 2) r(ctx, px + 1, py + y, 14, 1, '#5f646a');
@@ -793,7 +826,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   sign: {
-    w: 3, h: 1, solid: false, flat: true, wall: true, name: 'שלט', examine: ['שלט של עסק. האותיות דהויות מהשמש.'],
+    w: 3, h: 1, solid: false, flat: true, wall: true, name: 'שלט', examine: ['שלט של עסק. האותיות דהויות מהשמש, המספר טלפון עוד עובד.'],
     draw(ctx, px, py, p) {
       const w = p.w * T;
       const c = p.color ?? '#1e3a5f';
@@ -803,7 +836,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   neon: {
-    w: 3, h: 1, solid: false, flat: true, wall: true, name: 'שלט ניאון', examine: ['שלט ניאון. אחת האותיות כבויה.'],
+    w: 3, h: 1, solid: false, flat: true, wall: true, name: 'שלט ניאון', examine: ['שלט ניאון שאחת האותיות שלו כבויה. מה שיוצא - מצחיק, אבל לא לדיווח.'],
     draw(ctx, px, py, p) {
       const w = p.w * T;
       const c = p.color ?? '#f472b6';
@@ -815,7 +848,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   graffiti: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'גרפיטי', examine: ['גרפיטי: "העיר הזאת לא ישנה".', 'תג של צוות גרפיטי מקומי, מעל פוסטר של מסיבה.', 'ריסוס: "תל אביב לכולם".'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'גרפיטי', examine: ['גרפיטי: "העיר הזאת לא ישנה". מתחת: "כי השכנים עושים שיפוצים".', 'גרפיטי של חתול עם משקפי שמש. אמנות או ראיה? את זה משאירים למז״פ.', 'ריסוס: "תל אביב לכולם". מתחת, בכתב קטן: "חוץ ממי שמחפש חניה".'],
     draw(ctx, px, py, p) {
       const cols = ['#ec4899', '#22d3ee', '#a3e635', '#f59e0b'];
       const c = pick(p, cols);
@@ -824,7 +857,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   poster: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מודעה', examine: ['מודעת אבל ישנה, חצי קרועה.', 'מודעה: "דרוש/ה עובד/ת למטבח. משמרות לילה".', 'פוסטר של הופעה בבארבי, משנה שעברה.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מודעה', examine: ['מודעה: "דרוש/ה מלצר/ית. ניסיון לא חובה. סבלנות - חובה".', 'מודעה: "שיעורי גיטרה. עשיתי צבא בלהקה". אין מספר טלפון. אולי זה מבחן.', 'מודעת אבל ישנה, חצי קרועה. ליד: מודעה על מסיבת רווקים. החיים, בקיצור.'],
     draw(ctx, px, py, p) {
       const c = pick(p, ['#e7e5e4', '#fde68a', '#fecaca', '#bfdbfe']);
       r(ctx, px + 4, py + 4, 8, 9, c);
@@ -834,7 +867,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   corkboard: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'לוח מודעות', examine: ['לוח מודעות: משמרות, נוהל ירי, והזמנה ליום הולדת של מישהו.'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'לוח מודעות', examine: ['לוח מודעות: משמרות, נוהל ירי, והזמנה ליום הולדת 40 עם "בלי מתנות!!". כלומר עם מתנות.', 'פתק: "מי שלקח את הסלוטייפ - פשוט תחזיר. אין שאלות". שלושה שבועות, אין סלוטייפ.'],
     draw(ctx, px, py) {
       r(ctx, px + 2, py + 4, 28, 10, '#6b4a2d');
       r(ctx, px + 3, py + 5, 26, 8, '#a07a4e');
@@ -844,7 +877,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   whiteboard: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'לוח מחיק', examine: ['לוח מחיק עם שרטוט של צומת וחצים. מישהו כתב: "מי ידע על המשלוח?".'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'לוח מחיק', examine: ['כתוב על הלוח: "מי ידע על המשלוח?". מתחת: "ומי לקח לי את הטוש הכחול?".', 'בפינת הלוח: "ימים בלי תקלה במדפסת: 0". מישהו מעדכן את זה בקפידה.'],
     draw(ctx, px, py) {
       r(ctx, px + 2, py + 4, 28, 10, '#9ca3af');
       r(ctx, px + 3, py + 5, 26, 8, '#f1f5f9');
@@ -854,7 +887,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   clock: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'שעון קיר', examine: ['שעון קיר. מפגר בשבע דקות כבר שנה.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'שעון קיר', examine: ['שעון קיר שמפגר בשבע דקות. כולם יודעים. כולם מאחרים בשבע דקות בהתאם.'],
     draw(ctx, px, py) {
       r(ctx, px + 4, py + 4, 8, 8, '#1f2937');
       r(ctx, px + 5, py + 5, 6, 6, '#f8fafc');
@@ -863,7 +896,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   mirror: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'מראה חד-כיוונית', examine: ['מראה חד-כיוונית. מהצד השני - חדר תצפית.'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'מראה חד-כיוונית', examine: ['מראה חד-כיוונית. מהצד השני חדר תצפית. מהצד הזה - אני, והשיער שלי.'],
     draw(ctx, px, py) {
       r(ctx, px + 2, py + 4, 28, 9, '#20242b');
       r(ctx, px + 3, py + 5, 26, 7, '#3d4a5a');
@@ -871,7 +904,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   cctvCam: {
-    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מצלמת אבטחה', examine: ['מצלמת אבטחה מכוונת לרחוב. נורה אדומה קטנה דולקת.'],
+    w: 1, h: 1, solid: false, flat: true, wall: true, name: 'מצלמת אבטחה', examine: ['מצלמת אבטחה עם נורה אדומה. נופפתי לה. לפעמים נחמד שמישהו רואה אותך.'],
     draw(ctx, px, py) {
       r(ctx, px + 5, py + 4, 2, 3, '#4b5563');
       r(ctx, px + 6, py + 6, 7, 4, '#d1d5db');
@@ -880,7 +913,7 @@ export const PROPS: Record<string, PropDef> = {
     },
   },
   policeBadge: {
-    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'סמל המשטרה', examine: ['סמל משטרת ישראל על הקיר: ענפי זית ומגן דוד.'],
+    w: 2, h: 1, solid: false, flat: true, wall: true, name: 'סמל המשטרה', examine: ['סמל משטרת ישראל. מישהו מנגב ממנו אבק כל יום ראשון. כנראה המפקדת. כנראה בעצמה.'],
     draw(ctx, px, py) {
       r(ctx, px + 10, py + 3, 12, 11, '#1e3a8a');
       r(ctx, px + 12, py + 5, 8, 7, '#c9a54a');
@@ -916,9 +949,21 @@ export function propDef(p: Prop): PropDef {
 }
 
 export function examineText(p: Prop): string {
-  if (p.examine) return p.examine;
-  const d = propDef(p);
-  return d.examine[hashString(p.id) % d.examine.length];
+  return examineVariant(p, 0) ?? '';
+}
+
+/** The k-th thing the detective notices about an object, or null once there is nothing new. */
+export function examineVariant(p: Prop, k: number): string | null {
+  const list = propDef(p).examine;
+  // A specific description comes first, then the usual observations about such a thing.
+  if (p.examine) return k === 0 ? p.examine : k - 1 < list.length ? list[(hashString(p.id) + k - 1) % list.length] : null;
+  if (k >= list.length) return null;
+  return list[(hashString(p.id) + k) % list.length];
+}
+
+/** How many different things there are to notice about an object. */
+export function examineCount(p: Prop): number {
+  return propDef(p).examine.length + (p.examine ? 1 : 0);
 }
 
 export function propName(p: Prop): string {

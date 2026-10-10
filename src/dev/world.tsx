@@ -15,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
     <PixelWorld
       map={map}
       playerLook={defaultPlayerLook('male')}
+      addressForm="male"
       hotspots={hotspots}
       startPosition={{ x, y }}
       paused={false}

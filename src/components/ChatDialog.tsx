@@ -2,10 +2,22 @@ import { useState } from 'react';
 import { ChevronLeft, MessageSquare } from 'lucide-react';
 import type { ChatNpc } from '../data/characters';
 import CharacterBanner from './CharacterBanner';
+import { genderize } from '../pixel/world/humor';
 
 /** Free conversation with a station character: each tap brings the next line. */
-export default function ChatDialog({ npc, onClose }: { npc: ChatNpc; onClose: () => void }) {
-  const [i, setI] = useState(() => Math.floor(Math.random() * npc.lines.length));
+export default function ChatDialog({
+  npc,
+  opener,
+  addressForm,
+  onClose,
+}: {
+  npc: ChatNpc;
+  opener?: string;
+  addressForm: 'male' | 'female';
+  onClose: () => void;
+}) {
+  const lines = (opener ? [opener, ...npc.lines] : npc.lines).map((l) => genderize(l, addressForm));
+  const [i, setI] = useState(() => (opener ? 0 : Math.floor(Math.random() * npc.lines.length)));
   const [count, setCount] = useState(1);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center" onClick={onClose}>
@@ -13,14 +25,14 @@ export default function ChatDialog({ npc, onClose }: { npc: ChatNpc; onClose: ()
         <CharacterBanner character={npc.character} />
         <div className="p-4">
           <p key={i} className="min-h-[4.5rem] animate-fadeUp text-[15px] leading-relaxed text-slate-200">
-            {npc.lines[i]}
+            {lines[i]}
           </p>
           <div className="mt-3 flex justify-end gap-2">
-            {count < npc.lines.length && (
+            {count < lines.length && (
               <button
                 className="btn-ghost"
                 onClick={() => {
-                  setI((v) => (v + 1) % npc.lines.length);
+                  setI((v) => (v + 1) % lines.length);
                   setCount((c) => c + 1);
                 }}
               >

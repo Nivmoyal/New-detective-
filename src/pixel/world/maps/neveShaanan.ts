@@ -31,7 +31,7 @@ export function buildNeveShaanan() {
   b.prop('sofa', 9, 13, { color: '#3f3f46' });
   b.prop('cctvBox', 13, 9, { name: 'מסך המצלמה', examine: 'מסך קטן שמראה את הרחוב מבחוץ.' });
   b.anchor('ns-barber', 11.5, 9.5, DIR_DOWN);
-  b.npc({ x: 9.5, y: 8.4, dir: DIR_UP, name: 'לקוח', role: 'מסתפר', look: look('male', '#6b4430', 'buzz', '#16120f', 'tshirt', '#e7e5e4'), lines: ['רגע, הוא באמצע. אל תזיז לו את היד.', 'אני בא לפה כל שבוע. יוסף יודע הכל על כולם.'] });
+  b.npc({ x: 9.5, y: 8.4, dir: DIR_UP, name: 'לקוח', role: 'מסתפר', look: look('male', '#6b4430', 'buzz', '#16120f', 'tshirt', '#e7e5e4'), lines: ['רגע, הוא באמצע. {אל תזיז|אל תזיזי} לו את היד, יש לו מספריים.', 'אני בא לפה כל שבוע. יוסף יודע הכל על כולם. גם דברים שאני לא יודע על עצמי.', 'ביקשתי "קצת מהצדדים". תראה{|י} מה יצא. אני בעד עדות נגדו.'] });
   b.label(10.5, 6.4, 'מספרה', 'room', 'ns-barber-b');
 
   b.building({ id: 'ns-phones', x: 15, y: 5, w: 7, h: 13, wall: WallStyle.Plaster, sign: { text: 'סלולר פלוס', color: '#22d3ee', neon: true, x: 2, w: 3 } });
@@ -53,7 +53,7 @@ export function buildNeveShaanan() {
   b.prop('counter', 39, 7, { w: 3, color: '#5b3a24', name: 'הדלפק של אלם', examine: 'סיר של צ׳יקן צ׳יצ׳ה וערימת אינג׳רה.' });
   b.prop('rug', 36, 13, { w: 3, h: 2, color: '#7c2d12' });
   b.anchor('ns-restaurant', 40.5, 9.5, DIR_DOWN);
-  b.npc({ x: 35.5, y: 12.5, dir: DIR_LEFT, name: 'סועד', role: 'עובד בניין', look: look('male', '#6b4430', 'short', '#16120f', 'tshirt', '#4b5a6b'), lines: ['האוכל פה כמו בבית. כמעט.', 'שומר הלילה? הוא איש טוב. כולם פה יודעים שזה לא הוא.'] });
+  b.npc({ x: 35.5, y: 12.5, dir: DIR_LEFT, name: 'סועד', role: 'עובד בניין', look: look('male', '#6b4430', 'short', '#16120f', 'tshirt', '#4b5a6b'), lines: ['האוכל פה כמו בבית. בלי אמא שאומרת שאני רזה.', 'שומר הלילה? הוא איש טוב. כולם פה יודעים שזה לא הוא.', 'פה אוכלים עם הידיים. {תנסה|תנסי}. אף אחד לא שופט. טוב, קצת.'] });
   b.label(37.5, 6.4, 'מסעדה', 'room', 'ns-rest');
 
   b.building({ id: 'ns-shelter', x: 43, y: 5, w: 9, h: 13, wall: WallStyle.Concrete, floor: FloorStyle.Concrete, doors: [4], sign: { text: 'מקלט לילה', color: '#334155', x: 1, w: 3 }, lights: '#cfd8c0' });
@@ -64,6 +64,13 @@ export function buildNeveShaanan() {
   b.prop('lockers', 44, 13);
   b.label(47.5, 6.4, 'מקלט לילה', 'room', 'ns-shelter');
   b.building({ id: 'ns-apt', x: 52, y: 5, w: 8, h: 13, wall: WallStyle.Brick });
+
+  b.npc({ x: 18.5, y: 18.7, dir: DIR_DOWN, name: 'אלי', role: 'מתקן טלפונים', look: look('male', '#c98f66', 'short', '#16120f', 'hoodie', '#0e7490', '#22252b', { glasses: true }), lines: [
+    'תיקון מסך - מאה שקל. מסך מקורי? מה זה משנה, הוא נראה מקורי.',
+    'יש לי מטען לכל טלפון שיצא מאז 2003. חוץ משלך. תמיד חוץ משלך.',
+    'הטלפון שלך איטי? זה לא הטלפון. זה {אתה|את}. טוב, גם הטלפון.',
+  ] });
+  b.prop('cat', 22, 22, { color: '#6b7280' });
 
   /* Pedestrian street */
   b.fill(0, 18, 60, 6, Tile.Sidewalk, 1);
@@ -100,7 +107,8 @@ export function buildNeveShaanan() {
   b.npc({ x: 3.5, y: 30.5, dir: DIR_RIGHT, name: 'מיכאל', role: 'חסר בית', look: look('male', '#e5b48f', 'long', '#8d877f', 'hoodie', '#3b3a36', '#2d3440', { beard: true }), lines: [
     'אני ישן פה כבר שנתיים. בלילות אני רואה דברים שאף אחד לא רואה.',
     'בלילה של הפריצה? ראיתי אוטו טוב נכנס לרחוב, לא מהשכונה. אוטו נקי, מבריק.',
-    'יש לך משהו לאכול? לא? טוב, לפחות דיברת איתי.',
+    'יש משהו לאכול? לא? טוב, לפחות דיברת איתי. זה יותר ממה שהעירייה עושה.',
+    'המזרן שלי פה, על הדשא. נוף לגינה, קרוב לתחבורה ציבורית. מתווך היה גובה על זה 6,000.',
   ] });
 
   /* Side road and southern blocks */
