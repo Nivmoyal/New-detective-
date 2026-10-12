@@ -129,6 +129,8 @@ export interface AmbientNpc {
   /** Walking route (tile coordinates); static when absent. */
   path?: { x: number; y: number }[];
   speed?: number;
+  /** Out only at these hours [from, to); always out when absent. */
+  hours?: [number, number];
 }
 
 export interface PlacedFacility extends FacilityHotspot {

@@ -1,6 +1,7 @@
 // Headless playthrough of every case through the real game reducer.
-import { gameReducer, initialState, type GameState, type GameAction } from '../src/state/gameReducer';
-import { getCase, evaluateDeduction, loadCases, validateLink, isHotspotAvailable, emptyProgress } from '../src/services/caseEngine';
+import { gameReducer, initialState, parseState, repairProgress, type GameState, type GameAction } from '../src/state/gameReducer';
+import { START_CLOCK, dayOf, formatClock, isOpen, minutesUntil, nightFactor } from '../src/services/clock';
+import { caseSummary, getCase, evaluateDeduction, loadCases, validateLink, isHotspotAvailable, emptyProgress } from '../src/services/caseEngine';
 import { defaultPlayerLook } from '../src/data/characters';
 
 const fail = (msg: string) => {
@@ -8,7 +9,7 @@ const fail = (msg: string) => {
 };
 let s: GameState = initialState();
 const d = (a: GameAction) => (s = gameReducer(s, a));
-d({ type: 'CREATE_PROFILE', name: 'בודק', specialization: 'intel', addressForm: 'female', look: defaultPlayerLook('female') });
+d({ type: 'CREATE_PROFILE', name: 'בודק', addressForm: 'female', look: defaultPlayerLook('female') });
 
 // Freedom: evidence can be gathered before reporting anywhere, and lands in its own case.
 const third = loadCases()[2];
@@ -97,6 +98,12 @@ for (let c = nextCase(); c && s.profile!.solvedCases.length < TARGET; c = nextCa
 console.log('rank', s.profile!.rankIndex, 'solved', s.profile!.solvedCases.length, 'intel', s.profile!.intelPoints, 'rel', s.profile!.reliability);
 if (s.profile!.solvedCases.length !== TARGET) fail(`solved ${s.profile!.solvedCases.length}, expected ${TARGET}`);
 if (s.profile!.rankIndex !== 6) fail('rank did not keep climbing past the story cases');
+// The summary at close remembers the refused warrant asked for at the start.
+{
+  const sum = caseSummary(getCase('case-levinsky'), s.progress['case-levinsky']);
+  if (!sum.costs.some((c) => c.label.includes('צו')) || sum.points >= 100 || sum.hours === null) fail(`case summary: ${JSON.stringify(sum)}`);
+  console.log('summary', sum.grade, sum.points, sum.costs.map((c) => c.label).join(', '), `${sum.hours}h`);
+}
 // The phone: the lab calls about evidence, the commander about closed cases.
 const from = (name: string) => s.messages.filter((m) => m.from === name).length;
 if (!from('ד״ר מאיה שטרן')) fail('the lab never called');
@@ -105,9 +112,21 @@ if (s.messages.length > 40) fail('the phone keeps more than 40 messages');
 if (s.messages.some((m) => /[{}]/.test(m.text))) fail('a phone message has an unresolved marker');
 console.log('phone:', s.messages.length, 'messages, e.g.', s.messages[s.messages.length - 1].from, '-', s.messages[s.messages.length - 1].text);
 
+// Old saves: evidence, places and people a case no longer has are dropped, the rest kept.
+{
+  const g1 = getCase('gen-1');
+  const real = g1.clues[0].id;
+  const fixed = repairProgress({
+    'gen-1': { ...emptyProgress(), collected: [real, 'gen-1-gone'], visitedHotspots: ['gen-1-h-gone', g1.hotspots[0].id], links: [{ suspectId: 'gen-1-s9', evidenceId: real, verdict: 'implicates' }], warrantSuspectId: 'gen-1-s9' },
+    'no-such-case': emptyProgress(),
+  });
+  const p = fixed['gen-1'];
+  if (fixed['no-such-case'] || p.collected.join() !== real || p.visitedHotspots.length !== 1 || p.links.length || p.warrantSuspectId) fail('old save was not repaired');
+}
+
 // Failure path: pure pressure should drive a suspect to demand a lawyer.
 let f = initialState();
-f = gameReducer(f, { type: 'CREATE_PROFILE', name: 'x', specialization: 'intel', addressForm: 'male', look: defaultPlayerLook('male') });
+f = gameReducer(f, { type: 'CREATE_PROFILE', name: 'x', addressForm: 'male', look: defaultPlayerLook('male') });
 f = gameReducer(f, { type: 'OPEN_CASE_FILES' });
 f = gameReducer(f, { type: 'FOCUS_CASE', caseId: 'case-levinsky' });
 f = { ...f, progress: { ...f.progress, 'case-levinsky': { ...f.progress['case-levinsky'], warrantSuspectId: 's-roni' } } };
@@ -120,7 +139,7 @@ console.log('pressure-only outcome:', f.interrogation!.status);
   const variety = [...loadCases().filter((c) => !c.generated), ...Array.from({ length: 12 }, (_, i) => getCase(`gen-${i + 1}`))];
   for (const c of variety) {
     let v = initialState();
-    v = gameReducer(v, { type: 'CREATE_PROFILE', name: 'x', specialization: 'intel', addressForm: 'male', look: defaultPlayerLook('male') });
+    v = gameReducer(v, { type: 'CREATE_PROFILE', name: 'x', addressForm: 'male', look: defaultPlayerLook('male') });
     v = { ...v, arrivalStep: 'done', activeCaseId: c.id, progress: { [c.id]: { ...emptyProgress(), collected: c.clues.map((x) => x.id), analyzed: c.clues.map((x) => x.id), warrantSuspectId: c.culpritId } } };
     v = gameReducer(v, { type: 'START_INTERROGATION', caseId: c.id });
     // Gentle pacing so the session lasts as long as possible.
@@ -135,4 +154,23 @@ console.log('pressure-only outcome:', f.interrogation!.status);
     if (dupes.length) fail(`${c.id}: repeated lines in interrogation: ${dupes.join(' | ')}`);
     console.log(`${c.id}: ${spoken.length} lines, no repeats (${v.interrogation!.status})`);
   }
+}
+
+// The clock: steps of the investigation take time, waiting skips to opening hours.
+{
+  let v = gameReducer(initialState(), { type: 'CREATE_PROFILE', name: 'x', addressForm: 'female', look: defaultPlayerLook('female') });
+  if (v.clock !== START_CLOCK) fail('clock does not start in the morning');
+  const c = getCase('case-studio');
+  v = { ...v, arrivalStep: 'done', activeCaseId: c.id, progress: { [c.id]: emptyProgress() } };
+  const before = v.clock;
+  v = gameReducer(v, { type: 'VISIT_HOTSPOT', caseId: c.id, hotspotId: 'h7-liora' });
+  if (v.clock <= before) fail('visiting a lead takes no time');
+  const kiosk = c.hotspots.find((h) => h.id === 'h7-kiosk')!;
+  if (isOpen(kiosk.hours, v.clock)) fail('night kiosk open in the morning');
+  v = gameReducer(v, { type: 'ADVANCE_CLOCK', minutes: minutesUntil(v.clock, kiosk.hours![0]) });
+  if (!isOpen(kiosk.hours, v.clock)) fail('waiting did not reach the kiosk hours');
+  if (!isOpen([19, 5], 2 * 60) || isOpen([19, 5], 12 * 60) || nightFactor(13 * 60) !== 0 || nightFactor(23 * 60) !== 1) fail('clock arithmetic');
+  const restored = parseState(JSON.stringify({ ...v, clock: undefined }));
+  if (restored?.clock !== START_CLOCK) fail('old save without a clock');
+  console.log('clock', formatClock(v.clock), 'day', dayOf(v.clock));
 }

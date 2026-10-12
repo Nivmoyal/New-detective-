@@ -1,6 +1,5 @@
 // Core domain types for the detective investigation game.
 
-export type Specialization = 'criminal' | 'intel' | 'forensic';
 export type AddressForm = 'male' | 'female';
 
 export type HairStyle = 'short' | 'buzz' | 'long' | 'ponytail' | 'curly' | 'bald' | 'bun';
@@ -30,7 +29,6 @@ export interface CharacterRef {
 
 export interface DetectiveProfile {
   name: string;
-  specialization: Specialization;
   addressForm: AddressForm;
   look: CharacterLook;
   rankIndex: number;
@@ -124,6 +122,10 @@ export interface MapHotspot {
   lockedLabel?: string;
   /** What the detective hears/sees while the lead cannot be followed yet. */
   lockedText?: string;
+  /** The person here keeps hours [from, to) - [20, 5] wraps past midnight. */
+  hours?: [number, number];
+  /** What the detective finds while they are away. */
+  closedText?: string;
 }
 
 export interface CaseFile {
@@ -146,7 +148,6 @@ export interface CaseFile {
   clues: Clue[];
   hotspots: MapHotspot[];
   /** Commander hints, revealed one at a time for intel points. */
-  hints: string[];
 }
 
 export interface CasesFile {
@@ -173,13 +174,19 @@ export interface CaseProgress {
   links: BoardLink[];
   warrantSuspectId: string | null;
   interrogationAttempts: number;
-  hintsUsed: number;
   solved: boolean;
   score: number;
   /** Leads opened early with a warrant the commander signed reluctantly. */
   forced?: string[];
   /** Witnesses who were pressed for a quick answer. */
   pressed?: string[];
+  /** Warrant requests the commander turned down. */
+  denied?: number;
+  /** Missteps in the interrogation that broke the suspect. */
+  mistakes?: number;
+  /** Game clock at the first lead followed, and when the case closed. */
+  openedAt?: number;
+  closedAt?: number;
 }
 
 export type TacticId = 'pressure' | 'evidence' | 'trust' | 'confront';

@@ -6,6 +6,7 @@ import { MAPS, SCENE_MAP_IDS, STATION_MAP_ID } from './data/maps';
 import { PARTNER, partnerQuips } from './pixel/world/partner';
 import { GROUP_CHAT, type PhoneMessage } from './state/messages';
 import type { PlacedFacility } from './pixel/world/types';
+import { CLOCK_TICK_MINUTES, CLOCK_TICK_SECONDS, START_CLOCK, formatHour, hoursLabel, isOpen, minutesUntil } from './services/clock';
 import { EARLY_WARRANT_COST, EARLY_WARRANT_MIN_RELIABILITY, PRESS_WITNESS_COST, emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
 import {
   WARRANT_DENIAL_PENALTY,
@@ -21,6 +22,7 @@ import {
 } from './state/gameReducer';
 import PoliceHeader from './components/PoliceHeader';
 import RookieArrivalModal from './components/RookieArrivalModal';
+import ControlsIntro, { controlsSeen } from './components/ControlsIntro';
 import PixelWorld, { type WorldHotspot } from './components/PixelWorld';
 import ChatDialog from './components/ChatDialog';
 import { COMMANDER, INTERROGATION_OFFICER, type ChatNpc } from './data/characters';
@@ -48,12 +50,13 @@ type ModalState =
   | { type: 'hotspot'; spot: WorldHotspot }
   | { type: 'chat'; npc: ChatNpc; annoyed: string }
   | { type: 'incident'; incident: Incident }
-  | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police'; earlyWarrant?: WorldHotspot }
+  | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police'; earlyWarrant?: WorldHotspot; waitUntil?: number }
   | null;
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, undefined, loadState);
   const [modal, setModal] = useState<ModalState>(null);
+  const [controlsPending, setControlsPending] = useState(() => !controlsSeen());
 
   /* ---------------- Saving ---------------- */
   // Every change is saved in the browser at once and, when the player has a
@@ -141,6 +144,17 @@ export default function App() {
   }, [flushCloud]);
 
   const { profile, arrivalStep } = state;
+  const clock = state.clock ?? START_CLOCK;
+  // The clock runs while the detective is out in the world.
+  const showControls = controlsPending && !!profile && state.view === 'map' && modal === null;
+  const fieldOpen = !!profile && state.view === 'map' && modal === null && !showControls;
+  useEffect(() => {
+    if (!fieldOpen) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') dispatch({ type: 'ADVANCE_CLOCK', minutes: CLOCK_TICK_MINUTES });
+    }, CLOCK_TICK_SECONDS * 1000);
+    return () => window.clearInterval(id);
+  }, [fieldOpen]);
   const caseFile = state.activeCaseId ? getCase(state.activeCaseId) : null;
   const progress = activeProgress(state);
   const map = MAPS[state.currentMapId] ?? MAPS[STATION_MAP_ID];
@@ -194,11 +208,13 @@ export default function App() {
       const p = state.progress[c.id] ?? emptyProgress();
       for (const h of c.hotspots) {
         if (h.mapId !== map.id) continue;
-        out.push({ hotspot: h, caseId: c.id, available: isHotspotAvailable(h, p), visited: p.visitedHotspots.includes(h.id) });
+        out.push({ hotspot: h, caseId: c.id, available: isHotspotAvailable(h, p), visited: p.visitedHotspots.includes(h.id), present: isOpen(h.hours, clock) });
       }
     }
     return out;
-  }, [state.progress, map.id, state.profile?.solvedCases.length]);
+    // Who is out changes on the hour only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.progress, map.id, state.profile?.solvedCases.length, Math.floor(clock / 60)]);
 
   // Case waiting in the interrogation room: the focused one first, then any other.
   const warrantCaseId = useMemo(() => {
@@ -249,6 +265,17 @@ export default function App() {
   );
 
   const handleHotspot = useCallback((spot: WorldHotspot) => {
+    if (spot.present === false && spot.hotspot.hours && spot.hotspot.character) {
+      const [from, to] = spot.hotspot.hours;
+      setModal({
+        type: 'notice',
+        title: `${spot.hotspot.title} - אין אף אחד`,
+        text: `${spot.hotspot.closedText ?? `${spot.hotspot.character.name} לא כאן עכשיו.`} שעות: ${hoursLabel([from, to])}.`,
+        tone: 'gold',
+        waitUntil: from,
+      });
+      return;
+    }
     if (!spot.available) {
       setModal({
         type: 'notice',
@@ -290,7 +317,7 @@ export default function App() {
         <RookieArrivalModal
           mode="profile"
           profile={null}
-          onCreateProfile={(name, specialization, addressForm, look) => dispatch({ type: 'CREATE_PROFILE', name, specialization, addressForm, look })}
+          onCreateProfile={(name, addressForm, look) => dispatch({ type: 'CREATE_PROFILE', name, addressForm, look })}
         />
       </div>
     );
@@ -329,7 +356,7 @@ export default function App() {
   return (
     <div dir="rtl" className="relative flex h-full flex-col overflow-hidden bg-noir-bg font-sans text-slate-100">
       {state.view !== 'interrogation' && (
-        <PoliceHeader profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} cloudSaved={cloudStatus === 'cloud'} messages={state.messages} onReadMessages={() => dispatch({ type: 'READ_MESSAGES' })} onReset={() => dispatch({ type: 'RESET' })} />
+        <PoliceHeader clock={clock} profile={profile} activeCaseTitle={caseFile?.shortTitle ?? null} cloudSaved={cloudStatus === 'cloud'} messages={state.messages} onReadMessages={() => dispatch({ type: 'READ_MESSAGES' })} onReset={() => dispatch({ type: 'RESET' })} />
       )}
       {toast && (
           <button
@@ -352,10 +379,11 @@ export default function App() {
             playerLook={profile.look}
             addressForm={profile.addressForm}
             hotspots={worldHotspots}
+            clock={clock}
             incident={activeIncident(map.id, state.incidentsDone)}
             onIncident={handleIncident}
             startPosition={state.positions[map.id]}
-            paused={modal !== null}
+            paused={modal !== null || showControls}
             onFacility={handleFacility}
             onHotspot={handleHotspot}
             onChat={handleChat}
@@ -461,7 +489,7 @@ export default function App() {
         />
       )}
       {modal?.type === 'commander' && (
-        <CommanderModal profile={profile} caseFile={caseFile} progress={progress} onHint={() => dispatch({ type: 'USE_HINT' })} onClose={() => setModal(null)} />
+        <CommanderModal profile={profile} caseFile={caseFile} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'lab' && <LabModal allProgress={state.progress} addressForm={profile.addressForm} onAnalyze={() => dispatch({ type: 'ANALYZE_LAB' })} onClose={() => setModal(null)} />}
       {modal?.type === 'evidenceRoom' && <EvidenceRoomModal caseFile={caseFile} progress={progress} addressForm={profile.addressForm} onClose={() => setModal(null)} />}
@@ -487,6 +515,7 @@ export default function App() {
           onClose={() => setModal(null)}
         />
       )}
+      {showControls && <ControlsIntro addressForm={profile.addressForm} onClose={() => setControlsPending(false)} />}
       {modal?.type === 'notice' && (
         <NoticeModal
           title={modal.title}
@@ -494,7 +523,16 @@ export default function App() {
           character={modal.character}
           tone={modal.tone}
           action={
-            modal.earlyWarrant && profile
+            modal.waitUntil !== undefined
+              ? {
+                  label: `לחכות עד ${formatHour(modal.waitUntil)}`,
+                  note: 'הזמן עובר גם לאחרים: יש מי שיסגור בינתיים, ויש מי שיפתח.',
+                  onClick: () => {
+                    dispatch({ type: 'ADVANCE_CLOCK', minutes: minutesUntil(clock, modal.waitUntil!) });
+                    setModal(null);
+                  },
+                }
+              : modal.earlyWarrant && profile
               ? {
                   label: `לבקש מהמפקדת צו מוקדם (אמינות -${EARLY_WARRANT_COST})`,
                   note:

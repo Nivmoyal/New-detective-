@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { STAFF_QUIPS, genderize } from '../pixel/world/humor';
 import {
   Activity,
+  AlertTriangle,
   Award,
   CheckSquare,
   Compass,
@@ -9,7 +10,6 @@ import {
   FileText,
   Fingerprint,
   Folder,
-  Key,
   Lock,
   MapPin,
   ShieldAlert,
@@ -23,13 +23,13 @@ import CharacterBanner from './CharacterBanner';
 import { MAPS, SCENE_MAP_IDS, STATION_MAP_ID } from '../data/maps';
 import {
   CATEGORY_LABELS,
+  caseSummary,
   RANKS,
   rankForSolvedCount,
   RANK_TITLES,
   SOURCE_LABELS,
   clueDisplayText,
   collectedClues,
-  hintCost,
   loadCases,
   pendingLabClues,
 } from '../services/caseEngine';
@@ -239,18 +239,12 @@ export function TravelModal({
 export function CommanderModal({
   profile,
   caseFile,
-  progress,
-  onHint,
   onClose,
 }: {
   profile: DetectiveProfile;
   caseFile: CaseFile | null;
-  progress: CaseProgress | null;
-  onHint: () => void;
   onClose: () => void;
 }) {
-  const cost = hintCost(profile.specialization);
-  const used = progress?.hintsUsed ?? 0;
   const g = (m: string, f: string) => (profile.addressForm === 'female' ? f : m);
   return (
     <Modal title='סנ״צ אורנה ברק' subtitle="מפקדת תחנת שרפשטיין" icon={<UserCheck className="h-5 w-5" />} onClose={onClose} character={COMMANDER}>
@@ -267,20 +261,7 @@ export function CommanderModal({
               </p>
             ))}
           </div>
-          {caseFile.hints.slice(0, used).map((h, i) => (
-            <div key={i} className="rounded-lg border border-police/40 bg-police/10 p-3 text-sm text-blue-100">
-              <span className="font-bold">כיוון {i + 1}: </span>
-              {h}
-            </div>
-          ))}
-          {used < caseFile.hints.length ? (
-            <button className="btn-ghost w-full" disabled={profile.intelPoints < cost} onClick={onHint}>
-              <Key className="h-4 w-4 text-evidence-light" />
-              בקשת כיוון חקירה מהמפקדת ({cost} נקודות מודיעין)
-            </button>
-          ) : (
-            <div className="text-center text-xs text-steel">המפקדת נתנה את כל הכיוונים שיש לה. מכאן זה בידיים שלך.</div>
-          )}
+          <div className="text-center text-xs text-steel">{g('אתה מכיר', 'את מכירה')} את הנוהל: ראיות קודם, צו אחר כך. מכאן זה בידיים שלך.</div>
         </div>
       )}
     </Modal>
@@ -305,9 +286,10 @@ export function CaseClosedModal({
   onClose: () => void;
 }) {
   const promoted = profile.rankIndex > 0 && rankForSolvedCount(profile.solvedCases.length - 1) < profile.rankIndex;
+  const report = caseSummary(caseFile, progress);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur">
-      <div className="panel w-full max-w-md animate-fadeUp overflow-hidden text-center shadow-2xl">
+      <div className="panel max-h-full w-full max-w-md animate-fadeUp overflow-y-auto text-center shadow-2xl">
         <div className="border-b border-noir-border bg-gradient-to-b from-evidence/20 to-transparent p-5">
           <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-evidence-light bg-evidence/15">
             <Award className="h-7 w-7 text-evidence-light" />
@@ -317,7 +299,11 @@ export function CaseClosedModal({
         </div>
         <div className="space-y-3 p-4">
           <p className="text-sm leading-relaxed text-slate-300">{caseFile.closingStatement}</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-evidence/50 bg-evidence/10 p-2">
+              <div className="text-[10px] text-steel">ציון</div>
+              <div className="text-sm font-black leading-7 text-evidence-light">{report.grade}</div>
+            </div>
             <div className="rounded-lg border border-noir-border bg-noir-deep p-2">
               <div className="text-[10px] text-steel">ניקוד תיק</div>
               <div className="text-lg font-black text-sky-300">{progress.score}</div>
@@ -328,6 +314,37 @@ export function CaseClosedModal({
                 {progress.collected.length}/{caseFile.clues.length}
               </div>
             </div>
+          </div>
+          <div className="rounded-lg border border-noir-border bg-noir-deep/60 p-3 text-right">
+            <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-200">
+              <FileText className="h-4 w-4 text-steel" />
+              דוח סיכום
+              {report.hours !== null && <span className="mr-auto text-[11px] font-normal text-steel">נסגר תוך {report.hours === 1 ? 'שעה' : `${report.hours} שעות`}</span>}
+            </div>
+            {report.costs.length === 0 ? (
+              <p className="text-xs leading-relaxed text-emerald-300">תיק נקי: בלי צווים שנדחו, בלי קיצורי דרך, בלי טעויות בחדר. ככה בונים תיק.</p>
+            ) : (
+              <ul className="space-y-1">
+                {report.costs.map((c) => (
+                  <li key={c.label} className="flex items-center gap-2 text-xs text-slate-300">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-alert" />
+                    <span className="flex-1">{c.label}</span>
+                    <span dir="ltr" className="tabular-nums text-red-300">-{c.points}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {report.missed.length > 0 && (
+              <div className="mt-2 border-t border-noir-border pt-2">
+                <div className="text-[11px] font-bold text-steel">ראיות שנשארו בשטח</div>
+                <ul className="mt-1 space-y-0.5">
+                  {report.missed.slice(0, 4).map((t) => (
+                    <li key={t} className="text-xs text-slate-400">· {t}</li>
+                  ))}
+                  {report.missed.length > 4 && <li className="text-xs text-slate-500">ועוד {report.missed.length - 4}</li>}
+                </ul>
+              </div>
+            )}
           </div>
           {promoted && (
             <div className="rounded-lg border border-police/50 bg-police/10 p-3">
@@ -354,7 +371,7 @@ export function CaseClosedModal({
           {allSolved && (
             <div className="rounded-lg border border-evidence/50 bg-evidence/10 p-3 text-sm text-amber-100">
               <Siren className="mx-auto mb-1 h-5 w-5 text-evidence-light" />
-              חמישה תיקים, חמש הודאות. הוכחת שבדרום תל אביב עובדים לפי ראיות. אבל העיר לא הולכת לישון: תיקים
+              שמונה תיקים, שמונה הודאות. הוכחת שבדרום תל אביב עובדים לפי ראיות. אבל העיר לא הולכת לישון: תיקים
               חדשים ימשיכו להגיע לשולחן שלך, וכל תיק סגור מקרב אותך לדרגה הבאה.
             </div>
           )}

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Award, CheckSquare, Menu, RotateCcw, ShieldAlert, Siren, Smartphone, X } from 'lucide-react';
+import { Activity, Award, CheckSquare, Menu, Moon, RotateCcw, ShieldAlert, Siren, Smartphone, Sun, X } from 'lucide-react';
+import { formatClock, isNight } from '../services/clock';
 import type { DetectiveProfile } from '../types/investigation';
 import type { PhoneMessage } from '../state/messages';
 import { RANKS, RANK_TITLES } from '../services/caseEngine';
 
 interface Props {
+  /** Game clock in minutes. */
+  clock: number;
   profile: DetectiveProfile;
   activeCaseTitle: string | null;
   /** The game is also kept in the player's claude.ai space. */
@@ -27,7 +30,7 @@ function Stat({ icon, label, value, tone }: { icon: React.ReactNode; label: stri
   );
 }
 
-export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, messages, onReadMessages, onReset }: Props) {
+export default function PoliceHeader({ clock, profile, activeCaseTitle, cloudSaved, messages, onReadMessages, onReset }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -58,6 +61,10 @@ export default function PoliceHeader({ profile, activeCaseTitle, cloudSaved, mes
           </span>
           {activeCaseTitle && <span className="text-evidence-light"> · {activeCaseTitle}</span>}
         </div>
+        <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold tabular-nums text-slate-300" title="שעה">
+          {isNight(clock) ? <Moon className="h-3.5 w-3.5 text-sky-300" /> : <Sun className="h-3.5 w-3.5 text-evidence-light" />}
+          {formatClock(clock)}
+        </span>
         <span className={`flex shrink-0 items-center gap-1 text-[11px] font-bold ${reliabilityTone}`} title="אמינות">
           <ShieldAlert className="h-3.5 w-3.5" />
           {profile.reliability}%

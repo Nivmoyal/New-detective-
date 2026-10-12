@@ -93,6 +93,7 @@ export function buildOldCbs() {
   b.anchor('gen-cbs-b-w2', 21.5, 31.5, DIR_DOWN);
   b.anchor('gen-cbs-b-cam', 48.5, 33.5, DIR_DOWN);
   b.anchor('gen-cbs-b-alibi', 3.5, 22.5, DIR_DOWN);
+  b.anchor('cbs-keys', 32.5, 24.6, DIR_DOWN);
   b.prop('carV', 43, 23);
   b.prop('carV', 43, 29, { color: '#1d1f23' });
   b.prop('van', 46, 31, { color: '#1e3a8a', name: 'טנדר כחול חונה', examine: 'טנדר כחול מאובק. הלוחית שייכת לחברת השכרה.' });

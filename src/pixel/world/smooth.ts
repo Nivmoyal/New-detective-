@@ -789,6 +789,258 @@ function tree(ctx: Ctx, px: number, py: number, color: string, lemon: boolean, s
 
 export type VectorDraw = (ctx: Ctx, px: number, py: number, p: Prop, t: number) => void;
 
+/** A screen with a soft glow. */
+function screen(ctx: Ctx, x: number, y: number, w: number, h: number, tint: string) {
+  fillRR(ctx, x, y, w, h, 0.8, '#15181e');
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, shade(tint, 0.35));
+  g.addColorStop(1, shade(tint, -0.2));
+  fillRR(ctx, x + 0.8, y + 0.8, w - 1.6, h - 1.6, 0.4, g);
+  ctx.globalAlpha = 0.5;
+  line(ctx, [x + 1.8, y + 2.2, x + w * 0.55, y + 2.2], '#cfeffd', 0.5);
+  line(ctx, [x + 1.8, y + 3.6, x + w * 0.4, y + 3.6], '#cfeffd', 0.5);
+  ctx.globalAlpha = 1;
+}
+
+function wood(ctx: Ctx, x: number, y: number, w: number, h: number, base: string, rad = 1) {
+  fillRR(ctx, x, y, w, h, rad, vgrad(ctx, y, y + h, [[0, shade(base, 0.18)], [1, shade(base, -0.12)]]));
+}
+
+const INDOOR: Record<string, VectorDraw> = {
+  desk(ctx, px, py, p) {
+    softShadow(ctx, px + 16.5, py + 13.5, 17, 2.6, 0.42);
+    for (const lx of [px + 2.2, px + 27]) fillRR(ctx, lx, py + 10, 2.8, 5, 0.6, '#2c1f15');
+    fillRR(ctx, px + 1, py + 10.5, 30, 3.2, 0.8, '#3f2c1d');
+    wood(ctx, px, py + 2, 32, 9, '#5f432c', 1.4);
+    if ((p.variant ?? 0) !== 2) {
+      fillRR(ctx, px + 14.6, py + 2.4, 3.2, 1.6, 0.5, '#16191f');
+      screen(ctx, px + 10.5, py - 5.5, 12, 8.5, (p.variant ?? 0) === 1 ? '#2b5d8c' : '#1f4a3a');
+      fillRR(ctx, px + 10, py + 5, 12.5, 3, 0.8, vgrad(ctx, py + 5, py + 8, [[0, '#3a3e46'], [1, '#22252b']]));
+    }
+    fillRR(ctx, px + 2, py + 3, 6.5, 5, 0.5, '#efe9dc');
+    line(ctx, [px + 3, py + 4.5, px + 7, py + 4.5], '#9aa3ad', 0.4);
+    ellipse(ctx, px + 26.5, py + 5.5, 1.8, 1.8, '#f4f1ea');
+    ellipse(ctx, px + 26.5, py + 5.5, 1.2, 1.2, '#4a2c18');
+  },
+  chair(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 12.8, 5.5, 1.8, 0.45);
+    line(ctx, [px + 8, py + 11, px + 8, py + 13.2], '#15171b', 1.2);
+    line(ctx, [px + 4.5, py + 13.4, px + 11.5, py + 13.4], '#15171b', 0.9);
+    fillRR(ctx, px + 4, py + 7, 8, 4, 1.4, vgrad(ctx, py + 7, py + 11, [[0, '#3a404b'], [1, '#22262e']]));
+    fillRR(ctx, px + 4.4, py + 0.6, 7.2, 6.8, 2, vgrad(ctx, py, py + 7, [[0, '#353b45'], [1, '#1f2329']]));
+  },
+  cabinet(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.5, 7.5, 2.2, 0.45);
+    fillRR(ctx, px + 2, py - 8, 12, 21, 1, hgrad(ctx, px + 2, px + 14, [[0, '#8a919c'], [0.5, '#737a85'], [1, '#575d67']]));
+    for (let i = 0; i < 3; i++) {
+      fillRR(ctx, px + 3, py - 7 + i * 7, 10, 6.2, 0.6, vgrad(ctx, py - 7 + i * 7, py - 1 + i * 7, [[0, '#7e858f'], [1, '#626872']]));
+      fillRR(ctx, px + 6.5, py - 4.6 + i * 7, 3, 1, 0.5, '#d9dde2');
+    }
+  },
+  bookshelf(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 13.5, 17, 2.4, 0.45);
+    fillRR(ctx, px + 1, py - 10, 30, 23, 1, hgrad(ctx, px + 1, px + 31, [[0, '#5b4130'], [1, '#3a291c']]));
+    const cols = ['#1d4ed8', '#b91c1c', '#d1a54a', '#166534', '#e5e7eb', '#334155', '#7c3aed'];
+    for (let sIdx = 0; sIdx < 3; sIdx++) {
+      const y = py - 9 + sIdx * 7;
+      fillRR(ctx, px + 2, y, 28, 6, 0.5, '#24180f');
+      let x = px + 3;
+      for (let b = 0; x < px + 28.5; b++) {
+        const w = 1.6 + ((b * 7 + sIdx * 3) % 3) * 0.5;
+        const h = 4.2 + ((b * 5 + sIdx) % 3) * 0.4;
+        const c = cols[(b * 7 + sIdx * 3) % cols.length];
+        fillRR(ctx, x, y + 6 - h, w, h, 0.3, hgrad(ctx, x, x + w, [[0, shade(c, 0.2)], [1, shade(c, -0.2)]]));
+        x += w + 0.3;
+      }
+    }
+  },
+  table(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 27, 16, 3, 0.42);
+    fillRR(ctx, px + 2, py + 23, 28, 4, 1, '#4a3221');
+    wood(ctx, px + 1, py + 4, 30, 20, '#6e4d32', 1.8);
+    fillRR(ctx, px + 6, py + 8, 10, 7, 0.5, '#e6dfcc');
+    line(ctx, [px + 7, py + 10.4, px + 14, py + 10.4], '#8f1d1d', 0.6);
+    ellipse(ctx, px + 22, py + 14, 2, 2, '#f4f1ea');
+    ellipse(ctx, px + 22, py + 14, 1.3, 1.3, '#4a2c18');
+  },
+  sofa(ctx, px, py, p) {
+    const c = p.color ?? '#5e1f26';
+    softShadow(ctx, px + 16.5, py + 14, 17, 2.5, 0.42);
+    fillRR(ctx, px + 1, py - 2.5, 30, 8, 3, vgrad(ctx, py - 3, py + 6, [[0, shade(c, 0.05)], [1, shade(c, -0.25)]]));
+    fillRR(ctx, px + 1.5, py + 4.5, 29, 8.5, 2.5, vgrad(ctx, py + 4, py + 13, [[0, shade(c, 0.25)], [1, shade(c, -0.05)]]));
+    line(ctx, [px + 16, py + 5.5, px + 16, py + 12], shade(c, -0.3), 0.5);
+    for (const ax of [px - 0.2, px + 28.8]) fillRR(ctx, ax, py + 0.5, 3.4, 12.5, 1.6, vgrad(ctx, py, py + 13, [[0, shade(c, 0.12)], [1, shade(c, -0.2)]]));
+  },
+  cooler(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.3, 5.5, 1.8, 0.45);
+    fillRR(ctx, px + 4, py - 1, 8, 14, 1.4, hgrad(ctx, px + 4, px + 12, [[0, '#eef0f3'], [1, '#b7bcc4']]));
+    fillRR(ctx, px + 5, py - 9.5, 6, 8.5, 2.5, hgrad(ctx, px + 5, px + 11, [[0, 'rgba(160,205,240,0.95)'], [1, 'rgba(90,150,210,0.95)']]));
+    fillRR(ctx, px + 5.8, py - 8.5, 1.4, 6, 0.7, 'rgba(255,255,255,0.45)');
+    ellipse(ctx, px + 6.5, py + 4, 0.7, 0.9, '#2563eb');
+    ellipse(ctx, px + 9.5, py + 4, 0.7, 0.9, '#dc2626');
+  },
+  coffee(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.3, 7, 2, 0.45);
+    wood(ctx, px + 1, py + 4, 14, 9, '#5f432c', 1);
+    fillRR(ctx, px + 4, py - 6, 8, 11, 1.4, vgrad(ctx, py - 6, py + 5, [[0, '#33363c'], [1, '#141518']]));
+    fillRR(ctx, px + 5, py - 5, 6, 3, 0.6, '#3d4048');
+    ellipse(ctx, px + 7.5, py + 2.8, 1.5, 1.3, '#f4f1ea');
+    ellipse(ctx, px + 10.2, py - 4, 0.45, 0.45, '#22c55e');
+  },
+  copier(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.3, 7.5, 2, 0.45);
+    fillRR(ctx, px + 1, py - 2, 14, 15, 1.2, vgrad(ctx, py - 2, py + 13, [[0, '#e8eaee'], [1, '#aeb3ba']]));
+    fillRR(ctx, px + 1.5, py - 2.6, 13, 2.4, 1, '#f5f6f8');
+    fillRR(ctx, px + 3, py + 4, 10, 2, 0.5, '#4b5563');
+    fillRR(ctx, px + 9.6, py + 0.6, 3, 1.2, 0.5, '#f59e0b');
+  },
+  fridge(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.4, 7.5, 2, 0.45);
+    fillRR(ctx, px + 2, py - 12, 12, 25, 1.4, hgrad(ctx, px + 2, px + 14, [[0, '#d4d8de'], [1, '#9aa0a9']]));
+    fillRR(ctx, px + 3, py - 11, 10, 20, 0.8, vgrad(ctx, py - 11, py + 9, [[0, '#28435a'], [1, '#14222f']]));
+    for (let sh = 0; sh < 4; sh++) {
+      rect(ctx, px + 3, py - 6.2 + sh * 5, 10, 0.35, 'rgba(200,220,240,0.35)');
+      for (let i = 0; i < 4; i++) fillRR(ctx, px + 3.8 + i * 2.2, py - 10 + sh * 5, 1.3, 3.4, 0.5, ['#dc2626', '#f59e0b', '#22c55e', '#e5e7eb'][(i + sh) % 4]);
+    }
+    ctx.globalAlpha = 0.25;
+    line(ctx, [px + 4, py + 7, px + 11, py - 9], '#ffffff', 0.8);
+    ctx.globalAlpha = 1;
+  },
+  counter(ctx, px, py, p) {
+    const w = p.w * T;
+    const c = p.color ?? '#4a3a2c';
+    softShadow(ctx, px + w / 2, py + 13.6, w / 2 + 1, 2.4, 0.42);
+    fillRR(ctx, px, py + 6.5, w, 7.5, 0.8, vgrad(ctx, py + 6.5, py + 14, [[0, shade(c, -0.1)], [1, shade(c, -0.3)]]));
+    for (let x = 4; x < w - 4; x += 12) fillRR(ctx, px + x, py + 8.4, 8, 4, 0.6, shade(c, -0.2));
+    fillRR(ctx, px - 0.3, py + 0.6, w + 0.6, 6.4, 1.2, vgrad(ctx, py, py + 7, [[0, shade(c, 0.4)], [1, shade(c, 0.12)]]));
+  },
+  labBench(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 13.5, 17, 2.4, 0.42);
+    fillRR(ctx, px, py + 10.5, 32, 3.5, 0.8, '#8f96a0');
+    fillRR(ctx, px, py + 2, 32, 9, 1.2, vgrad(ctx, py + 2, py + 11, [[0, '#f6f7f9'], [1, '#d7dbe0']]));
+    // Microscope.
+    fillRR(ctx, px + 3, py + 1.6, 6.4, 2, 0.8, '#273241');
+    line(ctx, [px + 6.2, py + 2, px + 6.2, py - 5.5], '#334155', 2);
+    fillRR(ctx, px + 4.2, py - 7.4, 4.2, 2.4, 1, '#1f2937');
+    ellipse(ctx, px + 6.2, py - 1.4, 1.1, 0.7, '#94a3b8');
+    for (let i = 0; i < 4; i++) {
+      const tx = px + 14.3 + i * 3;
+      fillRR(ctx, tx, py - 2.6, 2, 5.6, 1, 'rgba(230,240,250,0.6)');
+      fillRR(ctx, tx + 0.2, py + 0.2, 1.6, 2.6, 0.8, ['#60a5fa', '#f87171', '#a3e635', '#fbbf24'][i]);
+    }
+    rect(ctx, px + 13.4, py + 3, 12.4, 0.8, '#6b7280');
+    fillRR(ctx, px + 26, py + 2.8, 4, 5, 0.5, '#dcc890');
+  },
+  evidenceShelf(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 13.5, 17, 2.4, 0.45);
+    fillRR(ctx, px + 1, py - 10, 30, 23, 0.8, hgrad(ctx, px + 1, px + 31, [[0, '#4d5560'], [1, '#2f353d']]));
+    for (let sh = 0; sh < 3; sh++) {
+      rect(ctx, px + 1, py - 3.6 + sh * 7, 30, 0.9, '#7b838f');
+      for (let b = 0; b < 4; b++) {
+        const bx = px + 3 + b * 7;
+        const by = py - 9 + sh * 7;
+        fillRR(ctx, bx, by, 6, 5.2, 0.5, vgrad(ctx, by, by + 5, [[0, '#c9a46a'], [1, '#9b7b48']]));
+        fillRR(ctx, bx + 1, by + 1, 3.2, 1.2, 0.3, '#f4f1ea');
+      }
+    }
+  },
+  lockers(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 13.5, 17, 2.4, 0.45);
+    for (let i = 0; i < 4; i++) {
+      const x = px + 1 + i * 8;
+      fillRR(ctx, x, py - 10, 7.4, 23, 0.8, hgrad(ctx, x, x + 7.4, [[0, '#5b6b80'], [1, '#3d4a5b']]));
+      for (const vy of [-7, -5.6, -4.2]) fillRR(ctx, x + 1.4, py + vy, 4.6, 0.6, 0.3, '#1e293b');
+      fillRR(ctx, x + 5.2, py + 0.6, 1, 2.6, 0.5, '#cbd5e1');
+    }
+  },
+  interrogationTable(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 12.6, 16, 2.4, 0.42);
+    fillRR(ctx, px + 3, py + 10.5, 26, 2.6, 0.6, '#374151');
+    fillRR(ctx, px + 2, py + 2, 28, 9, 1.2, vgrad(ctx, py + 2, py + 11, [[0, '#a3aab3'], [1, '#6b7280']]));
+    fillRR(ctx, px + 14.6, py + 5, 3.4, 2, 0.6, '#111827');
+    ellipse(ctx, px + 7, py + 5, 1.2, 1.2, '#d9dde2');
+  },
+  safe(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 13.4, 7.5, 2, 0.45);
+    fillRR(ctx, px + 1, py - 4, 14, 17, 1.4, hgrad(ctx, px + 1, px + 15, [[0, '#59616c'], [1, '#2f353d']]));
+    fillRR(ctx, px + 3, py - 2, 10, 13, 0.8, '#2a3038');
+    ellipse(ctx, px + 8.5, py + 4.5, 2.2, 2.2, '#9ca3af');
+    ellipse(ctx, px + 8.5, py + 4.5, 1.2, 1.2, '#4b5563');
+    line(ctx, [px + 11.5, py + 2, px + 11.5, py + 7], '#9ca3af', 0.7);
+  },
+  pokerTable(ctx, px, py) {
+    softShadow(ctx, px + 16.5, py + 12.6, 17, 2.4, 0.42);
+    fillRR(ctx, px + 1, py + 1, 30, 11, 5, vgrad(ctx, py + 1, py + 12, [[0, '#4c3624'], [1, '#2a1d13']]));
+    const felt = ctx.createRadialGradient(px + 16, py + 6, 1, px + 16, py + 6, 14);
+    felt.addColorStop(0, '#2a7a4a');
+    felt.addColorStop(1, '#174a2c');
+    fillRR(ctx, px + 3, py + 2.2, 26, 7.8, 4, felt);
+    for (const [cx, cy] of [[8, 4], [13, 5]]) fillRR(ctx, px + cx, py + cy, 3, 4, 0.4, '#f5f5f4');
+    ellipse(ctx, px + 23, py + 6, 1.1, 1.1, '#dc2626');
+    ellipse(ctx, px + 26, py + 7, 1.1, 1.1, '#2563eb');
+  },
+  sacks(ctx, px, py, p) {
+    const c = p.color ?? '#c2410c';
+    softShadow(ctx, px + 8.5, py + 12.6, 7.5, 2.2, 0.45);
+    for (const [x, y, w, h, top] of [[1, 2, 7, 10, c], [8, 3, 7, 9, shade(c, 0.3)]] as const) {
+      fillRR(ctx, px + x, py + y, w, h, 2.4, vgrad(ctx, py + y, py + y + h, [[0, '#c4a978'], [1, '#9a8055']]));
+      ellipse(ctx, px + x + w / 2, py + y + 1.6, w / 2 - 0.6, 1.4, top);
+    }
+  },
+  mattress(ctx, px, py) {
+    fillRR(ctx, px + 2, py + 2, 28, 12, 2.2, vgrad(ctx, py + 2, py + 14, [[0, '#9a8c78'], [1, '#7b6e5c']]));
+    fillRR(ctx, px + 12, py + 4, 14, 8.5, 2, vgrad(ctx, py + 4, py + 12, [[0, '#4b5679'], [1, '#323b58']]));
+    fillRR(ctx, px + 4, py + 4, 6.5, 5, 2, '#ddd6c6');
+  },
+  speaker(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 12.6, 7, 2.2, 0.45);
+    fillRR(ctx, px + 2, py - 10, 12, 23, 1.2, vgrad(ctx, py - 10, py + 13, [[0, '#26262c'], [1, '#0c0c0f']]));
+    for (const cy of [py - 4, py + 6]) {
+      ellipse(ctx, px + 8, cy, 4, 4, '#2a2a30');
+      ellipse(ctx, px + 8, cy, 2.2, 2.2, '#45454d');
+      ellipse(ctx, px + 8, cy, 0.8, 0.8, '#18181c');
+    }
+  },
+  djBooth(ctx, px, py, _p, t) {
+    softShadow(ctx, px + 16.5, py + 12.6, 17, 2.4, 0.45);
+    fillRR(ctx, px + 1, py + 2, 30, 11, 1.2, vgrad(ctx, py + 2, py + 13, [[0, '#2a2632'], [1, '#121016']]));
+    for (const dx of [px + 8.5, px + 23.5]) {
+      ellipse(ctx, dx, py + 5.5, 4, 2.6, '#0b0b0e');
+      ellipse(ctx, dx, py + 5.5, 1.4, 0.9, '#a855f7');
+    }
+    for (let i = 0; i < 6; i++) fillRR(ctx, px + 4 + i * 4, py + 9.6, 2.4, 1.4, 0.6, Math.floor(t * 6 + i) % 3 ? '#22d3ee' : '#f472b6');
+  },
+  stool(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 12.4, 4, 1.4, 0.45);
+    line(ctx, [px + 8, py + 5, px + 8, py + 12], '#71717a', 1.2);
+    line(ctx, [px + 5.6, py + 12.2, px + 10.4, py + 12.2], '#52525b', 0.8);
+    ellipse(ctx, px + 8, py + 3.6, 4.2, 1.8, '#5b1414');
+    ellipse(ctx, px + 8, py + 3.2, 3.8, 1.4, '#8f2222');
+  },
+  terminal(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 12.6, 7.5, 2, 0.45);
+    fillRR(ctx, px + 1, py + 4, 14, 9, 1, '#4b5563');
+    screen(ctx, px + 3, py - 6, 10, 9, '#0f5a42');
+    fillRR(ctx, px + 3, py + 6, 10, 2, 0.6, '#1f2937');
+  },
+  cctvBox(ctx, px, py, _p, t) {
+    softShadow(ctx, px + 8.5, py + 13, 7.5, 2.2, 0.45);
+    wood(ctx, px + 1, py + 3, 14, 10, '#43301f', 0.8);
+    fillRR(ctx, px + 2, py - 7, 12, 10, 1, '#111318');
+    for (let j = 0; j < 2; j++)
+      for (let i = 0; i < 3; i++) fillRR(ctx, px + 3 + i * 3.6, py - 6 + j * 4, 3.1, 3.3, 0.4, (i + j + Math.floor(t)) % 4 ? '#3c4a5c' : '#6a7d96');
+    fillRR(ctx, px + 3, py + 5, 10, 3, 0.6, '#1f2125');
+    ellipse(ctx, px + 11.5, py + 6.5, 0.5, 0.5, '#22c55e');
+  },
+  plasticChair(ctx, px, py) {
+    softShadow(ctx, px + 8.5, py + 12.6, 5.5, 2, 0.42);
+    for (const lx of [px + 3.6, px + 12.4]) line(ctx, [lx, py + 9.5, lx, py + 13], '#b8b4ab', 0.8);
+    fillRR(ctx, px + 3, py + 7, 10, 3, 1.4, vgrad(ctx, py + 7, py + 10, [[0, '#f1efe9'], [1, '#cfccc4']]));
+    fillRR(ctx, px + 4, py + 0.6, 8, 6.6, 2.4, vgrad(ctx, py, py + 7, [[0, '#ffffff'], [1, '#dedbd3']]));
+    fillRR(ctx, px + 6, py + 2.6, 4, 1, 0.5, '#fde68a');
+  },
+};
+
 export const VECTOR_PROPS: Record<string, VectorDraw> = {
   car(ctx, px, py, p, t) {
     carH(ctx, px, py, p.color ?? pickColor(p), false, t, (p.variant ?? 0) === 1);
@@ -968,3 +1220,5 @@ export const VECTOR_PROPS: Record<string, VectorDraw> = {
     fillRR(ctx, px + 6, py + 4.6, 20, 3.2, 1, vgrad(ctx, py + 4.6, py + 7.8, [[0, '#8b929c'], [1, '#4b5563']]));
   },
 };
+
+Object.assign(VECTOR_PROPS, INDOOR);

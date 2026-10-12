@@ -91,6 +91,12 @@ export function buildShapira() {
   b.anchor('gen-sh-b-w2', 52.5, 34.5, DIR_DOWN);
   b.anchor('gen-sh-b-cam', 25.5, 14.6, DIR_DOWN);
   b.anchor('gen-sh-b-alibi', 40.5, 37.5, DIR_DOWN);
+  b.anchor('sh-stairwell', 22.5, 10.6, DIR_DOWN);
+  b.anchor('sh-pharmacy', 30.5, 13.6, DIR_DOWN);
+  b.anchor('sh-jackie-room', 37.5, 10.6, DIR_DOWN);
+  b.anchor('sh-widow', 41.5, 18.6, DIR_DOWN);
+  b.anchor('sh-first-floor', 15.5, 18.6, DIR_DOWN);
+  b.anchor('sh-nurse', 27.5, 18.6, DIR_DOWN);
   b.prop('van', 34, 29, { color: '#e2e8f0', name: 'טנדר', examine: 'טנדר לבן עם ארגזי קרטון מאחור. על הדלת מדבקה של חברת הנהלת חשבונות.' });
   b.prop('barrel', 3, 29);
   b.prop('trash', 15, 29);

@@ -332,6 +332,20 @@ const VICTIM_STATEMENTS: Record<string, string> = {
 const NEIGHBOR_ROLES = ['שכ{ן|נה} ותיק{|ה} מהרחוב', 'בעל{|ת} הדוכן הקרוב', 'יושב{|ת} קבוע{|ה} על הספסל', 'שליח{|ה} שעובר{|ת} פה כל יום'];
 const AUTO_CAMERA_OWNERS = ['בעל{|ת} החנות הסמוכה', 'ועד הבית של הבניין ממול', 'בעל{|ת} הקיוסק הקרוב', 'מנהל{|ת} הסניף ממול', 'השכ{ן|נה} עם המצלמה במרפסת'];
 
+/** Shops keep hours; kiosks, guards and neighbours are always around. */
+const SHOP_HOURS: [string, [number, number]][] = [
+  ['מכולת', [7, 22]],
+  ['מוסך', [7, 18]],
+  ['מאפייה', [5, 15]],
+  ['פיצוחים', [9, 21]],
+  ['הבר', [18, 4]],
+  ['בגדים', [9, 20]],
+  ['החנות', [9, 20]],
+  ['הסניף', [8, 19]],
+  ['הפיצרייה', [11, 1]],
+];
+const shopHours = (owner: string) => SHOP_HOURS.find(([k]) => owner.includes(k))?.[1];
+
 const cache = new Map<number, CaseFile>();
 
 interface Places {
@@ -573,6 +587,7 @@ export function generateCase(n: number): CaseFile {
     {
       id: `${id}-h-cam`, mapId: P.mapId, anchor: P.camera, kind: 'cctv', label: 'בדיקת מצלמות אבטחה', title: `המצלמה של ${owner}`,
       character: ref(camOwner, owner),
+      ...(shopHours(owner) ? { hours: shopHours(owner) } : {}),
       dialogue: [
         { speaker: camOwner.name, text: g(rot(CAMERA_OPENERS, n), camOwner.female) },
         { speaker: 'יומן חקירה', text: aboutCulprit(tpl.cameraText) },
@@ -646,7 +661,6 @@ export function generateCase(n: number): CaseFile {
   const C = culprit.p;
   const A = people[inA].p;
   const he = (p: Person, m: string, f: string) => (p.female ? f : m);
-  const hint: string[] = [];
   if (variant === 'noCamera') {
     // No camera at the scene: the culprit paid by card at a shop nearby.
     const shopSpot = elsewhere();
@@ -660,13 +674,13 @@ export function generateCase(n: number): CaseFile {
     hotspots.push({
       id: `${id}-h-cam`, mapId: shopSpot.mapId, anchor: shopSpot.anchor, kind: 'cctv', label: 'בדיקת קבלות', title: `${shop} - ${placeName(shopSpot)}`,
       character: ref(camOwner, g(`${he(camOwner, 'המוכר', 'המוכרת')} ב${shop}`, camOwner.female)),
+      ...(shopHours(shop) ? { hours: shopHours(shop) } : {}),
       dialogue: [
         { speaker: camOwner.name, text: g('אין לי מצלמה. יש לי משהו יותר טוב: מחשב קופה שזוכר כל שקל.', camOwner.female) },
         { speaker: 'יומן חקירה', text: cam.description },
       ],
       evidenceIds: [`${id}-cam`],
     });
-    hint.push('בזירה אין מצלמות. אבל מי שבורח - לפעמים עוצר לקנות משהו בדרך.');
   } else if (variant === 'liar') {
     // The eyewitness names the wrong person - and has a reason to.
     const saw = clues.find((c) => c.id === `${id}-saw`)!;
@@ -683,7 +697,6 @@ export function generateCase(n: number): CaseFile {
     const nh = hotspots.find((x) => x.id === `${id}-h-neighbor`)!;
     nh.dialogue[1] = { speaker: neighbor.name, text: g(`${w1.name} {אמר|אמרה} לכם שזה ${A.name}? לא מפתיע. ${w1.female && A.female ? 'השתיים האלה' : 'השניים האלה'} לא מדברים כבר שנים.`, neighbor.female) };
     nh.evidenceIds = nh.evidenceIds.map((e) => (e === `${id}-rumorA` ? `${id}-grudge` : e));
-    hint.push('עד ראייה זה לא תמיד עד אמת. כדאי לדעת מי מכיר את מי.');
   } else if (variant === 'fakeAlibi') {
     // The culprit has an alibi - until the friend is asked properly.
     const friend = person(rv, used, ['tshirt', 'hoodie', 'blazer']);
@@ -703,7 +716,6 @@ export function generateCase(n: number): CaseFile {
       ],
       evidenceIds: [`${id}-fakealibi`],
     });
-    hint.push('גם לאשם יש אליבי. השאלה היא אם הוא מחזיק כשבודקים אותו עד הסוף.');
   }
 
   const mapIds = [...new Set(hotspots.map((h) => h.mapId))];
@@ -727,12 +739,6 @@ export function generateCase(n: number): CaseFile {
     suspects,
     clues,
     hotspots,
-    hints: [
-      `תתחילו מ${P.place}. מה שנשאר בזירה הולך למז״פ, ו${victim.name} מחכה לכם שם.`,
-      ...(variant === 'noCamera' ? [] : [`${owner} - יש שם מצלמה שמכוונת לרחוב.`]),
-      'לכל אחד מהחשודים יש מניע. רק לאחד אין אליבי. ביקור בבית של כל אחד מהם יכול לגלות הרבה.',
-      ...hint,
-    ],
     generated: true,
   };
   cache.set(n, caseFile);

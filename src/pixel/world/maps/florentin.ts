@@ -126,6 +126,12 @@ export function buildFlorentin() {
   b.anchor('gen-fl-b-w2', 37.5, 16.5, DIR_DOWN);
   b.anchor('gen-fl-b-cam', 11.5, 27.6, DIR_DOWN);
   b.anchor('gen-fl-b-alibi', 6.5, 4.5, DIR_DOWN);
+  b.anchor('fl-liora', 25.5, 34.6, DIR_DOWN);
+  b.anchor('fl-studio', 21.5, 33.6, DIR_DOWN);
+  b.anchor('fl-kiosk-cam', 4.5, 34.6, DIR_DOWN);
+  b.anchor('fl-burner-bin', 10.5, 4.6, DIR_DOWN);
+  b.anchor('fl-shai-roommate', 47.5, 12.6, DIR_DOWN);
+  b.anchor('fl-valeri-neighbor', 37.5, 19.6, DIR_DOWN);
   b.label(44, 32.6, 'תחנת מוניות');
   [6, 20, 33, 52].forEach((x) => b.prop('lamp', x, 27));
   [12, 28, 48].forEach((x) => b.prop('lamp', x, 32));

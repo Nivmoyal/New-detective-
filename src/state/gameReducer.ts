@@ -1,3 +1,4 @@
+import { START_CLOCK, TIME_COST } from '../services/clock';
 import type {
   AddressForm,
   ArrivalStep,
@@ -6,7 +7,6 @@ import type {
   DetectiveProfile,
   InterrogationState,
   LinkVerdict,
-  Specialization,
   TacticId,
   View,
 } from '../types/investigation';
@@ -19,7 +19,6 @@ import {
   evaluateDeduction,
   getCase,
   getSuspect,
-  hintCost,
   intelForCollection,
   intelForLab,
   isCaseUnlocked,
@@ -59,15 +58,18 @@ export interface GameState {
   messages: PhoneMessage[];
   /** Street situations already handled. */
   incidentsDone: string[];
+  /** Game minutes since the first morning (see services/clock). */
+  clock: number;
 }
 
 export type GameAction =
   | { type: 'ADD_MESSAGE'; from: string; text: string }
   | { type: 'READ_MESSAGES' }
+  | { type: 'ADVANCE_CLOCK'; minutes: number }
   | { type: 'FORCE_HOTSPOT'; caseId: string; hotspotId: string }
   | { type: 'PRESS_WITNESS'; caseId: string; hotspotId: string }
   | { type: 'LOAD_GAME'; state: GameState }
-  | { type: 'CREATE_PROFILE'; name: string; specialization: Specialization; addressForm: AddressForm; look: CharacterLook }
+  | { type: 'CREATE_PROFILE'; name: string; addressForm: AddressForm; look: CharacterLook }
   | { type: 'ARRIVAL_COMMANDER_DONE' }
   | { type: 'OPEN_CASE_FILES' }
   | { type: 'FOCUS_CASE'; caseId: string }
@@ -79,7 +81,6 @@ export type GameAction =
   | { type: 'LINK_RESULT'; suspectId: string; evidenceId: string; verdict: LinkVerdict }
   | { type: 'REMOVE_LINK'; suspectId: string; evidenceId: string }
   | { type: 'REQUEST_WARRANT'; suspectId: string }
-  | { type: 'USE_HINT' }
   | { type: 'START_INTERROGATION'; caseId?: string }
   | { type: 'INTERROGATION_ACTION'; tactic: TacticId; evidenceId?: string }
   | { type: 'END_INTERROGATION' }
@@ -108,6 +109,7 @@ export function initialState(): GameState {
     promotionCaseId: null,
     incidentsDone: [],
     messages: [],
+    clock: START_CLOCK,
   };
 }
 
@@ -119,10 +121,49 @@ export function parseState(raw: string): GameState | null {
     const state = { ...initialState(), ...parsed };
     if (!MAPS[state.currentMapId]) state.currentMapId = STATION_MAP_ID;
     syncCaseHorizon(state.profile?.solvedCases.length ?? 0);
+    state.progress = repairProgress(state.progress);
+    if (state.activeCaseId && !state.progress[state.activeCaseId] && !caseExists(state.activeCaseId)) state.activeCaseId = null;
     return state;
   } catch {
     return null;
   }
+}
+
+function caseExists(id: string): boolean {
+  try {
+    getCase(id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A save from an older version may name evidence, places or people that a
+ * case no longer has (generated cases gained twists). Keep everything that
+ * still exists and quietly drop the rest, so the board never shows ghosts.
+ */
+export function repairProgress(progress: Record<string, CaseProgress>): Record<string, CaseProgress> {
+  const out: Record<string, CaseProgress> = {};
+  for (const [id, p] of Object.entries(progress ?? {})) {
+    if (!caseExists(id)) continue;
+    const c = getCase(id);
+    const clues = new Set(c.clues.map((x) => x.id));
+    const spots = new Set(c.hotspots.map((h) => h.id));
+    const people = new Set(c.suspects.map((x) => x.id));
+    out[id] = {
+      ...emptyProgress(),
+      ...p,
+      collected: (p.collected ?? []).filter((x) => clues.has(x)),
+      analyzed: (p.analyzed ?? []).filter((x) => clues.has(x)),
+      visitedHotspots: (p.visitedHotspots ?? []).filter((x) => spots.has(x)),
+      links: (p.links ?? []).filter((l) => clues.has(l.evidenceId) && people.has(l.suspectId)),
+      warrantSuspectId: p.warrantSuspectId && people.has(p.warrantSuspectId) ? p.warrantSuspectId : null,
+      forced: p.forced?.filter((x) => spots.has(x)),
+      pressed: p.pressed?.filter((x) => spots.has(x)),
+    };
+  }
+  return out;
 }
 
 /** When this device last saved a change (ms), to compare with the cloud copy. */
@@ -219,8 +260,11 @@ function firstOpenCase(state: GameState, exclude?: string): string | null {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (action.type === 'ADD_MESSAGE') return { ...state, messages: [...state.messages, newMessage(action.from, action.text)].slice(-40) };
   if (action.type === 'READ_MESSAGES') return state.messages.some((m) => !m.read) ? { ...state, messages: state.messages.map((m) => ({ ...m, read: true })) } : state;
-  const next = coreReducer(state, action);
+  if (action.type === 'ADVANCE_CLOCK') return state.profile ? { ...state, clock: (state.clock ?? START_CLOCK) + Math.max(0, action.minutes) } : state;
+  let next = coreReducer(state, action);
   if (next === state) return next;
+  const cost = TIME_COST[action.type];
+  if (cost && next.profile) next = { ...next, clock: (next.clock ?? START_CLOCK) + cost };
   const fresh = messagesFor(state, next, action as { type: string; caseId?: string; hotspotId?: string });
   return fresh.length ? { ...next, messages: [...(next.messages ?? []), ...fresh].slice(-40) } : next;
 }
@@ -251,7 +295,6 @@ function coreReducer(state: GameState, action: GameAction): GameState {
         ...state,
         profile: {
           name: action.name.trim(),
-          specialization: action.specialization,
           addressForm: action.addressForm,
           look: action.look,
           rankIndex: 0,
@@ -295,14 +338,14 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       const progress = caseProgress(state, action.caseId);
       if (!hotspot || progress.visitedHotspots.includes(hotspot.id) || !isHotspotAvailable(hotspot, progress)) return state;
       const fresh = hotspot.evidenceIds.filter((id) => !progress.collected.includes(id));
-      const spec = state.profile.specialization;
       const intel = fresh.reduce((sum, id) => {
         const clue = caseFile.clues.find((c) => c.id === id);
-        return sum + (clue ? intelForCollection(clue, spec) : 0);
+        return sum + (clue ? intelForCollection(clue) : 0);
       }, 0);
       const next = updateCase(state, action.caseId, (p) => ({
         visitedHotspots: [...p.visitedHotspots, hotspot.id],
         collected: [...p.collected, ...fresh],
+        openedAt: p.openedAt ?? state.clock,
       }));
       return {
         ...withProfile(next, (p) => ({ intelPoints: p.intelPoints + intel })),
@@ -312,7 +355,6 @@ function coreReducer(state: GameState, action: GameAction): GameState {
 
     case 'ANALYZE_LAB': {
       if (!state.profile) return state;
-      const spec = state.profile.specialization;
       let next = state;
       let count = 0;
       for (const c of loadCases()) {
@@ -323,8 +365,8 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       }
       if (!count) return state;
       return withProfile(next, (p) => ({
-        intelPoints: p.intelPoints + intelForLab(spec) * count,
-        reliability: clamp(p.reliability + (spec === 'forensic' ? 3 : 1) * count),
+        intelPoints: p.intelPoints + intelForLab() * count,
+        reliability: clamp(p.reliability + count),
       }));
     }
 
@@ -354,19 +396,10 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       if (!progress || progress.warrantSuspectId || progress.solved) return state;
       if (!warrantJustified(state, action.suspectId)) {
         // The commander refuses - and remembers.
-        return withProfile(state, (p) => ({ reliability: clamp(p.reliability - WARRANT_DENIAL_PENALTY) }));
+        const noted = updateActive(state, (p) => ({ denied: (p.denied ?? 0) + 1 }));
+        return withProfile(noted, (p) => ({ reliability: clamp(p.reliability - WARRANT_DENIAL_PENALTY) }));
       }
       return updateActive(state, () => ({ warrantSuspectId: action.suspectId }));
-    }
-
-    case 'USE_HINT': {
-      if (!state.profile || !state.activeCaseId) return state;
-      const cost = hintCost(state.profile.specialization);
-      const caseFile = getCase(state.activeCaseId);
-      const progress = activeProgress(state)!;
-      if (state.profile.intelPoints < cost || progress.hintsUsed >= caseFile.hints.length) return state;
-      const next = updateActive(state, (p) => ({ hintsUsed: p.hintsUsed + 1 }));
-      return withProfile(next, (p) => ({ intelPoints: p.intelPoints - cost }));
     }
 
     case 'START_INTERROGATION': {
@@ -379,7 +412,7 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         activeCaseId: caseId,
-        interrogation: startInterrogation(suspect, state.profile.specialization, state.profile.reliability),
+        interrogation: startInterrogation(suspect, state.profile.reliability),
         interrogationCaseId: caseId,
         view: 'interrogation',
       };
@@ -393,7 +426,7 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       if (!suspect) return state;
       return {
         ...state,
-        interrogation: applyTactic(state.interrogation, caseFile, suspect, action.tactic, state.profile.specialization, action.evidenceId),
+        interrogation: applyTactic(state.interrogation, caseFile, suspect, action.tactic, action.evidenceId),
       };
     }
 
@@ -413,7 +446,7 @@ function coreReducer(state: GameState, action: GameAction): GameState {
       }
       const progress = caseProgress(state, caseId);
       const score = caseScore(progress, session.mistakes);
-      const solvedState = updateCase(state, caseId, () => ({ solved: true, score }));
+      const solvedState = updateCase(state, caseId, () => ({ solved: true, score, mistakes: session.mistakes, closedAt: state.clock }));
       const solvedCases = [...state.profile.solvedCases.filter((id) => id !== caseId), caseId];
       syncCaseHorizon(solvedCases.length);
       const next = withProfile(solvedState, (p) => ({

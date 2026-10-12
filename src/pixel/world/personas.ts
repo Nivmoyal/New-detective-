@@ -138,7 +138,10 @@ export function personaLines(kind: PersonaKind, female: boolean): string[] {
 }
 
 /** Role, lines and the last word for a person placed in a map file. */
-export function talk(kind: PersonaKind, female: boolean): { role: string; lines: string[]; done: string } {
+/** Night people come out after dark; vendors keep shop hours. */
+const KIND_HOURS: Partial<Record<PersonaKind, [number, number]>> = { night: [19, 5], vendor: [7, 21] };
+
+export function talk(kind: PersonaKind, female: boolean): { role: string; lines: string[]; done: string; hours?: [number, number] } {
   const a = nextPersona(kind, female);
-  return { role: a.role, lines: a.lines, done: a.done };
+  return { role: a.role, lines: a.lines, done: a.done, ...(KIND_HOURS[kind] ? { hours: KIND_HOURS[kind] } : {}) };
 }

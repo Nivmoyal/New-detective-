@@ -100,6 +100,12 @@ export function buildNeveShaanan() {
   b.anchor('gen-ns-b-w2', 15.5, 39.5, DIR_DOWN);
   b.anchor('gen-ns-b-cam', 39.5, 20.5, DIR_DOWN);
   b.anchor('gen-ns-b-alibi', 52.5, 33.5, DIR_DOWN);
+  b.anchor('ns-hostel', 14.5, 34.6, DIR_DOWN);
+  b.anchor('ns-hostel-office', 18.5, 28.6, DIR_DOWN);
+  b.anchor('ns-hostel-owner', 34.5, 21.6, DIR_DOWN);
+  b.anchor('ns-parking-cam', 50.5, 28.6, DIR_DOWN);
+  b.anchor('ns-merav-office', 47.5, 33.6, DIR_DOWN);
+  b.anchor('ns-clerk', 21.5, 21.6, DIR_DOWN);
   b.label(28, 20.5, 'מדרחוב נווה שאנן');
   b.npc({ x: 43.5, y: 20.5, dir: DIR_DOWN, name: 'סלומון', look: look('male', '#6b4430', 'curly', '#16120f', 'leather', '#2b2b2e'), ...talk('vendor', false) });
   b.npc({ x: 5.5, y: 19.5, dir: DIR_RIGHT, name: 'עובר אורח', look: look('male', '#6b4430', 'short', '#16120f', 'hoodie', '#5e1f26'), ...talk('street', false), path: [{ x: 1.5, y: 19.5 }, { x: 58.5, y: 19.5 }], speed: 1 });

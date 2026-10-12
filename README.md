@@ -20,7 +20,7 @@ It is a plain static build (`npx vite build --base ./`), so it runs under strict
 
 ```bash
 npm install
-npm run dev            # local dev server (world.html opens a single map: ?map=levinsky&x=20&y=20; person.html shows every character)
+npm run dev            # local dev server (world.html opens a single map: ?map=levinsky&x=20&y=20&hour=22; person.html shows every character)
 npm run build          # typecheck + production build
 npm run validate:data  # every person, place and object reachable; case-file integrity
 npm run test:sim       # headless playthrough of 25 cases (story + generated) through the real reducer
@@ -29,8 +29,10 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 ## Freedom of play
 
 - Nothing is assigned and nothing points the way: no markers, beacons, guide lines or objective lists.
-- Three cases are open from the first day, and two more arrive as you close cases (a phone scam targeting
-  the elderly, and an arson tied to a protection racket in the market).
+- Three cases are open from the first day, and five more arrive as you close cases: a phone scam targeting
+  the elderly, an arson tied to a protection racket in the market, a maintenance man found dead in a Shapira
+  stairwell (murder), a stolen backup drive and a blackmail demand at a Florentin tattoo studio, and a hostel
+  fire in Neve Shaanan that leads to a bribed municipal inspector.
 - The game doesn't end after the story cases. From the third solved case on, new files keep landing on the
   desk: generated cases (burglary, street robbery, assault, car theft, theft by an employee, rental scam).
   Each one spreads over about twelve places in four or five neighbourhoods: the scene, the victim, two
@@ -63,6 +65,17 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 - רס״ל דנה עזרא joins about six patrols in ten, walks a step behind and comments - never where to go.
 - The phone (header) gets messages from the lab, the commander, the desk sergeant, witnesses who remembered
   something, and the station's group chat.
+- A clock runs (header): it moves while you walk the streets and with every step of an investigation. Streets
+  are lit by day and dark at night. Some people keep hours - a night kiosk opens in the evening, a clerk goes
+  home at four, market vendors pack up after dark, night people come out late. A person who isn't there says so
+  at their spot, with their hours and the option to wait; the notebook lists the hours too.
+- Closing a case shows a summary: a grade, what cost points (refused warrants, early warrants, pressed
+  witnesses, failed interrogations, mistakes in the room), the evidence left on the street and how many game
+  hours it took.
+- Quiet procedural noir music (no audio files): a walking bass and brushes on the streets, a sparse piano at the
+  station, a drone and a heartbeat in the interrogation room. The speaker button mutes it with the ambience.
+- On first launch a short card explains the controls (joystick, tap, action button, phone, clock, keyboard) -
+  nothing about where to go.
 - You can ask the commander for a warrant at any time. Without three validated links on the board she refuses,
   and your reliability drops.
 
@@ -90,11 +103,12 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 src/
   App.tsx                         root: views, modals, game wiring
   types/investigation.ts          domain types
-  data/cases/cases.json           the five story cases (Hebrew); hotspots sit on named map anchors
+  data/cases/cases.json           the eight story cases (Hebrew); hotspots sit on named map anchors
   data/maps.ts                    the six maps
   data/characters.ts              station staff and creator palettes
   data/incidents.ts               street situations with choices and consequences
-  services/caseEngine.ts          case loading, evidence, link validation, deduction
+  services/caseEngine.ts          case loading, evidence, link validation, deduction, case summary
+  services/clock.ts               the game clock: day and night, shift hours, waiting
   services/caseGenerator.ts       endless generated cases from crime templates, places and people
   data/citySpots.ts               open standing places found from map geometry; extra street residents
   services/interrogationEngine.ts interrogation tactics and outcome rules
@@ -105,7 +119,7 @@ src/
     person.ts                     smooth characters: 4 directions, fluid walk cycle, outfits, hair, glasses,
                                   expressions; the same drawing frames the conversation close-ups
     upscale.ts                    EPX / Scale2x edge smoothing for the remaining pixel-art details
-    audio.ts                      procedural ambience (street, rain, station, club) with Web Audio
+    audio.ts                      procedural ambience (street, rain, station, club) and noir score with Web Audio
     world/types.ts                tiles, props, buildings, lights
     world/smooth.ts               the city painted with vector shapes and gradients: roads, curbs, sidewalks,
                                   floors, facades, roofs, cars, trees, lamps and street furniture
@@ -113,7 +127,7 @@ src/
     world/props.ts                furniture, stalls, vehicles, street furniture, signs - each with examine text
     world/builder.ts              map-building DSL (buildings, roads, anchors, people)
     world/maps/*.ts               the six maps
-    world/renderer.ts             ground cache, depth sorting, opening roofs, night lighting, rain
+    world/renderer.ts             ground cache, depth sorting, opening roofs, day/night lighting, rain
   components/
     PixelWorld.tsx                the playable world: movement, tap-to-walk, interactions, crisp Hebrew signs
     pixel/                        portrait, sprite preview and interrogation-room canvases
@@ -128,6 +142,7 @@ src/
 
 Append an entry to `src/data/cases/cases.json`. Each hotspot names a `mapId` and an `anchor` defined in that
 map's file (`b.anchor(...)`). A hotspot can be gated with `requires` (evidence ids) plus a `lockedText` the
-person says until then. Each clue lists the suspects it `implicates` or `clears`. `npm run validate:data` checks
+person says until then, and a person can keep `hours` ([from, to), wrapping past midnight) with a
+`closedText`. Each clue lists the suspects it `implicates` or `clears`. `npm run validate:data` checks
 that every anchor exists and is reachable, every clue is obtainable, the culprit can reach the warrant
 threshold, and no innocent suspect can.

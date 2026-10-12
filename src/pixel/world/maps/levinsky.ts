@@ -151,6 +151,7 @@ export function buildLevinsky() {
   b.anchor('gen-lev-b-w2', 18.5, 5.5, DIR_DOWN);
   b.anchor('gen-lev-b-cam', 28.5, 18.6, DIR_DOWN);
   b.anchor('gen-lev-b-alibi', 60.5, 31.5, DIR_DOWN);
+  b.anchor('lev-motti-friend', 24.5, 17.6, DIR_DOWN);
   b.label(5, 30.4, 'גינת לוינסקי');
   b.npc({ x: 5.5, y: 32.5, dir: DIR_LEFT, name: 'סבא יצחק', role: 'יושב על הספסל כל יום', look: look('male', '#e5b48f', 'bald', '#bdb6ad', 'blazer', '#4a3426', '#3b3a36', { glasses: true }), lines: [
     'שישים שנה אני על הספסל הזה. ראיתי את השוק כשהיה בו רק שלושה דוכנים.',

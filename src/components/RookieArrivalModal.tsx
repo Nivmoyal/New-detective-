@@ -10,7 +10,7 @@ import {
   ShieldAlert,
   UserPlus,
 } from 'lucide-react';
-import type { AddressForm, CaseFile, CharacterLook, DetectiveProfile, Specialization } from '../types/investigation';
+import type { AddressForm, CaseFile, CharacterLook, DetectiveProfile } from '../types/investigation';
 import { RANKS, WARRANT_THRESHOLD } from '../services/caseEngine';
 import {
   COMMANDER,
@@ -33,7 +33,7 @@ interface Props {
   mode: Mode;
   profile: DetectiveProfile | null;
   cases?: CaseFile[];
-  onCreateProfile?: (name: string, specialization: Specialization, addressForm: AddressForm, look: CharacterLook) => void;
+  onCreateProfile?: (name: string, addressForm: AddressForm, look: CharacterLook) => void;
   onComplete?: () => void;
   onClose?: () => void;
 }
@@ -214,7 +214,7 @@ function ProfileForm({ onCreateProfile }: { onCreateProfile: Props['onCreateProf
         <button
           className="btn-primary w-full py-3 text-base"
           disabled={!valid}
-          onClick={() => onCreateProfile?.(name, 'criminal', look.body, look)}
+          onClick={() => onCreateProfile?.(name, look.body, look)}
         >
           <MapPin className="h-5 w-5" />
           {valid ? 'הגעה לתחנה' : 'כתבו את השם שלכם כדי להמשיך'}

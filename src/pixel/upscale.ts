@@ -31,51 +31,6 @@ export function scale2x(src: Uint32Array, w: number, h: number, dst: Uint32Array
 }
 
 /** Reusable upscaler for a canvas that is redrawn every frame. */
-export class FrameUpscaler {
-  readonly out: HTMLCanvasElement;
-  private outCtx: CanvasRenderingContext2D;
-  private bufs: Uint32Array[] = [];
-  private image: ImageData | null = null;
-  private w = 0;
-  private h = 0;
-  passes = 2;
-
-  constructor() {
-    this.out = document.createElement('canvas');
-    this.outCtx = this.out.getContext('2d')!;
-  }
-
-  get factor() {
-    return 1 << this.passes;
-  }
-
-  /** Upscale the given canvas; returns the context of the result for further drawing. */
-  run(src: CanvasRenderingContext2D, w: number, h: number): CanvasRenderingContext2D {
-    const f = this.factor;
-    if (w !== this.w || h !== this.h || this.out.width !== w * f) {
-      this.w = w;
-      this.h = h;
-      this.out.width = w * f;
-      this.out.height = h * f;
-      this.bufs = [];
-      for (let i = 1; i < this.passes; i++) this.bufs.push(new Uint32Array(w * h * (1 << (2 * i))));
-      this.image = this.outCtx.createImageData(w * f, h * f);
-    }
-    let cur = new Uint32Array(src.getImageData(0, 0, w, h).data.buffer);
-    let cw = w;
-    let ch = h;
-    for (let i = 0; i < this.passes; i++) {
-      const last = i === this.passes - 1;
-      const dst = last ? new Uint32Array(this.image!.data.buffer) : this.bufs[i];
-      scale2x(cur, cw, ch, dst);
-      cur = dst;
-      cw *= 2;
-      ch *= 2;
-    }
-    this.outCtx.putImageData(this.image!, 0, 0);
-    return this.outCtx;
-  }
-}
 
 /** Upscale a static canvas once (portraits, sprite sheets). */
 export function upscaleCanvas(src: HTMLCanvasElement, passes = 2): HTMLCanvasElement {

@@ -10,7 +10,6 @@ import type {
   EvidenceNode,
   LinkVerdict,
   MapHotspot,
-  Specialization,
 } from '../types/investigation';
 
 /** Number of validated links to a single suspect required for a warrant. */
@@ -28,21 +27,6 @@ export const RANK_TITLES = [
 ] as const;
 /** Solved cases needed for each rank. Past the story cases promotions slow down. */
 export const RANK_THRESHOLDS = [0, 1, 2, 3, 6, 10, 15] as const;
-
-export const SPECIALIZATIONS: Record<Specialization, { label: string; perk: string }> = {
-  criminal: {
-    label: 'חקירות פליליות',
-    perk: 'פותחים חקירה באזהרה עם שיתוף פעולה גבוה יותר, ולחץ פסיכולוגי פחות מסוכן.',
-  },
-  intel: {
-    label: 'מודיעין',
-    perk: 'תשאול עדים ובדיקת מצלמות מניבים ניקוד מודיעיני כפול, ורמזי המפקד זולים יותר.',
-  },
-  forensic: {
-    label: 'זיהוי פלילי',
-    perk: 'ניתוחי מעבדת מז״פ מניבים ניקוד מודיעיני גבוה ומחזקים את האמינות שלכם.',
-  },
-};
 
 export const CATEGORY_LABELS: Record<Clue['category'], string> = {
   clue: 'ממצא בזירה',
@@ -111,7 +95,6 @@ export function emptyProgress(): CaseProgress {
     links: [],
     warrantSuspectId: null,
     interrogationAttempts: 0,
-    hintsUsed: 0,
     solved: false,
     score: 0,
   };
@@ -174,19 +157,14 @@ export function collectedClues(caseFile: CaseFile, progress: CaseProgress): Clue
 }
 
 /** Intel points earned for collecting a piece of evidence. */
-export function intelForCollection(clue: Clue, specialization: Specialization): number {
-  const base = 10;
-  if (specialization === 'intel' && (clue.source === 'cctv' || clue.source === 'testimony')) return base * 2;
-  return base;
+export function intelForCollection(_clue: Clue): number {
+  return 10;
 }
 
-export function intelForLab(specialization: Specialization): number {
-  return specialization === 'forensic' ? 30 : 15;
+export function intelForLab(): number {
+  return 15;
 }
 
-export function hintCost(specialization: Specialization): number {
-  return specialization === 'intel' ? 10 : 20;
-}
 
 /* ------------------------------------------------------------------ */
 /* Evidence board & deduction                                          */
@@ -254,8 +232,40 @@ export function buildEvidenceNodes(caseFile: CaseFile, progress: CaseProgress): 
 export function caseScore(progress: CaseProgress, mistakes: number): number {
   const base = 200;
   const evidenceBonus = progress.collected.length * 5;
-  const penalty = mistakes * 15 + progress.interrogationAttempts * 20 + progress.hintsUsed * 10;
+  const penalty = mistakes * 15 + progress.interrogationAttempts * 20;
   return Math.max(50, base + evidenceBonus - penalty);
+}
+
+/* ------------------------------------------------------------------ */
+/* Case summary: what was missed, what it cost, a grade                */
+/* ------------------------------------------------------------------ */
+
+export interface CaseSummary {
+  /** Evidence never picked up. */
+  missed: string[];
+  /** Costly moves, each with what it took off the grade. */
+  costs: { label: string; points: number }[];
+  /** 0..100 */
+  points: number;
+  grade: string;
+  /** Game hours from the first lead to the confession, if known. */
+  hours: number | null;
+}
+
+export function caseSummary(caseFile: CaseFile, progress: CaseProgress): CaseSummary {
+  const missed = caseFile.clues.filter((c) => !progress.collected.includes(c.id)).map((c) => c.title);
+  const costs: { label: string; points: number }[] = [];
+  const add = (n: number, one: string, many: string, each: number) => n > 0 && costs.push({ label: n === 1 ? one : many.replace('#', String(n)), points: n * each });
+  add(progress.denied ?? 0, 'בקשת צו אחת נדחתה', '# בקשות צו נדחו', 12);
+  add(progress.forced?.length ?? 0, 'צו מוקדם אחד בלי ראיה', '# צווים מוקדמים בלי ראיה', 10);
+  add(progress.pressed?.length ?? 0, 'עד אחד נלחץ', '# עדים נלחצו', 6);
+  add(progress.interrogationAttempts, 'חקירה אחת נכשלה לפני ההודאה', '# חקירות נכשלו לפני ההודאה', 12);
+  add(progress.mistakes ?? 0, 'טעות אחת בחדר החקירות', '# טעויות בחדר החקירות', 5);
+  if (missed.length) costs.push({ label: missed.length === 1 ? 'ראיה אחת לא נאספה' : `${missed.length} ראיות לא נאספו`, points: missed.length * 4 });
+  const points = Math.max(0, 100 - costs.reduce((s, c) => s + c.points, 0));
+  const grade = points >= 92 ? 'מצטיין' : points >= 80 ? 'טוב מאוד' : points >= 65 ? 'טוב' : points >= 50 ? 'מספיק' : 'עבר בקושי';
+  const hours = progress.openedAt !== undefined && progress.closedAt !== undefined ? Math.max(1, Math.round((progress.closedAt - progress.openedAt) / 60)) : null;
+  return { missed, costs, points, grade, hours };
 }
 
 /* ------------------------------------------------------------------ */

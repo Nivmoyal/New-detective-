@@ -2,7 +2,6 @@ import type {
   CaseFile,
   InterrogationOption,
   InterrogationState,
-  Specialization,
   Suspect,
   TacticId,
 } from '../types/investigation';
@@ -38,12 +37,12 @@ export const TACTICS: InterrogationOption[] = [
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
-export function startInterrogation(suspect: Suspect, specialization: Specialization, reliability = 60): InterrogationState {
+export function startInterrogation(suspect: Suspect, reliability = 60): InterrogationState {
   const profile = suspect.interrogation;
   if (!profile) throw new Error(`Suspect ${suspect.id} cannot be interrogated`);
   // A detective's reputation walks into the room first: a trusted one gets
   // more cooperation, one known for cutting corners gets less.
-  const coopBonus = (specialization === 'criminal' ? 10 : 0) + Math.round((reliability - 60) / 4);
+  const coopBonus = 10 + Math.round((reliability - 60) / 4);
   return {
     suspectId: suspect.id,
     tension: profile.startTension,
@@ -119,7 +118,6 @@ export function applyTactic(
   caseFile: CaseFile,
   suspect: Suspect,
   tactic: TacticId,
-  specialization: Specialization,
   evidenceId?: string,
 ): InterrogationState {
   const profile = suspect.interrogation;
@@ -138,7 +136,8 @@ export function applyTactic(
   s.lastTactic = tactic;
   const seed = s.turn * 7 + s.progress * 3 + s.presented.length;
   const sp: Speech = { s, female: suspect.look?.body === 'female', seed: `${suspect.id}:${s.turn}:${tactic}:${evidenceId ?? ''}` };
-  const tensionScale = specialization === 'criminal' ? 0.85 : 1;
+  // Detectives come out of the course trained to keep a room calm.
+  const tensionScale = 0.85;
   const lines = profile.lines;
   const mood = moodOf(s.tension);
   const nameOf = (id: string) => caseFile.suspects.find((x) => x.id === id)?.name ?? '';

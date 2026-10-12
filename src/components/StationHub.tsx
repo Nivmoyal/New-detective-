@@ -1,3 +1,4 @@
+import { hoursLabel } from '../services/clock';
 import { BookOpen, Circle, CheckSquare, Crosshair, Fingerprint, Folder, FolderOpen, Lock, MapPin, Unlock, UserCheck } from 'lucide-react';
 import type { ArrivalStep, CaseProgress, DetectiveProfile } from '../types/investigation';
 import { MAPS } from '../data/maps';
@@ -195,6 +196,7 @@ function Notebook({ caseFile, progress }: { caseFile: ReturnType<typeof getCase>
                 <li key={hotspot.id} className={`flex items-start gap-2 text-xs ${visited ? 'text-steel' : 'text-slate-200'}`}>
                   {visited ? <CheckSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" /> : <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-steel" />}
                   <span className={visited ? 'line-through decoration-steel/50' : ''}>{hotspot.title}</span>
+                  {hotspot.hours && !visited && <span className="mr-auto shrink-0 tabular-nums text-[10px] text-steel">{hoursLabel(hotspot.hours)}</span>}
                 </li>
               ))}
             </ul>

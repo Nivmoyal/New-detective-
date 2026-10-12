@@ -84,6 +84,8 @@ function animFrame(type: string, t: number): [number, number] {
 }
 
 export class WorldRenderer {
+  /** 0 at noon, 1 deep at night: how dark the streets are and how strong the lamps. */
+  night = 1;
   /** Ground painted with vector shapes at K pixels per world pixel. */
   private groundHD: HTMLCanvasElement;
   readonly roofs = new Map<string, HTMLCanvasElement>();
@@ -225,7 +227,10 @@ export class WorldRenderer {
     const d = this.darkCtx;
     d.globalCompositeOperation = 'source-over';
     d.clearRect(0, 0, vw, vh);
-    d.fillStyle = `rgba(8,12,28,${map.darkness})`;
+    // Daylight on the streets; the station keeps its own fluorescent gloom.
+    const night = map.id === 'station' ? 1 : this.night;
+    const darkness = 0.06 + (map.darkness - 0.06) * night;
+    d.fillStyle = `rgba(8,12,28,${darkness})`;
     d.fillRect(0, 0, vw, vh);
     d.globalCompositeOperation = 'destination-out';
     const visible = map.lights.filter((l) => {
@@ -238,7 +243,7 @@ export class WorldRenderer {
     for (const l of visible) {
       const f = l.flicker ? 0.8 + 0.2 * Math.sin(t * 17 + l.x * 3) * Math.sin(t * 5.3 + l.y) : 1;
       const rr = l.r * TS * 2;
-      d.globalAlpha = Math.min(1, l.power * f);
+      d.globalAlpha = Math.min(1, l.power * f * (0.25 + 0.75 * night));
       d.drawImage(this.light, l.x * TS - camX - rr / 2, l.y * TS - camY - rr / 2, rr, rr);
     }
     d.globalAlpha = 1;
@@ -249,7 +254,7 @@ export class WorldRenderer {
     for (const l of visible) {
       if (l.building) continue;
       const rr = l.r * TS * 1.6;
-      ctx.globalAlpha = 0.16 * l.power;
+      ctx.globalAlpha = 0.16 * l.power * night;
       ctx.drawImage(glowSprite(l.color), l.x * TS - camX - rr / 2, l.y * TS - camY - rr / 2, rr, rr);
     }
     ctx.globalAlpha = 1;

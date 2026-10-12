@@ -9,6 +9,7 @@ import { WorldRenderer, type Drawable } from '../pixel/world/renderer';
 import { T, Tile, type PixelMap, type PlacedFacility, type Prop } from '../pixel/world/types';
 import { drawEvidenceItem, examineCount, examineVariant, propDef, propName } from '../pixel/world/props';
 import { ARRIVAL_THOUGHTS, OVERHEARD, idleThoughts, repeatExamine, wallThoughts, type G } from '../pixel/world/humor';
+import { isOpen, nightFactor } from '../services/clock';
 import { DIR_DOWN, DIR_LEFT, DIR_RIGHT, DIR_UP, drawPerson, type Dir } from '../pixel/person';
 
 export interface WorldHotspot {
@@ -17,6 +18,8 @@ export interface WorldHotspot {
   /** Requirements met (otherwise the place is locked / the person has nothing to add). */
   available: boolean;
   visited: boolean;
+  /** The person here is on shift now (false: come back at their hours). */
+  present?: boolean;
 }
 
 interface Props {
@@ -24,6 +27,8 @@ interface Props {
   playerLook: CharacterLook;
   addressForm: 'male' | 'female';
   hotspots: WorldHotspot[];
+  /** Game clock (minutes); sets the light and who is out. */
+  clock: number;
   /** Street situation happening on this map right now. */
   incident: Incident | null;
   startPosition?: { x: number; y: number };
@@ -123,6 +128,7 @@ export default function PixelWorld({
   playerLook,
   addressForm,
   hotspots,
+  clock,
   incident,
   startPosition,
   paused,
@@ -140,8 +146,8 @@ export default function PixelWorld({
 
   // Live values used inside the animation loop.
   const g: G = (m, f) => (addressForm === 'female' ? f : m);
-  const live = useRef({ paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g });
-  live.current = { paused, hotspots, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g };
+  const live = useRef({ paused, hotspots, clock, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g });
+  live.current = { paused, hotspots, clock, incident, onFacility, onHotspot, onChat, onIncident, onExamine, onPositionChange, g };
   /** On-screen joystick: direction and how far it is pushed (0..1). */
   const joy = useRef({ x: 0, y: 0, id: -1 });
   const knobRef = useRef<HTMLDivElement>(null);
@@ -154,6 +160,7 @@ export default function PixelWorld({
     const display = canvas.getContext('2d')!;
     const renderer = new WorldRenderer(map);
     ambient.setScene(map.ambient, map.rain);
+    ambient.setMusic(map.ambient === 'station' ? 'station' : 'street');
     const unlockAudio = () => ambient.unlock();
     window.addEventListener('pointerdown', unlockAudio);
     window.addEventListener('keydown', unlockAudio);
@@ -185,7 +192,9 @@ export default function PixelWorld({
     const start = startPosition ?? map.spawn;
     const player: Actor = { key: 'player', x: start.x, y: start.y, dir: DIR_DOWN, look: playerLook, moving: false, anim: 0, solid: false, homeDir: DIR_DOWN };
 
-    const npcActors = new Map<string, { actor: Actor; npc: ChatNpc }>();
+    const npcActors = new Map<string, { actor: Actor; npc: ChatNpc; hours?: [number, number] }>();
+    /** Ambient people who are out at this hour. */
+    const outNow = () => [...npcActors.values()].filter((e) => isOpen(e.hours, live.current.clock));
     for (const n of map.npcs) {
       const actor: Actor = {
         key: n.id,
@@ -201,13 +210,14 @@ export default function PixelWorld({
         leg: 1,
         homeDir: n.dir,
       };
-      npcActors.set(n.id, { actor, npc: { id: n.id, character: { name: n.name, role: n.role, look: n.look }, lines: n.lines, done: n.done } });
+      npcActors.set(n.id, { actor, npc: { id: n.id, character: { name: n.name, role: n.role, look: n.look }, lines: n.lines, done: n.done }, hours: n.hours });
     }
     // The partner walks a step behind, along the path the player took.
     const partnerActor: Actor | null = partner
       ? { key: 'partner', x: start.x + 0.9, y: start.y + 0.3, dir: DIR_DOWN, look: partner.look, moving: false, anim: 0, solid: false, homeDir: DIR_DOWN }
       : null;
     const trail: { x: number; y: number }[] = [{ x: start.x, y: start.y }];
+    let playerStill = 0;
     const quips = partner ? [...partner.quips] : [];
     let nextQuip = performance.now() + 9000 + Math.random() * 8000;
     const facilityActors = new Map<string, Actor>();
@@ -227,33 +237,69 @@ export default function PixelWorld({
     }
     const incidentLive = () => (live.current.incident?.id === incident?.id ? incident : null);
 
+    // One group per person (or per object) at a place. Two different people
+    // whose cases share a spot each get their own: the second steps aside.
     const hotspotGroups = () => {
       const groups = new Map<string, WorldHotspot[]>();
       for (const wh of live.current.hotspots) {
-        const list = groups.get(wh.hotspot.anchor) ?? [];
+        const key = `${wh.hotspot.anchor}|${wh.hotspot.character?.name ?? ''}`;
+        const list = groups.get(key) ?? [];
         list.push(wh);
-        groups.set(wh.hotspot.anchor, list);
+        groups.set(key, list);
       }
       return groups;
     };
-    const characterFor = (list: WorldHotspot[]): CharacterRef | undefined => list.find((w) => w.hotspot.character)?.hotspot.character;
+    const slots = new Map<string, { x: number; y: number; dir: Dir }>();
+    const taken: { x: number; y: number }[] = [];
+    const posOf = (key: string) => {
+      const known = slots.get(key);
+      if (known) return known;
+      const base = map.anchors[key.split('|')[0]];
+      if (!base) return undefined;
+      const near = (x: number, y: number) => taken.some((p) => Math.hypot(p.x - x, p.y - y) < 0.8);
+      let pos = { x: base.x, y: base.y, dir: base.dir };
+      if (near(base.x, base.y)) {
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [1, 1], [-1, 1], [0, -1], [2, 0], [-2, 0]]) {
+          const x = base.x + dx;
+          const y = base.y + dy;
+          const tx = Math.floor(x);
+          const ty = Math.floor(y);
+          if (tx < 0 || ty < 0 || tx >= map.w || ty >= map.h || map.blocked[ty * map.w + tx] || near(x, y)) continue;
+          // Never into a doorway or the step in front of one.
+          const t = map.tiles[ty * map.w + tx];
+          if (t === Tile.Door || t === Tile.DoorTop || (ty > 0 && map.tiles[(ty - 1) * map.w + tx] === Tile.Door)) continue;
+          pos = { x, y, dir: base.dir };
+          break;
+        }
+      }
+      slots.set(key, pos);
+      taken.push(pos);
+      return pos;
+    };
+    /** The person at a place, if they are there right now. */
+    const characterFor = (list: WorldHotspot[]): CharacterRef | undefined => list.find((w) => w.hotspot.character && w.present !== false)?.hotspot.character;
+    const awayFor = (list: WorldHotspot[]): CharacterRef | undefined => (characterFor(list) ? undefined : list.find((w) => w.hotspot.character)?.hotspot.character);
 
-    const ensureHotspotActor = (anchor: string, ch: CharacterRef) => {
-      let a = hotspotActors.get(anchor);
-      const pos = map.anchors[anchor];
+    const ensureHotspotActor = (key: string, ch: CharacterRef) => {
+      let a = hotspotActors.get(key);
+      const pos = posOf(key);
       if (!a && pos) {
-        a = { key: anchor, x: pos.x, y: pos.y, dir: pos.dir, look: ch.look, moving: false, anim: 0, solid: true, homeDir: pos.dir };
-        hotspotActors.set(anchor, a);
+        a = { key, x: pos.x, y: pos.y, dir: pos.dir, look: ch.look, moving: false, anim: 0, solid: true, homeDir: pos.dir };
+        hotspotActors.set(key, a);
       }
       return a;
     };
 
     const solidActors = (): Actor[] => {
       const out: Actor[] = [];
-      for (const { actor } of npcActors.values()) if (actor.solid) out.push(actor);
+      for (const { actor } of outNow()) if (actor.solid) out.push(actor);
       for (const a of facilityActors.values()) out.push(a);
       if (incidentLive()) out.push(...incidentActors);
-      for (const [anchor, a] of hotspotActors) if (hotspotGroups().has(anchor)) out.push(a);
+      const groups = hotspotGroups();
+      for (const [key, a] of hotspotActors) {
+        const list = groups.get(key);
+        if (list && characterFor(list)) out.push(a);
+      }
       return out;
     };
 
@@ -321,16 +367,17 @@ export default function PixelWorld({
         const actor = facilityActors.get(f.id);
         if (actor) out.push({ kind: 'facility', f, x: actor.x, y: actor.y, name: FACILITY_CHARACTERS[f.id]?.name ?? f.label, actor });
       }
-      for (const [anchor, list] of hotspotGroups()) {
-        const pos = map.anchors[anchor];
+      for (const [key, list] of hotspotGroups()) {
+        const pos = posOf(key);
         if (!pos) continue;
         const ch = characterFor(list);
-        const actor = ch ? ensureHotspotActor(anchor, ch) : undefined;
+        const actor = ch ? ensureHotspotActor(key, ch) : undefined;
         const open = list.find((w) => w.available && !w.visited) ?? list.find((w) => w.available) ?? list[0];
-        const name = ch ? ch.name : open.available ? open.hotspot.title : open.hotspot.lockedLabel ?? open.hotspot.title;
+        const away = awayFor(list);
+        const name = ch ? ch.name : away ? `${open.hotspot.title} - אין אף אחד` : open.available ? open.hotspot.title : open.hotspot.lockedLabel ?? open.hotspot.title;
         out.push({ kind: 'hotspot', hs: list, x: actor?.x ?? pos.x, y: actor?.y ?? pos.y, name, actor });
       }
-      for (const { actor, npc } of npcActors.values()) out.push({ kind: 'npc', npc, x: actor.x, y: actor.y, name: npc.character.name, actor });
+      for (const { actor, npc } of outNow()) out.push({ kind: 'npc', npc, x: actor.x, y: actor.y, name: npc.character.name, actor });
       const inc = incidentLive();
       if (inc) for (const a of incidentActors) out.push({ kind: 'incident', incident: inc, x: a.x, y: a.y, name: a === incidentActors[0] ? inc.person.name : inc.extras?.find((e) => a.key.endsWith(e.name))?.name ?? inc.person.name, actor: a });
       for (const p of map.props) {
@@ -632,7 +679,7 @@ export default function PixelWorld({
         }
         if (now > nextOverheard && OVERHEARD[map.id]) {
           nextOverheard = now + 6000 + Math.random() * 7000;
-          const onScreen = [...npcActors.values()]
+          const onScreen = outNow()
             .map((n) => n.actor)
             .filter((a) => {
               const sx = a.x * T - camX;
@@ -680,17 +727,26 @@ export default function PixelWorld({
           trail.push({ x: player.x, y: player.y });
           if (trail.length > 40) trail.shift();
         }
-        // Aim for the spot on the trail about 1.4 tiles behind the player.
+        // Walking: follow the trail about 1.6 tiles behind. Standing: come up
+        // beside the player, a tile away, on whichever side is free.
+        playerStill = player.moving ? 0 : playerStill + dt;
         let target = trail[0];
-        let acc = 0;
-        let px = player.x;
-        let py = player.y;
-        for (let i = trail.length - 1; i >= 0; i--) {
-          acc += Math.hypot(trail[i].x - px, trail[i].y - py);
-          px = trail[i].x;
-          py = trail[i].y;
-          target = trail[i];
-          if (acc >= 1.4) break;
+        if (playerStill > 0.5) {
+          const side = player.dir === DIR_UP || player.dir === DIR_DOWN ? [[1.1, 0.15], [-1.1, 0.15]] : [[0, 0.9], [0, -0.9]];
+          const open = side.map(([ox, oy]) => ({ x: player.x + ox, y: player.y + oy })).filter((p) => free(p.x, p.y, solids));
+          const pick = open.sort((a, b) => Math.hypot(a.x - partnerActor.x, a.y - partnerActor.y) - Math.hypot(b.x - partnerActor.x, b.y - partnerActor.y))[0];
+          if (pick) target = pick;
+        } else {
+          let acc = 0;
+          let px = player.x;
+          let py = player.y;
+          for (let i = trail.length - 1; i >= 0; i--) {
+            acc += Math.hypot(trail[i].x - px, trail[i].y - py);
+            px = trail[i].x;
+            py = trail[i].y;
+            target = trail[i];
+            if (acc >= 1.6) break;
+          }
         }
         const far = Math.hypot(partnerActor.x - player.x, partnerActor.y - player.y);
         if (far > 7) {
@@ -699,7 +755,9 @@ export default function PixelWorld({
         }
         const dx = target.x - partnerActor.x;
         const dy = target.y - partnerActor.y;
-        if (!L.paused && Math.hypot(dx, dy) > 0.3 && far > 1.1) moveActor(partnerActor, dx, dy, dt, SPEED * (far > 2.6 ? 1.25 : 0.95), []);
+        const gap = Math.hypot(dx, dy);
+        // Never closer than a tile to the player while walking up.
+        if (!L.paused && gap > 0.2 && (playerStill > 0.5 || far > 1.3)) moveActor(partnerActor, dx, dy, dt, SPEED * (far > 2.6 ? 1.25 : gap < 0.6 ? 0.6 : 0.95), []);
         else {
           partnerActor.moving = false;
           if (far < 2.5) partnerActor.dir = dirFromVec(player.x - partnerActor.x, player.y - partnerActor.y, partnerActor.dir);
@@ -753,23 +811,25 @@ export default function PixelWorld({
       };
       drawActor(player);
       if (partnerActor) drawActor(partnerActor);
-      for (const { actor } of npcActors.values()) drawActor(actor);
+      for (const { actor } of outNow()) drawActor(actor);
       for (const a of facilityActors.values()) drawActor(a);
       if (incidentLive()) for (const a of incidentActors) drawActor(a);
       const groups = hotspotGroups();
-      for (const [anchor, list] of groups) {
-        const pos = map.anchors[anchor];
+      for (const [key, list] of groups) {
+        const pos = posOf(key);
         if (!pos) continue;
         const ch = characterFor(list);
         if (ch) {
-          const a = ensureHotspotActor(anchor, ch);
+          const a = ensureHotspotActor(key, ch);
           if (a) drawActor(a);
           continue;
         }
+        if (awayFor(list)) continue;
         const h = list[0];
         const showItem = h.hotspot.kind === 'cctv' || (h.available && !h.visited);
         if (showItem) ents.push({ base: pos.y * T - 2, draw: (c) => drawEvidenceItem(c, pos.x * T - 8, pos.y * T - 12, h.hotspot.kind) });
       }
+      renderer.night = nightFactor(live.current.clock);
       renderer.render(display, camX, camY, scale, vw, vh, t, ents, openId);
       renderer.renderEffects(display, camX, camY, vw, vh, t, openId, scale);
 

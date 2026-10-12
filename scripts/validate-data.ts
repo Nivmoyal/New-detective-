@@ -149,6 +149,8 @@ for (const c of [...data.cases, ...generated]) {
       if (!nearReachable(m, reach[m.id], a.x, a.y, range)) errors.push(`${c.id}/${h.id}: anchor ${h.anchor} out of reach`);
       if (h.character && m.blocked[Math.floor(a.y) * m.w + Math.floor(a.x)]) errors.push(`${c.id}/${h.id}: character stands inside a wall/prop`);
     }
+    if (h.hours && (h.hours.some((x) => x < 0 || x > 24 || x !== Math.floor(x)) || h.hours[0] === h.hours[1] || !h.character))
+      errors.push(`${c.id}/${h.id}: bad hours ${JSON.stringify(h.hours)}`);
     if (h.requires?.length && !h.lockedText) errors.push(`${c.id}/${h.id}: locked lead without lockedText`);
     h.evidenceIds.forEach((id) => {
       if (!clues.has(id)) errors.push(`${c.id}/${h.id}: unknown evidence ${id}`);
