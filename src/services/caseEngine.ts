@@ -105,6 +105,23 @@ export function isCaseUnlocked(caseFile: CaseFile, solvedCount: number): boolean
   return solvedCount >= (caseFile.unlockAfter ?? 0);
 }
 
+/** At most this many unsolved cases sit on the desk; the next lands when one is closed. */
+export const DESK_LIMIT = 3;
+
+/**
+ * Cases on the desk: every solved one, plus up to DESK_LIMIT open ones -
+ * cases already being worked first, then in the order they arrived.
+ */
+export function deskCaseIds(solvedCases: string[], progress: Record<string, Pick<CaseProgress, 'visitedHotspots'>> = {}): Set<string> {
+  const solved = new Set(solvedCases);
+  const started = (id: string) => (progress[id]?.visitedHotspots.length ?? 0) > 0;
+  const open = loadCases()
+    .filter((c) => !solved.has(c.id) && isCaseUnlocked(c, solved.size))
+    .sort((a, b) => Number(started(b.id)) - Number(started(a.id)) || (a.unlockAfter ?? 0) - (b.unlockAfter ?? 0) || a.order - b.order)
+    .slice(0, DESK_LIMIT);
+  return new Set([...solved, ...open.map((c) => c.id)]);
+}
+
 /** The commander signs an early warrant only for a detective she trusts. */
 export const EARLY_WARRANT_MIN_RELIABILITY = 40;
 export const EARLY_WARRANT_COST = 10;

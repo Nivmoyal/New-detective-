@@ -1,3 +1,4 @@
+import { otherCaseLine } from './services/genLines';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { connectCloud, type CloudSave } from './state/cloudSave';
 import { Compass, Crosshair, Folder, Lock, ShieldAlert, Smartphone } from 'lucide-react';
@@ -7,7 +8,7 @@ import { PARTNER, partnerQuips } from './pixel/world/partner';
 import { GROUP_CHAT, type PhoneMessage } from './state/messages';
 import type { PlacedFacility } from './pixel/world/types';
 import { CLOCK_TICK_MINUTES, CLOCK_TICK_SECONDS, START_CLOCK, formatHour, hoursLabel, isOpen, minutesUntil } from './services/clock';
-import { EARLY_WARRANT_COST, EARLY_WARRANT_MIN_RELIABILITY, PRESS_WITNESS_COST, emptyProgress, getCase, isCaseUnlocked, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
+import { EARLY_WARRANT_COST, EARLY_WARRANT_MIN_RELIABILITY, PRESS_WITNESS_COST, emptyProgress, getCase, deskCaseIds, isHotspotAvailable, loadCases, validateLink } from './services/caseEngine';
 import {
   WARRANT_DENIAL_PENALTY,
   activeProgress,
@@ -50,6 +51,7 @@ type ModalState =
   | { type: 'hotspot'; spot: WorldHotspot }
   | { type: 'chat'; npc: ChatNpc; annoyed: string }
   | { type: 'incident'; incident: Incident }
+  | { type: 'otherCase'; spot: WorldHotspot }
   | { type: 'notice'; title: string; text: string; character?: CharacterRef; tone?: 'red' | 'gold' | 'police'; earlyWarrant?: WorldHotspot; waitUntil?: number }
   | null;
 
@@ -199,22 +201,26 @@ export default function App() {
   );
   const g = (m: string, f: string) => (profile?.addressForm === 'female' ? f : m);
 
-  // Every lead of every case lives in the world from the start.
+  // The people of every open case are out in the world, but only the case in
+  // focus is worked: its places and objects give evidence, everyone else
+  // just talks - and can switch the focus to their case.
   const worldHotspots = useMemo<WorldHotspot[]>(() => {
     const out: WorldHotspot[] = [];
-    const solvedCount = state.profile?.solvedCases.length ?? 0;
+    const solved = state.profile?.solvedCases ?? [];
+    const desk = deskCaseIds(solved, state.progress);
     for (const c of loadCases()) {
-      if (!isCaseUnlocked(c, solvedCount)) continue;
+      if (!desk.has(c.id) || solved.includes(c.id)) continue;
       const p = state.progress[c.id] ?? emptyProgress();
+      const focused = c.id === state.activeCaseId;
       for (const h of c.hotspots) {
-        if (h.mapId !== map.id) continue;
-        out.push({ hotspot: h, caseId: c.id, available: isHotspotAvailable(h, p), visited: p.visitedHotspots.includes(h.id), present: isOpen(h.hours, clock) });
+        if (h.mapId !== map.id || (!focused && !h.character)) continue;
+        out.push({ hotspot: h, caseId: c.id, focused, available: isHotspotAvailable(h, p), visited: p.visitedHotspots.includes(h.id), present: isOpen(h.hours, clock) });
       }
     }
     return out;
     // Who is out changes on the hour only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.progress, map.id, state.profile?.solvedCases.length, Math.floor(clock / 60)]);
+  }, [state.progress, map.id, state.profile?.solvedCases.length, state.activeCaseId, Math.floor(clock / 60)]);
 
   // Case waiting in the interrogation room: the focused one first, then any other.
   const warrantCaseId = useMemo(() => {
@@ -274,6 +280,10 @@ export default function App() {
         tone: 'gold',
         waitUntil: from,
       });
+      return;
+    }
+    if (spot.focused === false) {
+      setModal({ type: 'otherCase', spot });
       return;
     }
     if (!spot.available) {
@@ -479,7 +489,7 @@ export default function App() {
         <RookieArrivalModal
           mode="desk"
           profile={profile}
-          cases={loadCases().filter((c) => isCaseUnlocked(c, profile.solvedCases.length))}
+          cases={loadCases().filter((c) => deskCaseIds(profile.solvedCases, state.progress).has(c.id))}
           onClose={() => setModal(null)}
           onComplete={() => {
             dispatch({ type: 'OPEN_CASE_FILES' });
@@ -516,6 +526,28 @@ export default function App() {
         />
       )}
       {showControls && <ControlsIntro addressForm={profile.addressForm} onClose={() => setControlsPending(false)} />}
+      {modal?.type === 'otherCase' && (() => {
+        const spot = modal.spot;
+        const other = getCase(spot.caseId);
+        return (
+          <NoticeModal
+            title={spot.hotspot.character?.name ?? spot.hotspot.title}
+            text={otherCaseLine(spot.hotspot.id, other.shortTitle, g)}
+            character={spot.hotspot.character}
+            tone="police"
+            action={{
+              costly: false,
+              label: `לעבור לתיק: ${other.shortTitle}`,
+              note: 'הפוקוס עובר לתיק הזה. מה שנאסף בתיק הקודם נשאר שמור בו.',
+              onClick: () => {
+                dispatch({ type: 'FOCUS_CASE', caseId: spot.caseId });
+                handleHotspot({ ...spot, focused: true });
+              },
+            }}
+            onClose={() => setModal(null)}
+          />
+        );
+      })()}
       {modal?.type === 'notice' && (
         <NoticeModal
           title={modal.title}
@@ -525,6 +557,7 @@ export default function App() {
           action={
             modal.waitUntil !== undefined
               ? {
+                  costly: false,
                   label: `לחכות עד ${formatHour(modal.waitUntil)}`,
                   note: 'הזמן עובר גם לאחרים: יש מי שיסגור בינתיים, ויש מי שיפתח.',
                   onClick: () => {
@@ -576,7 +609,11 @@ export default function App() {
           caseFile={promotionCase}
           progress={state.progress[promotionCase.id]}
           allSolved={storyComplete(state) && !promotionCase.generated}
-          newCases={loadCases().filter((c) => (c.unlockAfter ?? 0) > 0 && c.unlockAfter === profile.solvedCases.length)}
+          newCases={(() => {
+            const now = deskCaseIds(profile.solvedCases, state.progress);
+            const before = deskCaseIds(profile.solvedCases.filter((id) => id !== promotionCase.id), state.progress);
+            return loadCases().filter((c) => now.has(c.id) && !before.has(c.id));
+          })()}
           onClose={() => dispatch({ type: 'DISMISS_PROMOTION' })}
         />
       )}

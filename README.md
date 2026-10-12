@@ -44,8 +44,10 @@ npm run test:sim       # headless playthrough of 25 cases (story + generated) th
 - Street situations happen around the district - a stolen wallet, a lost child, a parking-chair war, a
   printer that ate a court filing. Someone calls out; you decide whether and how to step in, and the choice
   has consequences for your reliability.
-- All open cases run at once. Every witness, scene and camera of every case is in the world from the
-  start; evidence you find is filed automatically under its own case, whichever case you are focused on.
+- At most three open cases sit on the desk; the next one lands when you close one. The people of every open
+  case are out in the world, but only the case in focus is worked: its scenes, objects and witnesses give
+  evidence. Someone from another open case only says they already talked to the police about it - and offers to
+  switch the focus to that case right there, without going back to the station. Each case keeps its own evidence.
 - Every person can be talked to (staff, witnesses, vendors, passers-by) and every object can be examined.
   Conversations move on only when you press the button. Nobody repeats anyone else: every passer-by and
   resident is a persona of their own (`src/pixel/world/personas.ts`) with their own role, three lines in

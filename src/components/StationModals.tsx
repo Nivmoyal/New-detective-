@@ -400,18 +400,18 @@ export function NoticeModal({
   character?: CharacterRef;
   tone?: 'red' | 'gold' | 'police';
   /** A choice with a price, offered next to "understood". */
-  action?: { label: string; note: string; disabled?: boolean; onClick: () => void };
+  action?: { label: string; note: string; disabled?: boolean; onClick: () => void; costly?: boolean };
   onClose: () => void;
 }) {
   return (
     <Modal title={title} icon={tone === 'red' ? <Lock className="h-5 w-5" /> : <Eye className="h-5 w-5" />} onClose={onClose} tone={tone} character={character}>
       <p className="text-sm leading-relaxed text-slate-300">{text}</p>
       {action && (
-        <div className="mt-4 rounded-lg border border-alert/40 bg-red-950/20 p-3">
-          <button className="btn-danger w-full" disabled={action.disabled} onClick={action.onClick}>
+        <div className={`mt-4 rounded-lg border p-3 ${action.costly === false ? 'border-police/40 bg-police/10' : 'border-alert/40 bg-red-950/20'}`}>
+          <button className={`${action.costly === false ? 'btn-primary' : 'btn-danger'} w-full`} disabled={action.disabled} onClick={action.onClick}>
             {action.label}
           </button>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-red-200/80">{action.note}</p>
+          <p className={`mt-1.5 text-[11px] leading-relaxed ${action.costly === false ? 'text-slate-400' : 'text-red-200/80'}`}>{action.note}</p>
         </div>
       )}
       <button className="btn-ghost mt-3 w-full" onClick={onClose}>

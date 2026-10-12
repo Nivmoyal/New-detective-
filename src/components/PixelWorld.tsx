@@ -18,6 +18,8 @@ export interface WorldHotspot {
   /** Requirements met (otherwise the place is locked / the person has nothing to add). */
   available: boolean;
   visited: boolean;
+  /** Belongs to the case in focus (false: the person only talks, and offers to switch). */
+  focused?: boolean;
   /** The person here is on shift now (false: come back at their hours). */
   present?: boolean;
 }
@@ -247,6 +249,8 @@ export default function PixelWorld({
         list.push(wh);
         groups.set(key, list);
       }
+      // Someone in two cases speaks for the case in focus.
+      for (const [key, list] of groups) if (list.some((w) => w.focused !== false)) groups.set(key, list.filter((w) => w.focused !== false));
       return groups;
     };
     const slots = new Map<string, { x: number; y: number; dir: Dir }>();

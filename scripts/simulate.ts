@@ -1,7 +1,7 @@
 // Headless playthrough of every case through the real game reducer.
 import { gameReducer, initialState, parseState, repairProgress, type GameState, type GameAction } from '../src/state/gameReducer';
 import { START_CLOCK, dayOf, formatClock, isOpen, minutesUntil, nightFactor } from '../src/services/clock';
-import { caseSummary, getCase, evaluateDeduction, loadCases, validateLink, isHotspotAvailable, emptyProgress } from '../src/services/caseEngine';
+import { DESK_LIMIT, caseSummary, deskCaseIds, getCase, evaluateDeduction, loadCases, validateLink, isHotspotAvailable, emptyProgress } from '../src/services/caseEngine';
 import { defaultPlayerLook } from '../src/data/characters';
 
 const fail = (msg: string) => {
@@ -48,10 +48,12 @@ if (Object.keys(s.progress).length !== loadCases().filter((c) => !c.unlockAfter)
 
 // Play far beyond the story: generated cases keep landing on the desk.
 const TARGET = 25;
-const nextCase = () => loadCases().find((c) => !s.profile!.solvedCases.includes(c.id) && (c.unlockAfter ?? 0) <= s.profile!.solvedCases.length);
+const openOnDesk = () => loadCases().filter((x) => !s.profile!.solvedCases.includes(x.id) && deskCaseIds(s.profile!.solvedCases, s.progress).has(x.id));
+const nextCase = () => openOnDesk()[0];
 for (let c = nextCase(); c && s.profile!.solvedCases.length < TARGET; c = nextCase()) {
-  const open = loadCases().filter((x) => !s.profile!.solvedCases.includes(x.id) && (x.unlockAfter ?? 0) <= s.profile!.solvedCases.length);
+  const open = openOnDesk();
   if (open.length < 2) fail(`only ${open.length} open cases after ${s.profile!.solvedCases.length} solved`);
+  if (open.length > DESK_LIMIT) fail(`${open.length} open cases on the desk`);
   if ((c.unlockAfter ?? 0) > s.profile!.solvedCases.length) fail(`${c.id}: still locked after ${s.profile!.solvedCases.length} solved`);
   d({ type: 'FOCUS_CASE', caseId: c.id });
   // A premature warrant request is refused and costs reliability.

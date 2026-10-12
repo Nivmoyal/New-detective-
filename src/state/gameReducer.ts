@@ -21,7 +21,7 @@ import {
   getSuspect,
   intelForCollection,
   intelForLab,
-  isCaseUnlocked,
+  deskCaseIds,
   isHotspotAvailable,
   EARLY_WARRANT_COST,
   EARLY_WARRANT_MIN_RELIABILITY,
@@ -236,9 +236,9 @@ export function activeProgress(state: GameState): CaseProgress | null {
 
 /** Cases the detective knows about (read on the desk or touched in the field). */
 export function knownCaseIds(state: GameState): string[] {
-  const solved = state.profile?.solvedCases.length ?? 0;
+  const desk = deskCaseIds(state.profile?.solvedCases ?? [], state.progress);
   return loadCases()
-    .filter((c) => isCaseUnlocked(c, solved) && (state.arrivalStep === 'done' || state.progress[c.id]))
+    .filter((c) => desk.has(c.id) && (state.arrivalStep === 'done' || state.progress[c.id]))
     .map((c) => c.id);
 }
 
@@ -251,7 +251,8 @@ export function warrantJustified(state: GameState, suspectId: string): boolean {
 
 function firstOpenCase(state: GameState, exclude?: string): string | null {
   const solved = state.profile?.solvedCases ?? [];
-  const open = loadCases().filter((c) => c.id !== exclude && !solved.includes(c.id) && isCaseUnlocked(c, solved.length));
+  const desk = deskCaseIds(solved, state.progress);
+  const open = loadCases().filter((c) => c.id !== exclude && !solved.includes(c.id) && desk.has(c.id));
   const touched = open.find((c) => (state.progress[c.id]?.collected.length ?? 0) > 0);
   return (touched ?? open[0])?.id ?? null;
 }
@@ -312,8 +313,8 @@ function coreReducer(state: GameState, action: GameAction): GameState {
 
     case 'OPEN_CASE_FILES': {
       const progress = { ...state.progress };
-      const solvedCount = state.profile?.solvedCases.length ?? 0;
-      for (const c of loadCases()) if (isCaseUnlocked(c, solvedCount)) progress[c.id] = progress[c.id] ?? emptyProgress();
+      const desk = deskCaseIds(state.profile?.solvedCases ?? [], state.progress);
+      for (const c of loadCases()) if (desk.has(c.id)) progress[c.id] = progress[c.id] ?? emptyProgress();
       const next = { ...state, arrivalStep: 'done' as const, progress };
       return { ...next, activeCaseId: state.activeCaseId ?? firstOpenCase(next) };
     }

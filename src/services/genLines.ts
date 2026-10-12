@@ -98,3 +98,17 @@ export const ARCHIVE_LINES = [
   'המערכת הייתה איטית, אבל על {name} יש לי תשובה.',
   'פתחתי את התיק של {name}. הנה מה שיש.',
 ];
+
+/** What a person from another open case says while that case isn't in focus. */
+const OTHER_CASE = [
+  'כבר דיברתי עם המשטרה על "{t}". {אתה עובד|את עובדת} על התיק הזה? אם לא - אין לי מה להוסיף.',
+  '"{t}"? אני מחכה שמישהו שבאמת עובד על זה יבוא לשאול כמו שצריך.',
+  'אם זה בקשר ל"{t}" - אני פה. אם זה על משהו אחר, לא ראיתי כלום.',
+  'שאלו אותי כבר פעם על "{t}". מי מכם עובד על זה עכשיו?',
+  'יש לי מה להגיד על "{t}". רק לא למי שבא בשביל תיק אחר.',
+];
+export function otherCaseLine(id: string, title: string, g: (m: string, f: string) => string): string {
+  let h = 0;
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return OTHER_CASE[h % OTHER_CASE.length].replace('{t}', title).replace(/\{([^|{}]*)\|([^|{}]*)\}/g, (_, m, f) => g(m, f));
+}

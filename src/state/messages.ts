@@ -3,7 +3,7 @@
 // what the detective does; none of them says where to go.
 import { COMMANDER, DESK_SERGEANT, LAB_TECH } from '../data/characters';
 import { genderize } from '../pixel/world/humor';
-import { getCase, isCaseUnlocked, loadCases } from '../services/caseEngine';
+import { deskCaseIds, getCase, loadCases } from '../services/caseEngine';
 import type { AddressForm } from '../types/investigation';
 
 export interface PhoneMessage {
@@ -110,7 +110,9 @@ export function messagesFor(prev: PhoneState, next: PhoneState, action: Action):
       const solvedNow = next.profile.solvedCases.length;
       if (solvedNow > solvedBefore) {
         out.push(msg(COMMANDER.name, g(pickOne(SOLVED, n))));
-        const landed = loadCases().filter((c) => isCaseUnlocked(c, solvedNow) && !isCaseUnlocked(c, solvedBefore));
+        const deskBefore = deskCaseIds(prev.profile?.solvedCases ?? [], prev.progress);
+        const deskNow = deskCaseIds(next.profile.solvedCases, next.progress);
+        const landed = loadCases().filter((c) => deskNow.has(c.id) && !deskBefore.has(c.id));
         for (const c of landed) out.push(msg(DESK_SERGEANT.name, `תיק חדש הונח על השולחן שלך: "${c.title}".`));
       }
       break;
