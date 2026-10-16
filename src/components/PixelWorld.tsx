@@ -29,6 +29,8 @@ interface Props {
   playerLook: CharacterLook;
   addressForm: 'male' | 'female';
   hotspots: WorldHotspot[];
+  /** Camera zoom (1 = about 13 tiles across a phone). */
+  zoom?: number;
   /** Game clock (minutes); sets the light and who is out. */
   clock: number;
   /** Street situation happening on this map right now. */
@@ -130,6 +132,7 @@ export default function PixelWorld({
   playerLook,
   addressForm,
   hotspots,
+  zoom = 1,
   clock,
   incident,
   startPosition,
@@ -182,7 +185,7 @@ export default function PixelWorld({
       canvas.style.width = `${cw}px`;
       canvas.style.height = `${ch}px`;
       // Screen pixels per world pixel; about 13 tiles across on a phone.
-      scale = Math.max(1.5, (Math.min(cw, ch * 1.25) * dpr) / 215);
+      scale = Math.max(1.5, (Math.min(cw, ch * 1.25) * dpr * zoom) / 215);
       vw = canvas.width / scale;
       vh = canvas.height / scale;
     };

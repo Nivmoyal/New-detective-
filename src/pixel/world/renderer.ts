@@ -83,6 +83,16 @@ function animFrame(type: string, t: number): [number, number] {
   }
 }
 
+/** Experimental noir look (dev pages only for now): long shadows, wet streets, fog, a colour grade per neighbourhood. */
+export const LOOK = { noir: false };
+const GRADE: Record<string, [string, string]> = {
+  florentin: ['#a21caf', '#0e7490'],
+  levinsky: ['#d97706', '#7c2d12'],
+  neveShaanan: ['#16a34a', '#0f766e'],
+  oldCbs: ['#64748b', '#1e293b'],
+  shapira: ['#eab308', '#9a3412'],
+};
+
 export class WorldRenderer {
   /** 0 at noon, 1 deep at night: how dark the streets are and how strong the lamps. */
   night = 1;
@@ -178,6 +188,7 @@ export class WorldRenderer {
     const gw = Math.min(map.w * T - gx, Math.ceil(vw) + 2);
     const gh = Math.min(map.h * T - gy, Math.ceil(vh) + 2);
     if (gw > 0 && gh > 0) ctx.drawImage(this.groundHD, gx * K, gy * K, gw * K, gh * K, gx, gy, gw, gh);
+    if (LOOK.noir && map.id !== 'station') this.drawBuildingShadows(ctx, camX, camY, vw, vh, openBuilding);
 
     const x0 = camX - 64;
     const x1 = camX + vw + 64;
@@ -216,6 +227,7 @@ export class WorldRenderer {
   renderEffects(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null, k = 1) {
     this.applyLighting(ctx, camX * k, camY * k, vw * k, vh * k, t, openBuilding, T * k);
     if (this.map.rain) this.drawRain(ctx, vw * k, vh * k, k);
+    if (LOOK.noir) this.drawNoir(ctx, camX * k, camY * k, vw * k, vh * k, t, openBuilding, T * k);
   }
 
   private applyLighting(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null, TS: number) {
@@ -259,6 +271,83 @@ export class WorldRenderer {
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+  }
+
+  /** Long shadows cast down-right by the low sun; they fade out with the light. */
+  private drawBuildingShadows(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, openBuilding: string | null) {
+    const day = 1 - this.night;
+    if (day <= 0.05) return;
+    const L = 30;
+    ctx.fillStyle = `rgba(12,8,32,${0.42 * day})`;
+    for (const b of this.map.buildings) {
+      if (b.id === openBuilding) continue;
+      const x0 = b.x * T;
+      const y0 = b.y * T;
+      const x1 = (b.x + b.w) * T;
+      const y1 = (b.y + b.h) * T;
+      if (x1 + L < camX || x0 > camX + vw || y1 + L < camY || y0 > camY + vh) continue;
+      ctx.beginPath();
+      ctx.moveTo(x1, y0 + 4);
+      ctx.lineTo(x1 + L, y0 + 4 + L * 0.8);
+      ctx.lineTo(x1 + L, y1 + L * 0.8);
+      ctx.lineTo(x0 + L * 0.6, y1 + L * 0.8);
+      ctx.lineTo(x0, y1);
+      ctx.lineTo(x1, y1);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  /** Screen-space finish for the noir look: reflections on wet asphalt, grade, fog, vignette. */
+  private drawNoir(ctx: Ctx, camX: number, camY: number, vw: number, vh: number, t: number, openBuilding: string | null, TS: number) {
+    const map = this.map;
+    const night = map.id === 'station' ? 0.3 : this.night;
+    if (map.id !== 'station' && night > 0.2) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const l of map.lights) {
+        if (l.building) continue;
+        const lx = l.x * TS - camX;
+        const ly = l.y * TS - camY;
+        const rr = l.r * TS;
+        if (lx < -rr || lx > vw + rr || ly < -rr || ly > vh + rr * 3) continue;
+        ctx.globalAlpha = 0.45 * night * l.power;
+        // A streak below each lamp, as on a wet road.
+        ctx.drawImage(glowSprite(l.color), lx - rr * 0.35, ly + rr * 0.1, rr * 0.7, rr * 2.4);
+      }
+      ctx.globalAlpha = 1;
+    }
+    const grade = GRADE[map.id];
+    if (grade) {
+      const g = ctx.createLinearGradient(0, 0, vw, vh);
+      g.addColorStop(0, grade[0]);
+      g.addColorStop(1, grade[1]);
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.globalAlpha = 0.28 + 0.2 * night;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, vw, vh);
+    }
+    // Slow fog drifting through the streets at night.
+    if (map.id !== 'station' && !openBuilding) {
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 3; i++) {
+        const fx = ((t * 6 * (i + 1) + i * vw * 0.4) % (vw * 1.6)) - vw * 0.3;
+        const fy = vh * (0.25 + i * 0.25);
+        const r = vw * 0.45;
+        const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, r);
+        fg.addColorStop(0, `rgba(160,170,200,${0.03 + 0.04 * night})`);
+        fg.addColorStop(1, 'rgba(160,170,200,0)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = fg;
+        ctx.fillRect(fx - r, fy - r, r * 2, r * 2);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    const v = ctx.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, `rgba(0,0,0,${0.35 + 0.2 * night})`);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, vw, vh);
   }
 
   private drawRain(ctx: Ctx, vw: number, vh: number, k: number) {

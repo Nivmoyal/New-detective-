@@ -8,6 +8,7 @@ import { activeIncident } from '../data/incidents';
 import { PARTNER, partnerQuips } from '../pixel/world/partner';
 import { genderize } from '../pixel/world/humor';
 import { isOpen } from '../services/clock';
+import { LOOK } from '../pixel/world/renderer';
 
 const params = new URLSearchParams(location.search);
 // ?gen=N shows the first N generated cases on the map.
@@ -15,6 +16,8 @@ syncCaseHorizon(Number(params.get('gen') ?? 0) + 2);
 const map = MAPS[params.get('map') ?? 'station'];
 const x = Number(params.get('x') ?? map.spawn.x);
 const y = Number(params.get('y') ?? map.spawn.y);
+// ?look=noir tries the experimental look; ?zoom=1.5 brings the camera closer.
+LOOK.noir = params.get('look') === 'noir';
 // ?hour=H sets the clock (default noon).
 const clock = Number(params.get('hour') ?? 12) * 60;
 const hotspots = loadCases().flatMap((c) => c.hotspots.filter((h) => h.mapId === map.id).map((h) => ({ hotspot: h, caseId: c.id, available: !h.requires, visited: false, present: isOpen(h.hours, clock) })));
@@ -26,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
       addressForm="male"
       hotspots={hotspots}
       clock={clock}
+      zoom={Number(params.get('zoom') ?? 1)}
       incident={activeIncident(map.id, (params.get('done') ?? '').split(','))}
       onIncident={(i) => console.log('incident', i.id)}
       startPosition={{ x, y }}
